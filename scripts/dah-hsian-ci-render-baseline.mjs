@@ -30,7 +30,7 @@ try{
   const vite=path.resolve('node_modules/vite/bin/vite.js');execFileSync(process.execPath,[vite,'build'],{cwd:temp,stdio:'pipe',maxBuffer:10*1024*1024});
   mainUrl='http://127.0.0.1:5186/';
   server=spawn(process.execPath,[vite,'preview','--host','127.0.0.1','--port','5186','--strictPort'],{cwd:temp,stdio:['ignore','pipe','pipe']});
-  await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>reject(Error('Base preview readiness timeout')),15000);const fail=e=>{clearTimeout(timer);reject(e);};server.once('error',fail);server.once('exit',code=>fail(Error('Base preview exited '+code+': '+output)));server.stdout.on('data',chunk=>{output+=chunk.toString();if(output.includes(mainUrl)){clearTimeout(timer);resolve();}});server.stderr.on('data',chunk=>{output+=chunk.toString();});});
+  await new Promise((resolve,reject)=>{let output='';const plain=()=>output.replace(/\u001b\[[0-9;]*m/g,'');const timer=setTimeout(()=>reject(Error('Base preview readiness timeout: '+plain())),15000);const fail=e=>{clearTimeout(timer);reject(e);};server.once('error',fail);server.once('exit',code=>fail(Error('Base preview exited '+code+': '+plain())));server.stdout.on('data',chunk=>{output+=chunk.toString();if(plain().includes(mainUrl)){clearTimeout(timer);resolve();}});server.stderr.on('data',chunk=>{output+=chunk.toString();});});
   if(server.exitCode!==null||!(await fetch(mainUrl)).ok)throw Error('Base preview not owned and ready');
  }
  const args=process.env.NCCU_BROWSER_METAL?['--use-angle=metal','--enable-gpu']:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'];
