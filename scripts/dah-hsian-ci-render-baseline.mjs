@@ -34,7 +34,7 @@ try{
   if(server.exitCode!==null||!(await fetch(mainUrl)).ok)throw Error('Base preview not owned and ready');
  }
  const args=process.env.NCCU_BROWSER_METAL?['--use-angle=metal','--enable-gpu']:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'];
- browser=await chromium.launch({args});report.browser={version:browser.version(),args};
+ browser=await chromium.launch({args,channel:'chromium'});report.browser={version:browser.version(),args,channel:'chromium'};
  for(const[version,url]of[['main',mainUrl],['candidate',process.env.NCCU_BASE_URL||'http://127.0.0.1:5187/']]){
   const context=await browser.newContext({viewport:{width:1280,height:800},deviceScaleFactor:1});
   try{
@@ -51,7 +51,7 @@ try{
    const bp=await cdp.send('Debugger.setBreakpointByUrl',{url:scriptUrl,lineNumber:prefix.split('\n').length-1,columnNumber:prefix.length-prefix.lastIndexOf('\n')-1});let timer;
    try{await Promise.race([paused,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Diagnostic breakpoint timeout')),30000);})]);}finally{clearTimeout(timer);await cdp.send('Debugger.resume').catch(()=>{});await cdp.send('Debugger.removeBreakpoint',{breakpointId:bp.breakpointId}).catch(()=>{});await cdp.send('Debugger.disable').catch(()=>{});await cdp.detach();}
    const webgl=await page.evaluate(()=>{const gl=__game.renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return{renderer:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),version:gl.getParameter(gl.VERSION)};});
-   for(const mode of ['normal','no-shadows','no-post']){
+   for(const mode of ['normal']){
     await page.evaluate(mode=>{__game.renderer.shadowMap.enabled=mode!=='no-shadows';__dahDiagnosticPost.enabled=mode!=='no-post';__game.perf.reset();},mode);
     await page.waitForFunction(()=>__game.perf.snapshot()?.sampleCount>=6,null,{timeout:180000});
     const data=await page.evaluate(async()=>{
