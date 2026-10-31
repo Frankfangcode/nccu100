@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {ATRIUM_STAIRS,ATRIUM_LEVELS} from '../src/world/buildings/dah-hsian/atrium-layout.js';
 import {observeNativeWalk} from './lib/dah-smoke-walk.mjs';
+import {waitDahGameTime} from './lib/dah-smoke-game-time.mjs';
 const base=process.env.NCCU_BASE_URL||'http://127.0.0.1:5187/';
 const browser=await chromium.launch({args:process.env.NCCU_BROWSER_METAL?['--use-angle=metal','--ignore-gpu-blocklist']:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
 try{
@@ -18,7 +19,7 @@ try{
  await page.waitForFunction(()=>__game.state.room==='dah-hsian'&&!__game.state.busy,null,{timeout:120000});
  const waitGameTime=async(label,start,seconds)=>{
   const wall=Date.now(),before=await page.evaluate(()=>({time:__game.state.time,frames:window.__dahVisualProbe.frames}));
-  try{await page.waitForFunction(({start,seconds})=>__game.state.time>start+seconds,{start,seconds},{timeout:60000});}
+  try{const result=await waitDahGameTime(page,start,seconds);console.log('達賢視覺遊戲步進',JSON.stringify({label,...result}));}
   catch(error){
    const actual=await page.evaluate(()=>{const canvas=document.querySelector('#stage canvas'),gl=canvas&&(canvas.getContext('webgl2')||canvas.getContext('webgl'));return{time:__game.state.time,room:__game.state.room,pos:__game.pos.toArray(),busy:__game.state.busy,hidden:document.hidden,contextLost:gl?.isContextLost(),probe:window.__dahVisualProbe,perf:__game.perf.snapshot()};}).catch(diagnosticError=>({diagnosticError:String(diagnosticError)}));
    console.error('達賢視覺時間等待診斷',JSON.stringify({label,start,seconds,wallMs:Date.now()-wall,before,actual}));throw error;
@@ -28,7 +29,7 @@ try{
  const phase=()=>page.evaluate(()=>__game.rooms[__game.state.room].scene.children.find(x=>x.name==='dah-gradient-sky').material.uniforms.topColor.value.toArray());
  await chip.click();assert.match(await chip.textContent(),/午後/);const day=await phase();
  await chip.click();assert.match(await chip.textContent(),/黃昏/);await chip.click();assert.match(await chip.textContent(),/夜晚/);
- await page.waitForTimeout(1000);const night=await phase();assert.notDeepEqual(day,night);
+ const nightStart=await page.evaluate(()=>__game.state.time);await page.waitForTimeout(1000);await waitGameTime('夜晚完成更新',nightStart,.1);const night=await phase();assert.notDeepEqual(day,night);
  assert.ok(await page.evaluate(()=>{const s=__game.rooms[__game.state.room].scene;return s.children.filter(x=>x.isDirectionalLight&&x.castShadow).length===1&&s.children.some(x=>x.isPointLight&&x.intensity>.5&&!x.castShadow);}));
  await page.evaluate(()=>__game.enterRoom('dah-hsian-2f'));await page.waitForFunction(()=>__game.state.room==='dah-hsian-2f'&&!__game.state.busy,null,{timeout:120000});
  assert.match(await chip.textContent(),/夜晚/);assert.deepEqual(await phase(),night,'進館維持相同天空時段');
@@ -41,8 +42,8 @@ try{
   const scene=__game.rooms['dah-hsian'].scene,water=scene.getObjectByName('景觀池水面');
   if(!water?.material.isShaderMaterial||water.material.userData.dahKind!=='water'||water.material.transparent||!water.material.depthWrite||!water.material.uniforms.t||scene.getObjectByName('池面慢速光紋'))throw Error('認可版必須使用單層池水材質及其實際動畫時鐘');
   return water.material.uniforms.t.value;
- });const frozen=await waterTime();await page.waitForTimeout(1000);assert.deepEqual(await ducks(),a);assert.equal(await waterTime(),frozen,'減少動態保留固定水面');
- await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForTimeout(600);assert.notDeepEqual(await ducks(),a,'取消減少動態恢復鴨群');assert.ok(await waterTime()>frozen,'水光紋恢復');
+ });const frozen=await waterTime(),frozenStart=await page.evaluate(()=>__game.state.time);await page.waitForTimeout(1000);await waitGameTime('減少動態期間仍有遊戲步進',frozenStart,.1);assert.deepEqual(await ducks(),a);assert.equal(await waterTime(),frozen,'減少動態保留固定水面');
+ await page.emulateMedia({reducedMotion:'no-preference'});const resumedStart=await page.evaluate(()=>__game.state.time);await page.waitForTimeout(600);await waitGameTime('恢復動態完成更新',resumedStart,.1);assert.notDeepEqual(await ducks(),a,'取消減少動態恢復鴨群');assert.ok(await waterTime()>frozen,'水光紋恢復');
  await page.setViewportSize({width:375,height:812});assert.ok(await chip.isVisible());await chip.click();assert.match(await chip.textContent(),/黃昏/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.evaluate(()=>__game.enterRoom('gym'));await page.waitForFunction(()=>__game.state.room==='gym'&&!__game.state.busy,null,{timeout:120000});assert.equal(await chip.isVisible(),false);
  await page.close();
