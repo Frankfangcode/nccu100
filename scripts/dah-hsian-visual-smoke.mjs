@@ -9,8 +9,21 @@ try{
  const page=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1}),errors=[];
  page.setDefaultTimeout(120000);
  page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if((m.type()==='error'||/INVALID_OPERATION|program not valid/.test(m.text()))&&!m.location().url.endsWith('/favicon.ico'))errors.push(m.text());});
+ await page.addInitScript(()=>{
+  const probe=window.__dahVisualProbe={frames:0,last:performance.now(),gaps:[],contextEvents:[]};
+  const sample=now=>{probe.frames++;probe.gaps.push(now-probe.last);if(probe.gaps.length>60)probe.gaps.shift();probe.last=now;requestAnimationFrame(sample);};requestAnimationFrame(sample);
+  for(const name of ['webglcontextlost','webglcontextrestored'])document.addEventListener(name,()=>probe.contextEvents.push({name,at:performance.now()}),true);
+ });
  await installDahSmokeCoordinates(page);await page.goto(base+'?debug&area=dah-hsian',{timeout:120000});await page.waitForFunction(()=>window.__game,null,{timeout:120000});await page.locator('#go').click();
  await page.waitForFunction(()=>__game.state.room==='dah-hsian'&&!__game.state.busy,null,{timeout:120000});
+ const waitGameTime=async(label,start,seconds)=>{
+  const wall=Date.now(),before=await page.evaluate(()=>({time:__game.state.time,frames:window.__dahVisualProbe.frames}));
+  try{await page.waitForFunction(({start,seconds})=>__game.state.time>start+seconds,{start,seconds},{timeout:60000});}
+  catch(error){
+   const actual=await page.evaluate(()=>{const canvas=document.querySelector('#stage canvas'),gl=canvas&&(canvas.getContext('webgl2')||canvas.getContext('webgl'));return{time:__game.state.time,room:__game.state.room,pos:__game.pos.toArray(),busy:__game.state.busy,hidden:document.hidden,contextLost:gl?.isContextLost(),probe:window.__dahVisualProbe,perf:__game.perf.snapshot()};}).catch(diagnosticError=>({diagnosticError:String(diagnosticError)}));
+   console.error('達賢視覺時間等待診斷',JSON.stringify({label,start,seconds,wallMs:Date.now()-wall,before,actual}));throw error;
+  }
+ };
  const chip=page.locator('#dah-time');assert.ok(await chip.isVisible());
  const phase=()=>page.evaluate(()=>__game.rooms[__game.state.room].scene.children.find(x=>x.name==='dah-gradient-sky').material.uniforms.topColor.value.toArray());
  await chip.click();assert.match(await chip.textContent(),/午後/);const day=await phase();
@@ -21,10 +34,14 @@ try{
  assert.match(await chip.textContent(),/夜晚/);assert.deepEqual(await phase(),night,'進館維持相同天空時段');
  await chip.focus();const before=await page.evaluate(()=>({y:__game.pos.y,room:__game.state.room}));await page.keyboard.press('Space');assert.match(await chip.textContent(),/自動/);assert.equal(await page.evaluate(()=>__game.state.vy),0,'Space只操作按鈕');
  const sunDirection=()=>page.evaluate(()=>{const sun=__game.rooms[__game.state.room].scene.children.find(o=>o.isDirectionalLight&&o.castShadow);return sun.position.clone().sub(sun.target.position).normalize().toArray();});
- const movingSun=await sunDirection(),autoStart=await page.evaluate(()=>__game.state.time);await page.waitForFunction(t=>__game.state.time>t+1,autoStart,{timeout:60000});const movedSun=await sunDirection();assert.ok(Math.hypot(...movedSun.map((v,i)=>v-movingSun[i]))>.001,'自動模式太陽方向隨真實步進持續變化（深夜天空色可持平）');
- const modeChangedAt=await page.evaluate(()=>__game.state.time);await page.keyboard.press('Enter');assert.match(await chip.textContent(),/午後/);assert.equal(await page.evaluate(()=>__game.state.room),before.room);await page.waitForFunction(t=>__game.state.time>t+.1,modeChangedAt,{timeout:60000});const fixedSky=await phase(),fixedStart=await page.evaluate(()=>__game.state.time);await page.waitForFunction(t=>__game.state.time>t+1,fixedStart,{timeout:60000});assert.deepEqual(await phase(),fixedSky,'固定午後不隨遊戲時間改變');
+ const movingSun=await sunDirection(),autoStart=await page.evaluate(()=>__game.state.time);await waitGameTime('自動日夜',autoStart,1);const movedSun=await sunDirection();assert.ok(Math.hypot(...movedSun.map((v,i)=>v-movingSun[i]))>.001,'自動模式太陽方向隨真實步進持續變化（深夜天空色可持平）');
+ const modeChangedAt=await page.evaluate(()=>__game.state.time);await page.keyboard.press('Enter');assert.match(await chip.textContent(),/午後/);assert.equal(await page.evaluate(()=>__game.state.room),before.room);await waitGameTime('切換午後',modeChangedAt,.1);const fixedSky=await phase(),fixedStart=await page.evaluate(()=>__game.state.time);await waitGameTime('固定午後',fixedStart,1);assert.deepEqual(await phase(),fixedSky,'固定午後不隨遊戲時間改變');
  await page.emulateMedia({reducedMotion:'reduce'});await page.evaluate(()=>__game.enterRoom('dah-hsian'));await page.waitForFunction(()=>__game.state.room==='dah-hsian'&&!__game.state.busy,null,{timeout:120000});
- const ducks=()=>page.evaluate(()=>__game.rooms['dah-hsian'].scene.getObjectByName('景觀池鴨群').children.map(d=>d.position.toArray()));const a=await ducks();const waterTime=()=>page.evaluate(()=>__game.rooms['dah-hsian'].scene.getObjectByName('池面慢速光紋').material.uniforms.time.value);const frozen=await waterTime();await page.waitForTimeout(1000);assert.deepEqual(await ducks(),a);assert.equal(await waterTime(),frozen,'減少動態保留固定水面');
+ const ducks=()=>page.evaluate(()=>__game.rooms['dah-hsian'].scene.getObjectByName('景觀池鴨群').children.map(d=>d.position.toArray()));const a=await ducks();const waterTime=()=>page.evaluate(()=>{
+  const scene=__game.rooms['dah-hsian'].scene,water=scene.getObjectByName('景觀池水面');
+  if(!water?.material.isShaderMaterial||water.material.userData.dahKind!=='water'||water.material.transparent||!water.material.depthWrite||!water.material.uniforms.t||scene.getObjectByName('池面慢速光紋'))throw Error('認可版必須使用單層池水材質及其實際動畫時鐘');
+  return water.material.uniforms.t.value;
+ });const frozen=await waterTime();await page.waitForTimeout(1000);assert.deepEqual(await ducks(),a);assert.equal(await waterTime(),frozen,'減少動態保留固定水面');
  await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForTimeout(600);assert.notDeepEqual(await ducks(),a,'取消減少動態恢復鴨群');assert.ok(await waterTime()>frozen,'水光紋恢復');
  await page.setViewportSize({width:375,height:812});assert.ok(await chip.isVisible());await chip.click();assert.match(await chip.textContent(),/黃昏/);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.evaluate(()=>__game.enterRoom('gym'));await page.waitForFunction(()=>__game.state.room==='gym'&&!__game.state.busy,null,{timeout:120000});assert.equal(await chip.isVisible(),false);
