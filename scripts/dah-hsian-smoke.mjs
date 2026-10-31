@@ -1,3 +1,4 @@
+import './dah-hsian-ci-render-baseline.mjs';
 /** 達賢真實瀏覽器驗收；NCCU_BASE_URL 可指向本機、preview 或既有正式網址。 */
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
