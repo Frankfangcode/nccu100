@@ -78,3 +78,18 @@ test('小屋與湖邊步道有照片中的六角鋪面島，貼住草地並避�
  const centres=islands.userData.tileCentres;assert.ok(centres.length>=12,'actual separate six-corner units');
  for(const [x,z]of centres.slice(0,12)){ray.ray.origin.set(x,10,z);assert.ok(ray.intersectObject(islands).length,'actual visible hex face, not metadata only');}
 });
+test('raised terrain has real retaining faces at every lower/upper ground discontinuity',()=>{
+ const ground=createGround();ground.updateMatrixWorld(true);
+ const ray=new THREE.Raycaster(new THREE.Vector3(0,1,0),new THREE.Vector3(1,0,0),0,4),known=new THREE.Mesh(new THREE.BoxGeometry(.2,4,8));known.position.set(2,1,0);known.updateMatrixWorld();assert.ok(ray.intersectObject(known).length,'calibrate horizontal wall ray');
+ for(const side of[-1,1])for(const z of[4,14,26]){const top=4*z/28;ray.set(new THREE.Vector3(side*28,top/2,z),new THREE.Vector3(side,0,0));ray.far=4;assert.ok(ray.intersectObject(ground,true).some(h=>Math.abs(Math.abs(h.point.x)-30)<.02),JSON.stringify({side,z,reason:'side bank is an open floating sheet'}));}
+ for(const x of[-29,-20,0,20,29]){ray.set(new THREE.Vector3(x,2,26),new THREE.Vector3(0,0,1));ray.far=4;assert.ok(ray.intersectObject(ground,true).some(h=>Math.abs(h.point.z-28)<.02),JSON.stringify({x,reason:'front bank exposes the underside'}));}
+});
+test('every outdoor tree has visible ground support at its existing root height',async()=>{
+ const {createOutdoorModel,TREE_POSITIONS}=await import('../src/world/buildings/dah-hsian/model.js');const model=createOutdoorModel();model.updateMatrixWorld(true);const ground=[model.getObjectByName('達賢地面'),model.getObjectByName('老樹廣場弧形階梯'),model.getObjectByName('老樹樹穴')],ray=calibratedRay();
+ for(const [x,z]of TREE_POSITIONS){ray.ray.origin.set(x,10,z);const hit=ray.intersectObjects(ground,true)[0];assert.ok(hit,JSON.stringify({x,z,reason:'tree without terrain'}));assert.ok(Math.abs(hit.point.y-groundHeight(x,z))<.08,JSON.stringify({x,z,root:groundHeight(x,z),ground:hit.point.y}));}
+});
+test('low-ground walkers cannot climb through a four-metre soil face; the upper entrance stays open',async()=>{
+ const {keepOnLand}=await import('../src/world/buildings/dah-hsian/layout.js');
+ for(const p of[{x:20,y:0,z:27.9},{x:29.9,y:0,z:14},{x:-29.9,y:0,z:14}]){const before={...p};keepOnLand(p);assert.ok(Math.hypot(p.x-before.x,p.z-before.z)>.1,'solid soil face must also collide');}
+ const top={x:20,y:4,z:28.1};keepOnLand(top);assert.ok(Math.abs(top.x-20)<.001&&Math.abs(top.z-28.1)<.001);
+});

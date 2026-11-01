@@ -67,7 +67,7 @@ test('ordinary wood and glass preserve albedo across time while actual emitters 
 
 test('grass uses smooth low-contrast variation at broad world scale without changing its toon color',async()=>{
  const {createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js'),factory=createDahMaterialFactory(),grass=factory('grass');
- assert.ok(grass.isMeshToonMaterial);assert.equal(grass.color.getHexString(),'7c9f66');
+ assert.ok(grass.isMeshToonMaterial);assert.equal(grass.color.getHexString(),'86c35a');
  const map=grass.map;assert.ok(map?.isDataTexture,'grass needs actual material variation');
  const {data,width,height}=map.image;let lo=255,hi=0,adjacent=0;const values=new Set();
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
@@ -82,7 +82,7 @@ test('grass uses smooth low-contrast variation at broad world scale without chan
  assert.ok(1/scale(shader)>20,'grass repeat spans a broad world region rather than a 2m tile');assert.ok(scale(shader)<scale(woodShader)/8);
  assert.ok(shader.vertexShader.includes('modelMatrix*dahPos'),'mapping follows world position regardless of mesh dimensions');
  assert.ok(shader.fragmentShader.includes('texture2D( map, dahMapUv )'));assert.notEqual(grass.customProgramCacheKey(),factory('wood').customProgramCacheKey(),'different mapping scales cannot share the shader program key');
- factory.setEnvironment({night:1});assert.equal(grass.emissiveIntensity,0);assert.equal(grass.color.getHexString(),'7c9f66');
+ factory.setEnvironment({night:1});assert.equal(grass.emissiveIntensity,0);assert.equal(grass.color.getHexString(),'86c35a');
 });
 
 
@@ -102,5 +102,5 @@ test('後區家具保留達賢共用日夜材質的著色補正，不因換色�
  const {createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js');
  const {buildRearFurniture}=await import('../src/world/buildings/dah-hsian/interior-rear-furniture.js');
  const f=createDahMaterialFactory(),root=new THREE.Group();buildRearFurniture(root,f);let count=0;
- root.traverse(o=>{if(!o.material?.userData.rearFurniture)return;count++;assert.equal(o.material.onBeforeCompile,f('white').onBeforeCompile,'複製顏色仍須保留日夜補正');assert.equal(o.material.customProgramCacheKey,f('white').customProgramCacheKey);});assert.ok(count>10);
+ root.traverse(o=>{if(!o.material?.userData.rearFurniture)return;count++;const kind=o.material.userData.dahKind;assert.ok(['white','wood'].includes(kind),'家具保留實際來源材質種類');assert.equal(o.material.onBeforeCompile,f(kind).onBeforeCompile,'複製顏色仍須保留來源材質的日夜補正');assert.equal(o.material.customProgramCacheKey,f(kind).customProgramCacheKey);if(o.userData.rearPart==='stepTimber'){assert.equal(kind,'wood');assert.equal(o.material.map,f('wood').map,'階梯木座保留木紋貼圖');}});assert.ok(count>10);
 });

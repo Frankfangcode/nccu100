@@ -7,31 +7,39 @@ import {MAIN_FLOORS} from './public-floor-layout.js';
 import {rearFurniture} from './rear-furniture-layout.js';
 import {cloneDahMaterial} from './materials.js';
 const BOX=new THREE.BoxGeometry(1,1,1),ROUND=new THREE.CylinderGeometry(.5,.5,1,12),HEX=new THREE.CylinderGeometry(.5,.5,1,6),WHEEL=new THREE.CylinderGeometry(.5,.5,1,6).rotateY(Math.PI/6).rotateZ(Math.PI/2);
-const COLORS={pale:'#ddd7bb',steel:'#8a9291',black:'#303638',green:'#9cab53',gray:'#909492',white:'#d9ded4',red:'#bb583f',teal:'#91b5ac',upholstery:'#929c9b'};
+const COLORS={stepWood:'#bfa17c',pale:'#ddd7bb',steel:'#8a9291',black:'#303638',green:'#9cab53',gray:'#909492',white:'#d9ded4',red:'#bb583f',teal:'#91b5ac',upholstery:'#929c9b',bookRed:'#bc7969',bookGold:'#d6b465',bookBlue:'#7195a4',bookGreen:'#8ca68b'};
 export function buildRearFurniture(parent,mat){
  const root=new THREE.Group();root.name='來源公開後區家具';parent.add(root);
  const batches=new Map(),materials=new Map(),pose=new THREE.Object3D();
- const material=color=>{if(!materials.has(color)){const m=cloneDahMaterial(mat('white'));m.color.set(COLORS[color]||color);m.userData={...m.userData,rearFurniture:true};materials.set(color,m);}return materials.get(color);};
+ const material=color=>{if(!materials.has(color)){const m=cloneDahMaterial(mat(color==='stepWood'?'wood':'white'));m.color.set(COLORS[color]||color);m.userData={...m.userData,rearFurniture:true};materials.set(color,m);}return materials.get(color);};
  for(const f of MAIN_FLOORS){
   const group=new THREE.Group();group.name=`${f.id}公開後區家具`;group.userData.rearFloor=f.id;root.add(group);
   for(const o of rearFurniture(f.id)){
    const add=(role,color,x,y,z,w,h,d,shape='box',yaw=0)=>{
     const angle=o.yaw||0,c=Math.cos(angle),s=Math.sin(angle),key=[f.id,role,color,shape].join(':');
     if(!batches.has(key))batches.set(key,{group,role,color,shape,items:[]});
-    const verticalScale=o.verticalScale||1;
+    // 小屋的高側板／屋頂屬頭部淨空，工作面降低不連帶壓低遮罩。
+    const verticalScale=o.type==='avNook'&&['sidePanel','divider'].includes(role)?1:o.verticalScale||1;
     batches.get(key).items.push({id:o.id,x:o.x+x*c+z*s,y:o.y+y*verticalScale,z:o.z+z*c-x*s,w,h:h*verticalScale,d,yaw:angle+yaw});
    };
-   if(o.type==='doorPost'){
+   if(o.type==='stepBench'){
+    add('stepTimber','stepWood',0,o.h/2,0,o.w,o.h,o.d);
+    for(const u of o.cushionOffsets)add(o.cushionShape==='round'?'stepRoundCushion':'stepSquareCushion','upholstery',u,o.h+.035,0,.42,.07,.42,o.cushionShape==='round'?'round':'box');
+   }else if(o.type==='doorPost'){
+
     add('frame','steel',0,1.15,-.3,.065,2.3,.1);
     add('openedLeaf','white',0,1.1,.025,.04,2.2,.65);
    }else if(o.type==='serviceShelf'){
     add('shelfBack','pale',0,o.h/2,0,o.w,o.h,o.d*.18);
     for(let j=0;j<=3;j++)add('shelf','pale',0,.035+(o.h-.07)*j/3,0,o.w,.07,o.d);
+    // 三格層板放書，與書牆同色系；寬高以固定規律變化，不用隨機數，畫面每次載入一致。
+    const along=Math.max(o.w,o.d),books=['bookRed','bookGold','bookBlue','bookGreen','pale'],bay=(o.h-.07)/3-.07;
+    for(let j=0;j<3;j++){let u=-along/2+.04,n=j*7;while(u<along/2-.1){const width=.045+(n*13%5)*.008,height=bay*(.72+(n*7%4)*.06),c=books[(n*3+j)%books.length],y=.07+(o.h-.07)*j/3+height/2;if(o.w>=o.d)add('book',c,u+width/2,y,0,width,height,o.d*.78);else add('book',c,0,y,u+width/2,o.w*.78,height,width);u+=width+.006+(n%9===4?.05:0);n++;}}
    }else if(o.type==='counter'){
     const shape=new THREE.Shape(o.points.map(([x,z])=>new THREE.Vector2(x,-z)));
     for(const [role,y,h,color]of [['body',0,.94,'pale'],['top',.94,.09,'pale']]){
      const geometry=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false});geometry.rotateX(-Math.PI/2);
-     const mesh=new THREE.Mesh(geometry,material(color));mesh.position.y=o.y+y;mesh.name='4F來源弧形服務櫃台';Object.assign(mesh.userData,{rearId:o.id,rearFloor:f.id,rearPart:role});group.add(mesh);
+     const mesh=new THREE.Mesh(geometry,material(color));mesh.position.y=o.y+y*(o.verticalScale||1);mesh.scale.y=o.verticalScale||1;mesh.name='4F來源弧形服務櫃台';Object.assign(mesh.userData,{rearId:o.id,rearFloor:f.id,rearPart:role});group.add(mesh);
     }
    }else if(o.type==='videoShelf'){
     add('shelfBack','pale',0,o.h/2,0,o.barWidth,o.h,.12);
@@ -139,7 +147,7 @@ export function buildRearFurniture(parent,mat){
     const shape=['round','exchange','low','av'].includes(o.type)?'round':o.type==='hex'?'hex':'box';
     if(o.type==='cluster'){
      // Overlapping circular leaves preserve the clustered curved silhouette.
-     for(const x of [-.49,0,.49])add('top','pale',x,o.h-.045,0,1.02,.09,1.02,'round');
+     for(const x of [-.49,0,.49])add('top','pale',x,o.h/(o.verticalScale||1)-.045,0,1.02,.09,1.02,'round');
     }else add('top','pale',0,o.h/(o.verticalScale||1)-.045,0,o.w,.09,o.d,shape);
     for(const x of [-1,1])for(const z of [-1,1])add('leg','steel',x*o.w*.28,(o.h/(o.verticalScale||1)-.09)/2,z*o.d*.28,.055,o.h/(o.verticalScale||1)-.09,.055);
     if(o.type==='av'){

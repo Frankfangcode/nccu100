@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 const base=process.env.NCCU_BASE_URL||'http://127.0.0.1:5187/';
 const browser=await chromium.launch({args:process.env.NCCU_BROWSER_METAL?['--use-angle=metal','--ignore-gpu-blocklist']:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
-const stations=[{id:'2F-atrium',p:[-10,0,10],look:[-2,-10]},{id:'upper-gallery',p:[9.73,10.7,-9.12],look:[19,-10]},{id:'2F-hall',p:[-17,0,-12],look:[-7,-18]}];
+const stations=[{id:'2F-atrium',p:[-10,0,10],look:[-2,-10]},{id:'4F-rear-aisle',p:[-6*.95,12.1*.83,-12*.95],look:[0,-8]},{id:'2F-hall',p:[-17,0,-12],look:[-7,-18]}];
 try{
  const page=await browser.newPage({viewport:{width:375,height:812},isMobile:true,hasTouch:true,deviceScaleFactor:1}),errors=[];
  page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if((m.type()==='error'||/INVALID_OPERATION|program not valid/.test(m.text()))&&!m.location().url.endsWith('/favicon.ico'))errors.push(m.text());});

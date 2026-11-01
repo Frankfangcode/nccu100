@@ -18,7 +18,15 @@ try {
   await page.waitForFunction(()=>window.__game.state.room==='dah-hsian'&&!window.__game.state.busy,null,{timeout:60000});
   assert.equal(await page.evaluate(()=>window.__game.state.room),'dah-hsian','預覽開始後必須切到獨立的達賢區域');
   const frameTime=async()=>page.evaluate(()=>__game.state.time);
-  const waitTime=async(start,seconds)=>page.waitForFunction(({start,seconds})=>__game.state.time>=start+seconds,{start,seconds},{timeout:60000});
+  const waitTime=async(start,seconds)=>{
+    const wall=Date.now();
+    const before=await page.evaluate(()=>{const p=window.__dahWaitProbe;if(!p){const probe=window.__dahWaitProbe={frames:0,last:performance.now(),gaps:[]};const sample=now=>{probe.frames++;probe.gaps.push(now-probe.last);if(probe.gaps.length>120)probe.gaps.shift();probe.last=now;requestAnimationFrame(sample);};requestAnimationFrame(sample);}return{frames:window.__dahWaitProbe.frames,pos:__game.pos.toArray()};});
+    try{await page.waitForFunction(({start,seconds})=>__game.state.time>=start+seconds,{start,seconds},{timeout:60000});}
+    catch(error){
+      const actual=await page.evaluate(()=>({time:__game.state.time,pos:__game.pos.toArray(),room:__game.state.room,busy:__game.state.busy,hidden:document.hidden,visibility:document.visibilityState,probe:window.__dahWaitProbe,perf:__game.perf?.snapshot?.()}));
+      console.error('達賢遊戲時間等待診斷',JSON.stringify({start,seconds,wallMs:Date.now()-wall,before,actual}));throw error;
+    }
+  };
   await page.evaluate(()=>{
     const tree=__game.rooms['dah-hsian'].scene.getObjectByName('達賢共用樹');
     if(!tree)throw new Error('達賢必須使用校園共用樹');

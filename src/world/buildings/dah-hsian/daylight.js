@@ -101,6 +101,15 @@ export function createDahLighting(scene, { interior = false, mobile = false } = 
     scene.add(light);return light;
   });
   const lastFixturePosition=new THREE.Vector3(Infinity,Infinity,Infinity);let nearest=[];
+  // 室內固定有限數量真燈；其餘發光燈具與中性間接光維持連續明暗。
+  // 不以角色距離搬動光源，避免走路時像感應燈突然亮起。
+  if(interior){
+    const available=[...fixtures],anchors=[[-12,7.1,-18.8],[-8,3.6,5],[6,19,-8],[0,25,18]];
+    nearest=anchors.slice(0,localLights.length).map(p=>{
+      if(!available.length)return undefined;
+      const anchor=new THREE.Vector3(...p);available.sort((a,b)=>a.distanceToSquared(anchor)-b.distanceToSquared(anchor));return available.shift();
+    });
+  }
   function update(profile, playerPosition = new THREE.Vector3()) {
     sky.position.copy(playerPosition);
     sky.material.uniforms.topColor.value.copy(profile.sky);
@@ -119,7 +128,7 @@ export function createDahLighting(scene, { interior = false, mobile = false } = 
     for(const axis of [right,up]){const v=target.dot(axis);target.addScaledVector(axis,Math.round(v/texel)*texel-v);}
     sun.target.position.copy(target);sun.position.copy(target).addScaledVector(direction,100);
     sun.target.updateMatrixWorld();sun.updateMatrixWorld();sun.shadow.updateMatrices(sun);
-    if(lastFixturePosition.distanceToSquared(playerPosition)>.25){const candidates=fixtures.filter(p=>!interior||(p.y>playerPosition.y+.1&&p.y<playerPosition.y+4.2));
+    if(!interior&&lastFixturePosition.distanceToSquared(playerPosition)>.25){const candidates=fixtures.filter(p=>!interior||(p.y>playerPosition.y+.1&&p.y<playerPosition.y+4.2));
       const ranked=candidates.sort((a,b)=>a.distanceToSquared(playerPosition)-b.distanceToSquared(playerPosition));
       const chosen=ranked.slice(0,localLights.length);
       // Keep pool slots stable while the nearest set is unchanged.

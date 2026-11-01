@@ -1,0 +1,14 @@
+import test from'node:test';import assert from'node:assert/strict';
+test('店內沿用真實桌椅位置，補完整落地支撐，火鍋留在桌上而非角色身上',async()=>{
+ const THREE=await import('three'),{createHotpotInterior,HOTPOT_SEAT}=await import('../src/world/buildings/dah-hsian/hotpot-model.js'),{createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js');
+ const root=createHotpotInterior(createDahMaterialFactory());root.updateMatrixWorld(true);const legs=[],chairs=[];root.traverse(o=>{if(o.name==='餐桌落地桌腳'||o.name==='餐椅落地椅腳')legs.push(o);if(o.name==='小尚品餐椅')chairs.push(o);});assert.equal(legs.length,36);assert.ok(chairs.some(o=>Math.abs(o.position.x-HOTPOT_SEAT.x)<1e-8&&Math.abs(o.position.z-HOTPOT_SEAT.z)<1e-8));
+ const tableTop=new THREE.Box3().setFromObject(root.getObjectByName('小尚品餐桌')),seatTop=new THREE.Box3().setFromObject(root.getObjectByName('小尚品餐椅'));
+ assert.ok(Math.abs(tableTop.max.y-.6)<1e-6,'桌面離地 .48，對齊現有角色肘腕');assert.ok(Math.abs(seatTop.max.y-.38)<1e-6,'椅面離地 .26，對齊現有角色臀腿');
+ for(const o of legs){const b=new THREE.Box3().setFromObject(o);assert.ok(Math.abs(b.min.y-.12)<1e-6,'腳必須接到地坪');assert.ok(Math.abs(b.max.y-(o.name==='餐桌落地桌腳'?tableTop.min.y:seatTop.min.y))<1e-6,'腳必須接到桌底／座面');}assert.ok(root.getObjectByName('桌上火鍋'));assert.ok(root.getObjectByName('小尚品完整天花'));
+});
+test('a meal animates first, then smells for exactly sixty seconds across visits without challenge states',async()=>{
+ const {createHotpotMeal}=await import('../src/world/buildings/dah-hsian/meal-rules.js');let now=0;const m=createHotpotMeal(()=>now);assert.equal(m.begin(),true);assert.equal(m.begin(),false);now=2.99;assert.equal(m.sample().phase,'eating');now=3;assert.equal(m.sample().phase,'scent');now=62.99;assert.equal(m.sample().phase,'scent');now=63;assert.equal(m.sample().phase,'idle');assert.equal(m.begin(),true);now=64;m.cancelEating();assert.equal(m.sample().phase,'idle');
+});
+test('meal effect follows the same player, keeps a bounded cloud, completes once and disposes its temporary meshes',async()=>{
+ const THREE=await import('three'),{createHotpotEffect}=await import('../src/world/buildings/dah-hsian/meal-effect.js');let time=0,next,done=0;const player=new THREE.Group(),rig=new THREE.Group();player.add(rig);const H=Object.fromEntries(['shL','shR','head'].map(k=>[k,new THREE.Group()]));Object.values(H).forEach(g=>rig.add(g));const effect=createHotpotEffect({player,rig,H,now:()=>time,requestFrame:fn=>(next=fn,1),cancelFrame(){}});effect.begin(()=>done++);assert.ok(player.getObjectByName('吃鍋碗'));time=1;effect.updatePose();assert.ok(H.shR.rotation.x<-1);time=3;next();assert.equal(done,1);assert.equal(player.getObjectByName('火鍋氣味雲').children[0].count,15);assert.equal(player.getObjectByName('吃鍋碗').visible,false);time=62.9;next();assert.equal(effect.phase,'scent');time=63;next();assert.equal(effect.phase,'idle');assert.equal(player.getObjectByName('火鍋氣味雲'),undefined);assert.equal(player.getObjectByName('吃鍋碗'),undefined);assert.equal(done,1);
+});

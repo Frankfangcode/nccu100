@@ -8,8 +8,12 @@ import {interiorColliders,RESTROOM_DOORS,UTILITY_DOOR} from './interior-layout.j
 import {createDahMaterialFactory,addDahContactShadows} from './materials.js';
 import {createDahLighting,configureDahShadows} from './daylight.js';
 import {dahClock} from './visual-clock.js';
+import {DAH_HORIZONTAL_SCALE,DAH_VERTICAL_SCALE,toDahCollider} from './interior-space.js';
 import {batchDahStatic} from './static-batch.js';
-let materialFactory,lighting,contacts;
+import {partitionDahInstances} from './spatial-instances.js';
+let materialFactory,lighting,contacts,interiorModel,interiorScene;
+export const getInteriorModel=()=>interiorModel;
+export const getInteriorScene=()=>interiorScene;
 export function updateInterior(time,position){const p=dahClock.sample(time);materialFactory?.setEnvironment(p);contacts?.update(p);lighting?.update(p,position);}
 function sign(parent,text,x,y,z,w,h,angle=0,bg=null,color='#eee9df'){
  const texture=canvasTex(1024,256,(g,cw,ch)=>{if(bg){g.fillStyle=bg;g.fillRect(0,0,cw,ch);}g.fillStyle=color;g.font='700 180px "Noto Sans TC",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,cw/2,ch/2,cw-40);});
@@ -34,7 +38,7 @@ export function buildInterior(){
  });
  const displayMat=basic({map:display});
  const materialFor=kind=>kind==='display'?displayMat:materialFactory(kind);
- const model=createInteriorModel(materialFor);scene.add(model);colliders.push(...interiorColliders());
+ const model=createInteriorModel(materialFor);interiorModel=model;scene.add(model);colliders.push(...interiorColliders().map(toDahCollider));
  const carpetArt=new THREE.Mesh(new THREE.PlaneGeometry(7,7),basic({map:glyph,transparent:true,depthWrite:false}));carpetArt.name='自畫藍毯金色圖樣';carpetArt.rotation.x=-Math.PI/2;carpetArt.position.set(-8,.026,6);model.add(carpetArt);
  const gratitude=model.getObjectByName('大廳側面感恩牆');
  sign(gratitude,'國立政治大學',2,2.4,.2,2.8,.35);
@@ -48,14 +52,17 @@ export function buildInterior(){
  for(const o of [...RESTROOM_DOORS,UTILITY_DOOR]){const a=o.angle||0;sign(model,o.label,o.x+Math.sin(a)*.1,2.65,o.z+Math.cos(a)*.1,1.35,.32,a,'#35495a');}
  sign(model,'廁所 ←',-14.9,2.8,-17.8,1.5,.35,Math.PI/2,'#35495a');
  sign(model,'預約取書',-5.5,3.1,-1.55,2,.3,-Math.PI/2,'#35495a');
- sign(model,'2F　特藏中心',-1.7,2.8,7,4,.5,-Math.PI/2,'#35495a');
+ sign(model,'2F　特藏中心',-1.85,3.02,7,4,.36,-Math.PI/2,'#35495a');
  sign(model,'新書・期刊閱覽',-3,3.1,20.2,5,.45,Math.PI,'#35495a');
  sign(gratitude,'感恩牆',-3.1,1.02,.36,1.8,.28);
  contacts=addDahContactShadows(model,{interior:true});
  for(const z of [-17,-11,-6])sign(model,'作業區',-1.73,2.7,z,1.3,.3,-Math.PI/2,null,'#35495a');
  model.userData.dahStaticBatches=batchDahStatic(model);
+ model.userData.dahSpatialInstances=partitionDahInstances(model);
+ model.scale.set(DAH_HORIZONTAL_SCALE,DAH_VERTICAL_SCALE,DAH_HORIZONTAL_SCALE);model.updateMatrixWorld(true);
 }
 export function interiorLight(s){
+ interiorScene=s;
  configureDahShadows(s);
  lighting=createDahLighting(s,{interior:true,mobile:typeof matchMedia==='function'&&matchMedia('(max-width: 520px)').matches});
 }

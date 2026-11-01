@@ -284,7 +284,7 @@ try {
     if (indoorMini === outdoorMini) errors.push(id + ' 進入室內後小地圖未更新');
     await page.evaluate(() => window.__game.exitRoom());
     // 子房間回所屬區域；明確驗證已核可契約，不從被測實作讀預期值。
-    const returnRoom = ({'dah-hsian-2f':'dah-hsian',anjiu:'uphill-campus'})[id] ?? null;
+    const returnRoom = ({'dah-hsian-2f':'dah-hsian','dah-hsian-hotpot':'dah-hsian',anjiu:'uphill-campus'})[id] ?? null;
     try {
       await page.waitForFunction(room => window.__game.state.room === room && !window.__game.state.busy, returnRoom, { timeout: 60000 });
     } catch (error) {

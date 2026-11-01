@@ -1,3 +1,5 @@
+import {widenPublicWc} from './wc-clearance-layout.js';
+import {COMMONS_STEP_WINDOW,COMMONS_STEP_CORNER} from './commons-step-layout.js';
 /** Official column-registered 3/4/5/7F public areas and room fronts.
  * Source plans are linked per floor. Lines/door centers are manual photo/plan
  * estimates; furniture centers are samples, not exact counts or surveyed metres.
@@ -7,6 +9,7 @@ export const SOURCE_REAR_LAYOUT={
  "3F": {
   "source": "https://sub.lib.nccu.edu.tw/map/imgs/dhl3f.jpg",
   "regions": [
+   COMMONS_STEP_CORNER,
    [[-15.126,-22],[-14.7,-22],[-14.7,-14.623],[-15.126,-14.623]],
    [[-14.958,-23.677],[-12.048,-22.587],[-11.626,-23.635],[-8.506,-22.587],[-8.211,-23.677],[-8.211,-21.6],[-14.958,-21.6]],
    [
@@ -275,6 +278,7 @@ export const SOURCE_REAR_LAYOUT={
    "uncertainty": "line location manual +/-3 derivative px; no full-height glazing guarantee; no source proof every bay opens"
   },
   "outerEdges": [
+   COMMONS_STEP_WINDOW,
    {
     "id": "west_commons_exterior",
     "points": [
@@ -2495,3 +2499,31 @@ export const SOURCE_REAR_LAYOUT={
   }
  }
 };
+
+// 已授權合理重建：保留來源描點，遊戲前廊採同源的較寬輪廓。
+for(const rear of Object.values(SOURCE_REAR_LAYOUT))widenPublicWc(rear);
+
+// G梯上端前廊與會議廳共用邊界，向封閉室內退讓，保留正常落腳及鏡頭空間。
+for(const front of SOURCE_REAR_LAYOUT['7F'].fronts){
+ if(front.id.startsWith('west_hall_south_')){
+  front.sourceFixed=front.fixed;front.fixed-=.75;front.clearanceOffset=-.75;
+  if(front.gameXZ)front.gameXZ=front.gameXZ.map(([x])=>[x,front.fixed]);
+ }
+ if(front.id==='west_hall_east_front')front.hi-=.75;
+}
+
+// 書牆正背兩面均保留正常鏡頭，向未開放房間內退讓前牆。
+// 來源描點留作比對，門的位置沿牆保留，房間輪廓由同一遊戲邊界重建。
+for(const [id,frontId,offset] of [
+ ['5F','north_rooms_south_front',-2.15],
+ ['5F','north_office_south_front',-.435],
+ ['7F','north_meeting_south_front',-2.15],
+ ['7F','east_rooms_west_front',1.7],
+]){
+ const front=SOURCE_REAR_LAYOUT[id].fronts.find(f=>f.id===frontId);
+ front.sourceFixed=front.fixed;front.fixed+=offset;front.clearanceOffset=offset;
+ if(front.gameXZ)front.gameXZ=front.gameXZ.map(([x,z])=>front.axis==='x'?[x,front.fixed]:[front.fixed,z]);
+}
+// 兩段北側門面現在共線，不保留原本短回牆在新走道內形成凸角。
+const northReturn=SOURCE_REAR_LAYOUT['5F'].fronts.findIndex(f=>f.id==='north_step_return');
+if(northReturn>=0)SOURCE_REAR_LAYOUT['5F'].fronts.splice(northReturn,1);

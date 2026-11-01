@@ -1,3 +1,4 @@
+import {groundFurnitureTop} from '../src/world/buildings/dah-hsian/furniture-fit.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -35,7 +36,7 @@ test('體驗區一般椅依照片使用薄椅殼與四支椅腳，沒有通用�
   const seat=g.getObjectByName('座墊'),back=g.getObjectByName('椅背');assert.ok(seat&&back);
   assert.ok(seat.scale.y<=.07,'座殼不是厚沙發墊');assert.ok(back.scale.z<=.065,'椅背薄而不擋桌面');
   const legs=[];g.traverse(x=>{if(x.name==='座椅腳')legs.push(x);});assert.equal(legs.length,4);
-  for(const leg of legs){const b=new THREE.Box3().setFromObject(leg);assert.ok(Math.abs(b.min.y)<1e-6,'每支椅腳必須落地');assert.ok(b.max.y>=.4,'腳要接到座殼');}
+  for(const leg of legs){const b=new THREE.Box3().setFromObject(leg);assert.ok(Math.abs(b.min.y)<1e-6,'每支椅腳必須落地');assert.ok(b.max.y>=new THREE.Box3().setFromObject(seat).min.y-.005,'腳要接到實際座殼');}
  }
 });
 
@@ -46,7 +47,7 @@ test('館方照片黃黑休憩椅成列且與電梯核心分開，折架接地�
  const model=createInteriorModel();model.updateMatrixWorld(true);
  const cs=interiorColliders();
  for(const o of chairs){const g=model.getObjectByName(o.name);assert.ok(g?.getObjectByName('黃黑休憩椅背'));assert.ok(g.getObjectByName('休憩椅頭枕'));
-  const b=new THREE.Box3().setFromObject(g);assert.ok(b.min.y>=-.04&&b.min.y<=.03);assert.ok(b.max.y>.8&&b.max.y<1.3);
+  const b=new THREE.Box3().setFromObject(g);assert.ok(b.min.y>=-.04&&b.min.y<=.03);assert.ok(Math.abs(b.max.y-groundFurnitureTop(o))<.03);
   assert.ok(b.max.x<-18.4,'不能把新椅放進電梯核心');
   const c=cs.find(c=>c.obb&&c.cx===o.x&&c.cz===o.z);assert.ok(c);setActiveColliders([c]);
   try{const p={x:o.x+.08,y:0,z:o.z};resolve(p);assert.ok(Math.hypot(p.x-o.x,p.z-o.z)>.4,'休憩椅不是可以穿過的裝飾');}finally{setActiveColliders([]);}

@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -13,12 +14,12 @@ test('D梯兩個實景L梯段上方都有身體可通過的開口',()=>{
  for(const s of flights)for(let i=0;i<=40;i++)for(const side of [-.4,0,.4]){const t=i/40,dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz);r.ray.origin.set(s.a.x+dx*t+side*dz/len,s.a.y+(s.b.y-s.a.y)*t+.26,s.a.z+dz*t-side*dx/len);assert.equal(r.intersectObjects(slabs).length,0);}
 });
 test('D梯L形洞口各封閉邊有可見護欄，上端出口維持開放',()=>{
- const m=model(),guards=[];m.traverse(o=>{if(o.name==='D梯洞口玻璃護欄')guards.push(o);});assert.ok(guards.length>=5);
- for(const [a,b]of ENTRY_STAIR_GUARDS){const dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len,nz=dx/len;const r=new THREE.Raycaster(new THREE.Vector3((a[0]+b[0])/2+nx*.2,5.2,(a[1]+b[1])/2+nz*.2),new THREE.Vector3(-nx,0,-nz),0,.4);assert.ok(r.intersectObjects(guards).length);}
- const r=new THREE.Raycaster(new THREE.Vector3(-9.5,5.2,18.5),new THREE.Vector3(1,0,0),0,.5);assert.equal(r.intersectObjects(guards).length,0);
+ const m=model(),guards=[];m.traverse(o=>{if(o.name==='D梯洞口玻璃護欄')guards.push(o);});assert.equal(guards.length,ENTRY_STAIR_GUARDS.length);assert.ok(guards.length>=4);
+ for(const [a,b]of ENTRY_STAIR_GUARDS){const dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len,nz=dx/len;const r=new THREE.Raycaster(new THREE.Vector3((a[0]+b[0])/2+nx*.2,dahFloorY('3F')+0.7,(a[1]+b[1])/2+nz*.2),new THREE.Vector3(-nx,0,-nz),0,.4);assert.ok(r.intersectObjects(guards).length);}
+ const r=new THREE.Raycaster(new THREE.Vector3(-9.5,dahFloorY('3F')+0.7,18.5),new THREE.Vector3(1,0,0),0,.5);assert.equal(r.intersectObjects(guards).length,0);
 });
 test('D梯兩段每個踏步可見，不被底板蓋成坡道',()=>{
- const m=model(),treads=parts(m,'tread'),supports=[...treads,...parts(m,'underside')];assert.ok(treads.length>=40);
+ const m=model(),treads=parts(m,'tread'),supports=[...treads,...parts(m,'underside')];for(let i=0;i<flights.length;i++){const n=treads.filter(t=>t.userData.stairIndex===i).length,rise=(flights[i].b.y-flights[i].a.y)*.83;assert.ok(n>0&&rise/n>=.14&&rise/n<=.21,'按角色尺度檢查實際級高，不固定舊的密集級數');}
  const r=calibratedRay();r.far=2;
  for(const tread of treads){const p=tread.getWorldPosition(new THREE.Vector3());r.ray.origin.set(p.x,p.y+1,p.z);assert.ok(r.intersectObjects(supports)[0]?.object===tread,'踏步上方被其他梯級或底板蓋住 '+p.toArray());}
 });
@@ -43,6 +44,6 @@ test('真實房間邊界與碰撞可往返兩段D梯及轉折平台',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{INTERIOR_BOUNDS:b,interiorColliders}=await import('../src/world/buildings/dah-hsian/interior-layout.js'),{resolve,setActiveColliders,setRoomClamp}=await import('../src/core/collision.js');
  setActiveColliders(interiorColliders());setRoomClamp(p=>{p.x=Math.max(b.x0,Math.min(b.x1,p.x));p.z=Math.max(b.z0,Math.min(b.z1,p.z));nav.clampAtrium(p);});
  try{for(const dt of [1/60,.05]){const p={x:-14,y:0,z:13.1};let vy=0;const walk=(x,z)=>{for(let i=0;i<1000;i++){const dx=x-p.x,dz=z-p.z,d=Math.hypot(dx,dz);if(d<.1)return;const step=Math.min(d,4.6*dt);p.x+=dx/d*step;p.z+=dz/d*step;resolve(p);vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}}assert.fail(JSON.stringify({x,z,p,dt}));};
- walk(-14,18.5);walk(-8.5,18.5);assert.ok(Math.abs(p.y-4.5)<.03);walk(-14,18.5);walk(-14,13.1);for(let i=0;i<60;i++){vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}}assert.ok(Math.abs(p.y)<.02);}}
+ walk(-14,18.5);walk(-8.5,18.5);assert.ok(Math.abs(p.y-dahFloorY('3F'))<.03);walk(-14,18.5);walk(-14,13.1);for(let i=0;i<60;i++){vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}}assert.ok(Math.abs(p.y)<.02);}}
  finally{setRoomClamp(null);setActiveColliders([]);}
 });

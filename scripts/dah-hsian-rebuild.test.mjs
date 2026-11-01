@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 /** 依地面環景重建後的真實行走契約。 */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -68,7 +69,7 @@ test('橋的出口對到退縮玻璃門，不能直接把人帶到實心端牆�
   const model=createOutdoorModel();model.updateMatrixWorld(true);
   const {start:a,end:b}=site.BRIDGE;
   const direction=new THREE.Vector3(b.x-a.x,0,b.z-a.z).normalize();
-  const ray=new THREE.Raycaster(new THREE.Vector3((a.x+b.x)/2,5.5,(a.z+b.z)/2),direction,0,20);
+  const ray=new THREE.Raycaster(new THREE.Vector3((a.x+b.x)/2,dahFloorY('3F')+1.0,(a.z+b.z)/2),direction,0,20);
   const hit=ray.intersectObject(model.getObjectByName('湖濱悅讀小屋'),true).find(h=>h.object.material.side!==THREE.BackSide);
   assert.ok(hit,'必須看得到入口');
   const local=site.houseLocal(hit.point.x,hit.point.z);

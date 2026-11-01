@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';
 const base='../src/world/buildings/dah-hsian/';
 async function verifyFlight(kind,lowerY,upperY,direction){
@@ -19,8 +20,8 @@ async function verifyFlight(kind,lowerY,upperY,direction){
  }
  }finally{setRoomClamp(null);setActiveColliders([]);}
 }
-test('E follows paired source south3F UP→north4F DN with real supported stairs and body-clear route both ways',()=>verifyFlight('E',4.5,10.7,-1));
-test('F follows paired source north4F UP→south5F DN with real supported stairs and body-clear route both ways',()=>verifyFlight('F',10.7,16.9,1));
+test('E follows paired source south3F UP→north4F DN with real supported stairs and body-clear route both ways',()=>verifyFlight('E',dahFloorY('3F'),dahFloorY('4F'),-1));
+test('F follows paired source north4F UP→south5F DN with real supported stairs and body-clear route both ways',()=>verifyFlight('F',dahFloorY('4F'),dahFloorY('5F'),1));
 
 test('E/F legal lateral positions retain full body clearance and visible entry/exit apertures',async()=>{
  const {CORE_STAIR_FLIGHTS}=await import(base+'public-floor-layout.js'),{WEST_STAIR_ROUTES}=await import(base+'source-stair-layout.js'),{createInteriorModel}=await import(base+'interior-model.js'),{clampAtrium}=await import(base+'atrium-layout.js');

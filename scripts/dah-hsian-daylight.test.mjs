@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -67,17 +68,17 @@ test('shadow eligibility excludes overlays and camera keeps a static point stabl
 });
 test('上層夜景的真燈取自模型燈具高度，不把一樓補光拿來照八樓',()=>{
  const scene=new THREE.Scene(),m=new THREE.Mesh(new THREE.SphereGeometry(.1),new THREE.MeshToonMaterial());m.material.userData.dahKind='light';m.position.set(2,25,12);scene.add(m);
- const l=daylight.createDahLighting(scene,{interior:true});l.update(daylight.sampleDahLight(.92),new THREE.Vector3(2,23,12));
+ const l=daylight.createDahLighting(scene,{interior:true});l.update(daylight.sampleDahLight(.92),new THREE.Vector3(2,dahFloorY('6F')+3.0,12));
  assert.ok(l.localLights.some(x=>x.position.y<m.position.y&&x.position.distanceTo(m.position)<.2));
 });
 test('午後中庭主光高於填光形成採光帶，夜間採中性填光與局部暖燈',()=>{
  const scene=new THREE.Scene(),l=daylight.createDahLighting(scene,{interior:true}),hemi=scene.children.find(o=>o.isHemisphereLight);
- l.update(daylight.sampleDahLight(.62),new THREE.Vector3(1,15,3));assert.ok(l.sun.intensity>0&&hemi.intensity>0);
- l.update(daylight.sampleDahLight(.92),new THREE.Vector3(1,15,3));assert.ok(hemi.color.b/hemi.color.r<1.5);assert.ok(l.localLights.every(x=>x.intensity===0),'no invented light in empty scene');
+ l.update(daylight.sampleDahLight(.62),new THREE.Vector3(1,dahFloorY('4MF')+1.2,3));assert.ok(l.sun.intensity>0&&hemi.intensity>0);
+ l.update(daylight.sampleDahLight(.92),new THREE.Vector3(1,dahFloorY('4MF')+1.2,3));assert.ok(hemi.color.b/hemi.color.r<1.5);assert.ok(l.localLights.every(x=>x.intensity===0),'no invented light in empty scene');
 });
 test('午後東側欄杆投影落在平台內，不把全部欄影投到平台外草坡',()=>{
  const d=daylight.sampleDahLight(.62).sunDirection;
- const rail=new THREE.Vector3(29.5,5.1,12),floorY=4,shadow=rail.clone().addScaledVector(d,-(rail.y-floorY)/d.y);
+ const rail=new THREE.Vector3(29.5,dahFloorY('3F')+0.6,12),floorY=4,shadow=rail.clone().addScaledVector(d,-(rail.y-floorY)/d.y);
  assert.ok(shadow.x<29.4&&shadow.x>26,'欄影應落在欄杆內側平台 '+shadow.x);
 });
 test('fixture pool keeps real down-facing emitters, bounded reach and static occlusion updates across floors',()=>{
@@ -90,7 +91,7 @@ test('fixture pool keeps real down-facing emitters, bounded reach and static occ
   l.update(night,new THREE.Vector3(0,0,0));
   assert.equal(l.localLights.length,mobile?2:4);
   for(const light of l.localLights){
-   assert.ok(light.position.y<1.5&&light.position.y>1.4,'emitter below the real shade');
+   assert.ok([1.5,6,10.5].some(y=>light.position.y<y&&light.position.y>y-.1),'emitter below an actual fixed shade');
    assert.ok(light.target.position.y<light.position.y,'desk and ceiling lamps illuminate downward');
    assert.ok(light.distance<10,'reach cannot wash the entire hall');
    assert.equal(light.shadow.autoUpdate,false);assert.equal(light.shadow.needsUpdate,true);
@@ -98,8 +99,8 @@ test('fixture pool keeps real down-facing emitters, bounded reach and static occ
   }
   const positions=l.localLights.map(x=>x.position.clone());l.update(night,new THREE.Vector3(.01,0,0));
   l.localLights.forEach((light,i)=>{assert.ok(light.position.equals(positions[i]));assert.equal(light.shadow.needsUpdate,false);});
-  l.update(night,new THREE.Vector3(0,9,0));
-  for(const light of l.localLights){assert.ok(light.position.y>10.4&&light.position.y<10.5);assert.ok(light.shadow.needsUpdate);assert.ok(light.intensity<3,'no upper-floor boost');}
+  l.update(night,new THREE.Vector3(0,dahFloorY('3MF')+1.4,0));
+  for(const [i,light] of l.localLights.entries()){assert.ok(light.position.equals(positions[i]),'換樓層不得搬動真燈');assert.equal(light.shadow.needsUpdate,false);assert.ok(light.intensity<3,'no upper-floor boost');}
  }
 });
 
@@ -124,7 +125,7 @@ test('interior neutral fill keeps distant unlit surfaces readable through dusk w
  const scene=new THREE.Scene(),l=daylight.createDahLighting(scene,{interior:true}),hemi=scene.children.find(o=>o.isHemisphereLight);
  const fills=[];
  for(const phase of [.62,.78,.92]){
-  l.update(daylight.sampleDahLight(phase),new THREE.Vector3(12,20,18));
+  l.update(daylight.sampleDahLight(phase),new THREE.Vector3(12,dahFloorY('6F'),18));
   // Hemisphere irradiance of the darkest horizontal normal: groundColor * intensity.
   const floor=hemi.groundColor.clone().multiplyScalar(hemi.intensity);fills.push(floor.r+floor.g+floor.b);
   const c=hemi.color;assert.ok(Math.max(c.r,c.g,c.b)/Math.min(c.r,c.g,c.b)<1.35,'interior fill should not wash gray walls yellow or blue');
@@ -133,12 +134,12 @@ test('interior neutral fill keeps distant unlit surfaces readable through dusk w
  assert.ok(fills[1]>.5,'distant dusk surfaces have real neutral irradiance without a nearby lamp');
 });
 
-test('fixture diagnostics expose selection without mutable public state and empty floors disable slots',()=>{
+test('fixture diagnostics retain fixed lamps across player floor changes; empty scene disables slots',()=>{
  const scene=new THREE.Scene(),lamp=new THREE.Mesh(new THREE.BoxGeometry(.2,.05,.2),new THREE.MeshToonMaterial());lamp.material.userData.dahKind='light';lamp.position.set(1,1.5,2);scene.add(lamp);
  const l=daylight.createDahLighting(scene,{interior:true,mobile:true});l.update(daylight.sampleDahLight(.92),new THREE.Vector3(1,0,2));
  const active=l.localLights.find(x=>x.visible);assert.deepEqual(active.userData.dahFixturePosition,active.position.toArray());
- l.update(daylight.sampleDahLight(.92),new THREE.Vector3(1,12,2));
- assert.ok(l.localLights.every(x=>!x.visible&&x.intensity===0&&x.userData.dahFixturePosition===null));
+ l.update(daylight.sampleDahLight(.92),new THREE.Vector3(1,dahFloorY('4F')+1.3,2));
+ assert.ok(active.visible&&active.intensity>0,'玩家離開不關閉已存在的固定燈');const empty=daylight.createDahLighting(new THREE.Scene(),{interior:true});assert.ok(empty.localLights.every(x=>!x.visible&&x.intensity===0&&x.userData.dahFixturePosition===null));
 });
 
 test('晴朗午後的角色視平線保持藍天空，暖色留在陽光而非整片灰黃天際',()=>{
@@ -153,20 +154,26 @@ test('晴朗午後的角色視平線保持藍天空，暖色留在陽光而非�
 test('合併後的真實共享區吊燈仍各自保有照明位置，不能把整區光源集中在原點',async()=>{
  const {createInteriorModel}=await import('../src/world/buildings/dah-hsian/interior-model.js');
  const materials=new Map(),scene=new THREE.Scene(),m=createInteriorModel(kind=>{if(!materials.has(kind)){const mat=new THREE.MeshToonMaterial();mat.userData.dahKind=kind;materials.set(kind,mat);}return materials.get(kind);});scene.add(m);scene.updateMatrixWorld(true);
- const lighting=daylight.createDahLighting(scene,{interior:true}),player=new THREE.Vector3(-12,4.5,-18.8);lighting.update(daylight.sampleDahLight(.62),player);
+ const lighting=daylight.createDahLighting(scene,{interior:true}),player=new THREE.Vector3(-12,dahFloorY('3F'),-18.8);lighting.update(daylight.sampleDahLight(.62),player);
  const active=lighting.localLights.filter(l=>l.visible);assert.ok(active.length,'commons fixtures are selected');
  assert.ok(active.some(l=>Math.hypot(l.position.x-player.x,l.position.z-player.z)<4),'nearby source fixture must illuminate commons');
  for(const light of active){
   const hits=new THREE.Raycaster(light.position,new THREE.Vector3(0,1,0),0,.12).intersectObject(m,true);
-  assert.ok(hits.some(h=>h.object.name==='後區線形吊燈'),'each actual emitter sits below its rendered shade '+light.position.toArray());
+  assert.ok(hits.some(h=>['light','lamp'].includes(h.object.material?.userData?.dahKind)),'each actual emitter sits below its rendered shade '+light.position.toArray());
  }
 });
 
 test('照片中的白天公開閱覽區仍開燈，真燈不能隨戶外白晝降到幾乎熄滅',()=>{
  const scene=new THREE.Scene(),lamp=new THREE.Mesh(new THREE.BoxGeometry(2,.05,.1),new THREE.MeshToonMaterial());lamp.material.userData.dahKind='light';lamp.position.set(-12,7.12,-18);scene.add(lamp);
- const lighting=daylight.createDahLighting(scene,{interior:true}),player=new THREE.Vector3(-12,4.5,-18);
+ const lighting=daylight.createDahLighting(scene,{interior:true}),player=new THREE.Vector3(-12,dahFloorY('3F'),-18);
  lighting.update(daylight.sampleDahLight(.92),player);const night=lighting.localLights.find(l=>l.visible).intensity;
  lighting.update(daylight.sampleDahLight(.62),player);const day=lighting.localLights.find(l=>l.visible).intensity;
  assert.ok(day>=night*.5&&day<night,'occupied indoor daylight keeps useful fixture light while night remains distinct');
  assert.ok(lighting.localLights.filter(l=>l.visible).every(l=>l.distance<=8),'active local light still cannot wash through the whole building');
+});
+
+test('室內照明固定在燈具，不因角色走近或換樓層開關或跳到別盞燈',()=>{
+ const scene=new THREE.Scene();for(const [x,y,z]of[[0,3.5,0],[20,3.5,0],[0,14,0],[20,25,0]]){const lamp=new THREE.Mesh(new THREE.BoxGeometry(.2,.05,.2),new THREE.MeshToonMaterial());lamp.material.userData.dahKind='light';lamp.position.set(x,y,z);scene.add(lamp);}
+ const lighting=daylight.createDahLighting(scene,{interior:true}),profile=daylight.sampleDahLight(.62),snapshot=()=>lighting.localLights.map(l=>({position:l.position.toArray(),visible:l.visible,intensity:l.intensity}));
+ lighting.update(profile,new THREE.Vector3(0,0,0));const before=snapshot();lighting.update(profile,new THREE.Vector3(20,dahFloorY('7F'),0));assert.deepEqual(snapshot(),before,'館內不能像感應燈跟著玩家開關');
 });

@@ -17,8 +17,8 @@ test('鴨尾流隨游動慢速呼吸，方向跟隨鴨身，減少動態時關�
  updateDucks(ducks,10);const opacity=wake.material.opacity;updateDucks(ducks,15);assert.notEqual(wake.material.opacity,opacity);assert.ok(wake.material.opacity>.1&&wake.material.opacity<.4);assert.equal(wake.parent,ducks.children[0]);
  updateDucks(ducks,100,true);assert.equal(wake.visible,false);
 });
-test('水面有連續的掠射天空反光，底色與草地分離，亮紋不成唯一辨識線索',async()=>{
- const {createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js'),{createDahAtmosphere}=await import('../src/world/buildings/dah-hsian/atmosphere.js');const f=createDahMaterialFactory(),base=f('water').color;
- assert.ok(base.b>base.r*1.5&&base.b>base.g,'冷色池底');const water=new THREE.Mesh(new THREE.PlaneGeometry(2,2),f('water')),a=createDahAtmosphere({water});a.update(3,{night:1,sky:new THREE.Color('#182940')});
- const m=water.children[0].material;assert.ok(m.uniforms.strength.value>.2);assert.match(m.fragmentShader,/fresnel/);assert.match(m.vertexShader,/cameraPosition/);
+test('水面沿用原版藍綠流動公式，單層不透明且有獨立時間',async()=>{
+ const {readFile}=await import('node:fs/promises');const original=await readFile(new URL('../src/world/terrain/river.js',import.meta.url),'utf8');
+ const fragment=original.match(/fragmentShader:'([^']+)'/)[1];const {createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js');const f=createDahMaterialFactory(),water=f('water');
+ assert.equal(water.fragmentShader,fragment,'比照原版實際水面公式');assert.equal(water.transparent,false);assert.equal(water.depthWrite,true);f.setTime(3);assert.equal(water.uniforms.t.value,3);
 });

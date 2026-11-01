@@ -256,7 +256,7 @@ export const SOURCE_H_STAIRS={
 export const H_STAIR_ROUTE={
  lower:{a:{x:-20.270,z:-8.941},b:{x:-16.912,z:-8.941},width:1.044},
  upper:{a:{x:-16.335,z:-9.463},b:{x:-16.0645,z:-12.791},width:1.10},
- turn:{x0:-16.912,x1:-15.435,z0:-9.463,z1:-8.348},
+ turn:{x0:-16.912,x1:-15.435,z0:-9.515,z1:-8.348},
  lowerApproach:[[-21.319,-9.463],[-20.270,-9.463],[-20.270,-8.419],[-21.319,-8.419]],
  upperApproach:[[-18.162,-14.021],[-15.54,-14.021],[-15.54,-12.791],[-18.162,-12.791]],
 };
@@ -278,7 +278,13 @@ export function hStairGuardSegments(id,e){
   return[e];
  }
  if(id!=='8F')return[e];
- const {b,width}=H_STAIR_ROUTE.upper;
+ const {a,b,width}=H_STAIR_ROUTE.upper;
+ const dxFlight=b.x-a.x,dzFlight=b.z-a.z,length=Math.hypot(dxFlight,dzFlight);
+ const atEnd=p=>({along:((p[0]-b.x)*dxFlight+(p[1]-b.z)*dzFlight)/length,side:((p[0]-b.x)*dzFlight-(p[1]-b.z)*dxFlight)/length});
+ const ends=[e.a,e.b].map(atEnd);
+ // 補實門檻後的內搭端面仍是梯口，不能重新長出橫跨出口的護欄。
+ if(ends.every(p=>p.along>=-.025&&p.along<=.01&&Math.abs(p.side)<=width/2+.001))return [];
+
  if(Math.abs(e.a[1]-b.z)>.025||Math.abs(e.b[1]-b.z)>.025||Math.abs(e.b[0]-e.a[0])<1e-6)return[e];
  const dx=e.b[0]-e.a[0],cuts=[0,1,...[b.x-width/2,b.x+width/2].map(x=>(x-e.a[0])/dx).filter(t=>t>0&&t<1)].sort((a,b)=>a-b),out=[];
  for(let i=1;i<cuts.length;i++){
@@ -308,6 +314,9 @@ export function westStairGuardSegments(id,e){
   if(r.levels[side]!==id)continue;
   const fixed=r.gateZ[side],center=side?r.b.x:r.a.x;
   segments=segments.flatMap(v=>{
+   const p=side?r.b:r.a,dxFlight=r.b.x-r.a.x,dzFlight=r.b.z-r.a.z,length=Math.hypot(dxFlight,dzFlight),sign=side?1:-1;
+   const onInnerCap=q=>{const along=sign*((q[0]-p.x)*dxFlight+(q[1]-p.z)*dzFlight)/length,lateral=((q[0]-p.x)*dzFlight-(q[1]-p.z)*dxFlight)/length;return along>=-.025&&along<=.01&&Math.abs(lateral)<=r.width/2+.001;};
+   if([v.a,v.b].every(onInnerCap))return [];
    if(Math.abs(v.a[1]-fixed)>.025||Math.abs(v.b[1]-fixed)>.025)return[v];
    const dx=v.b[0]-v.a[0];if(Math.abs(dx)<1e-7)return[v];
    const lo=center-r.width/2,hi=center+r.width/2,cuts=[0,1,...[lo,hi].map(x=>(x-v.a[0])/dx).filter(t=>t>0&&t<1)].sort((a,b)=>a-b),out=[];
@@ -331,11 +340,51 @@ export function westStairGuardSegments(id,e){
 // G's UP/DN endpoints are registered; vertical pairing/6F participation remains
 // unresolved. This connected game route uses estimated y, not surveyed stairs.
 export const G_STAIR_ROUTE={
- lower:{a:{x:-28.975,z:-6.791},b:{x:-29.397,z:-9.087},width:1.44},
- upper:{a:{x:-28.662,z:-9.714},b:{x:-24.571,z:-9.714},width:1.16},
- turn:{x0:-30.131,x1:-28.662,z0:-10.299,z1:-9.087},
+ lower:{a:{x:-28.975,z:-6.791},b:{x:-30.147,z:-9.087},width:1.44},
+ upper:{a:{x:-29.412,z:-9.714},b:{x:-24.571,z:-9.714},width:1.16},
+ turn:{x0:-30.881,x1:-29.412,z0:-10.299,z1:-9.087},
  lowerApproach:[[-29.709,-6.791],[-28.241,-6.791],[-28.241,-5.745],[-29.709,-5.745]],
  upperApproach:[[-24.571,-10.299],[-23.522,-10.299],[-23.522,-9.087],[-24.571,-9.087]],
  upperOpening:[[-30.131,-10.299],[-24.571,-10.299],[-24.571,-9.087],[-28.662,-9.087],[-28.662,-8.377],[-30.131,-8.377]],
  lowerOpening:[[-29.859,-10.343],[-24.151,-10.343],[-24.151,-3.314],[-28.241,-3.314],[-28.241,-6.791],[-29.859,-6.791]],
 };
+
+
+// 遊戲樓高校準後，G梯中段向西延長，門口維持圖面位置。
+// 平台沿梯段真正端面收邊，避免斜端面半邊沒有承托。
+const convexHull=points=>{
+ const sorted=points.map(p=>[...p]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]),lo=[],hi=[];
+ for(const p of sorted){while(lo.length>1&&cross(lo.at(-2),lo.at(-1),p)<=0)lo.pop();lo.push(p);}
+ for(const p of [...sorted].reverse()){while(hi.length>1&&cross(hi.at(-2),hi.at(-1),p)<=0)hi.pop();hi.push(p);}
+ return lo.slice(0,-1).concat(hi.slice(0,-1));
+};
+const g=G_STAIR_ROUTE,r=g.turn,lower=g.lower,dx=lower.b.x-lower.a.x,dz=lower.b.z-lower.a.z,len=Math.hypot(dx,dz),nx=dz/len*lower.width/2,nz=-dx/len*lower.width/2;
+// 水平官方門檻接斜切梯端；補實兩者之間的小三角，不移動門口或前廊。
+const endApron=(p,sign)=>[-1,1].flatMap(side=>[0,.35].map(distance=>[p.x+sign*dx/len*distance+side*nx,p.z+sign*dz/len*distance+side*nz]));
+g.lowerThreshold=convexHull([...g.lowerApproach.slice(0,2),...endApron(lower.a,-1)]);
+r.points=convexHull([[r.x0,r.z0],[r.x1,r.z0],[r.x1,r.z1],[r.x0,r.z1],...endApron(lower.b,1)]);
+g.upperOpening=convexHull([...r.points,...g.upperOpening,[g.upper.a.x-.02,g.upper.a.z-.6],[g.upper.b.x+.02,g.upper.b.z+.6]]);
+// 平台外緣扣掉真正梯板入口；模型與導航共用這些實體扶手線。
+const flightPolygon=s=>{
+ const dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz),nx=dz/len*s.width/2,nz=-dx/len*s.width/2;
+ return [[s.a.x+nx,s.a.z+nz],[s.b.x+nx,s.b.z+nz],[s.b.x-nx,s.b.z-nz],[s.a.x-nx,s.a.z-nz]];
+};
+const inPolygon=(p,poly)=>{let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>p[1])!==(b[1]>p[1])&&p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;};
+const flights=[flightPolygon(g.lower),flightPolygon(g.upper)],cross2=(a,b)=>a[0]*b[1]-a[1]*b[0];
+r.guardSegments=r.points.flatMap((a,i)=>{
+ const b=r.points[(i+1)%r.points.length],delta=[b[0]-a[0],b[1]-a[1]],cuts=[0,1];
+ for(const poly of flights)for(let j=0;j<poly.length;j++){
+  const c=poly[j],d=poly[(j+1)%poly.length],edge=[d[0]-c[0],d[1]-c[1]],offset=[c[0]-a[0],c[1]-a[1]],den=cross2(delta,edge);
+  if(Math.abs(den)<1e-8)continue;
+  const t=cross2(offset,edge)/den,u=cross2(offset,delta)/den;
+  if(t>0&&t<1&&u>=0&&u<=1)cuts.push(t);
+ }
+ cuts.sort((a,b)=>a-b);const result=[];
+ for(let j=1;j<cuts.length;j++){
+  const t=(cuts[j-1]+cuts[j])/2,mid=[a[0]+delta[0]*t,a[1]+delta[1]*t];
+  // East edge is the upper flight's registered end face, including its boundary.
+  if(flights.some(p=>inPolygon(mid,p))||Math.abs(mid[0]-g.upper.a.x)<1e-7&&Math.abs(mid[1]-g.upper.a.z)<g.upper.width/2+1e-7)continue;
+  if(cuts[j]-cuts[j-1]>1e-7)result.push({a:[a[0]+delta[0]*cuts[j-1],a[1]+delta[1]*cuts[j-1]],b:[a[0]+delta[0]*cuts[j],a[1]+delta[1]*cuts[j]]});
+ }
+ return result;
+});

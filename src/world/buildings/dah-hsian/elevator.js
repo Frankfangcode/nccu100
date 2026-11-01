@@ -1,8 +1,10 @@
 /**
  * Pure lift control; the caller supplies source-reviewed, walkable stops.
- * transition(fn, rideText) follows gameplay.transition: return value is ignored,
- * and only its later fn call commits arrival. arrive/onBusy/onError are synchronous.
- * cancel/dispose invalidate arrival, but cannot stop an already dispatched iris.
+ * transition(fn, label, journey) must be the lift-specific visual adapter.
+ * Return value is ignored; only its later fn call commits arrival.
+ * Passing gameplay.transition here would treat the label as a bus ride.
+ * arrive/onBusy/onError are synchronous.
+ * cancel/dispose invalidate arrival; the runtime also disposes its visual adapter.
  * phase tracks this controller, not the game's longer fade/busy lifecycle.
  */
 export function createDahElevator({ stops, transition, arrive, onBusy, onError }) {
@@ -77,7 +79,7 @@ export function createDahElevator({ stops, transition, arrive, onBusy, onError }
               notify(false);
             }
           }
-        }, `電梯前往 ${target.label}`);
+        }, `電梯前往 ${target.label}`, {from:stops.find(stop=>stop.id===fromId),to:target});
       }
       catch (error) {
         if (pending === trip) {

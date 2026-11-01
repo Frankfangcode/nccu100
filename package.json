@@ -1,7 +1,7 @@
 {
   "name": "nccu100",
   "private": true,
-  "version": "2.06.0",
+  "version": "2.07.0",
   "type": "module",
   "description": "蓋亞造界．政大百年慶版：政大山下校園 3D 冒險遊戲",
   "scripts": {

@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -25,7 +26,7 @@ test('2F出館回玻璃門正前方平台，門在館名牆靠湖一側，門框
  const b=new THREE.Box3().setFromObject(door);assert.ok(OUTDOOR_DOOR.z>b.min.z&&OUTDOOR_DOOR.z<b.max.z);
  assert.equal(OUTDOOR_RETURN.z,OUTDOOR_DOOR.z,'出館落點對準同一道門');
  assert.equal(site.walkHeight(OUTDOOR_RETURN.x,OUTDOOR_RETURN.z,OUTDOOR_RETURN.y),site.DECK_Y);
- const ray=new THREE.Raycaster(new THREE.Vector3(OUTDOOR_RETURN.x,5.5,OUTDOOR_RETURN.z),new THREE.Vector3(0,-1,0));
+ const ray=new THREE.Raycaster(new THREE.Vector3(OUTDOOR_RETURN.x,dahFloorY('3F')+1.0,OUTDOOR_RETURN.z),new THREE.Vector3(0,-1,0));
  const floor=ray.intersectObject(model,true).find(h=>h.object.material.side!==THREE.BackSide);assert.ok(floor&&Math.abs(floor.point.y-site.DECK_Y)<.02,'出館腳下必有實際2F平台而非只有假高度');
 });
 

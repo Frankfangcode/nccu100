@@ -28,7 +28,7 @@ export function mountDahElevator({state,pos,spots,stops,transition,resetInput,st
  // key's native button activation, while allowing the game's interaction handler.
  const guardEnter=e=>{if(e.code==='Enter'&&!state.busy&&owned.some(s=>s===state.near&&s.ok()))e.preventDefault();};
  inputTarget?.addEventListener('keydown',guardEnter,true);
- return{dispose(){if(disposed)return;disposed=true;inputTarget?.removeEventListener('keydown',guardEnter,true);controller.dispose();menu.dispose();for(const spot of owned){const i=spots.indexOf(spot);if(i!==-1)spots.splice(i,1);}}};
+ return{dispose(){if(disposed)return;disposed=true;inputTarget?.removeEventListener('keydown',guardEnter,true);controller.dispose();transition.dispose?.();menu.dispose();for(const spot of owned){const i=spots.indexOf(spot);if(i!==-1)spots.splice(i,1);}}};
 }
 
 function createNativeMenu({stops,onSelect,onClose}){

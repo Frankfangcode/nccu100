@@ -1,3 +1,4 @@
+import {WV} from '../../../render/water.js';
 import * as THREE from 'three';
 export const DAH_LIGHT_COLORS={deskGlow:'#ffd28e',contact:'#313c46'};
 /** Three's clone omits function-valued shader hooks. Keep the factory's world
@@ -5,7 +6,7 @@ export const DAH_LIGHT_COLORS={deskGlow:'#ffd28e',contact:'#313c46'};
 export function cloneDahMaterial(base){
  const material=base.clone();material.onBeforeCompile=base.onBeforeCompile;material.customProgramCacheKey=base.customProgramCacheKey;return material;
 }
-const localColors={concrete:'#b2b1a9',edge:'#c7c8bf',louver:'#aaa9a1',louverEdge:'#bdbdb3',timber:'#ad875d',timberLight:'#c3a37a',timberDark:'#6e5943',wood:'#b88746',litWood:'#c58a34',woodDark:'#463c2f',water:'#355b63',grass:'#7c9f66',glass:'#63818a',glassLight:'#9ab9b8',glassDark:'#405f66'};
+const localColors={concrete:'#b2b1a9',edge:'#c7c8bf',louver:'#aaa9a1',louverEdge:'#bdbdb3',timber:'#ad875d',timberLight:'#c3a37a',timberDark:'#6e5943',wood:'#b88746',litWood:'#c58a34',woodDark:'#463c2f',water:'#355b63',grass:'#86c35a',glass:'#63818a',glassLight:'#9ab9b8',glassDark:'#405f66',houseGlass:'#9ab5b2'};
 function texture(kind){
  const size=128,data=new Uint8Array(size*size*4);
  // Periodic value noise: broad irregular patches, continuous across wrapped edges.
@@ -36,16 +37,22 @@ function softAlpha(){
  const t=new THREE.DataTexture(data,size,size);t.needsUpdate=true;return t;
 }
 export function createDahMaterialFactory({palette={},toon,outline}={}){
- const materials=new Map(),rim={value:1};
+ const materials=new Map(),rim={value:1},waterTime={value:0};
  let environment={night:0};
  const materialFor=kind=>{
   if(!materials.has(kind)){
+   if(kind==='water'){
+    // Same palette and wave function as original src/world/terrain/river.js;
+    // local time owner keeps reduced-motion and scene lifetime independent.
+    const m=new THREE.ShaderMaterial({uniforms:{t:waterTime},vertexShader:WV,fragmentShader:'uniform float t;varying vec3 vW;void main(){float f=sin((vW.x*0.6+vW.z*0.8)*0.9+t*2.2+sin(vW.x*1.3+t)*1.2);float g=sin(vW.z*0.35-t*1.3+vW.x*0.5);vec3 c=mix(vec3(0.20,0.56,0.70),vec3(0.46,0.81,0.86),0.5+0.25*g);c=mix(c,vec3(0.96,0.99,1.0),smoothstep(0.88,0.97,f)*0.85);gl_FragColor=vec4(c,1.0);}'});
+    m.userData.dahKind=kind;materials.set(kind,m);return m;
+   }
    const color=localColors[kind]||palette[kind]||'#b2b1a9';
    const m=kind==='contact'?new THREE.MeshBasicMaterial({color:DAH_LIGHT_COLORS.contact,transparent:true,opacity:.26,depthWrite:false,alphaMap:softAlpha()}):kind==='taskGlow'?new THREE.MeshBasicMaterial({color:DAH_LIGHT_COLORS.deskGlow,transparent:true,opacity:0,depthWrite:false,alphaMap:softAlpha()}):kind==='outline'?(outline?.clone()||new THREE.MeshBasicMaterial({color:'#2a2c4a',side:THREE.BackSide})):(toon?.(color).clone()||new THREE.MeshToonMaterial({color}));
    if(!['outline','taskGlow','contact'].includes(kind))m.color.set(color);
    if(!['outline','taskGlow','contact'].includes(kind)){
     if(['concrete','louver','louverEdge','timber','timberLight','timberDark','wood','litWood','floor','paving','carpet','grass'].includes(kind))m.map=texture(kind);
-    if(['clear','shopGlass'].includes(kind)){m.transparent=true;m.opacity=.12;m.depthWrite=false;m.side=THREE.DoubleSide;}
+    if(['clear','shopGlass','houseGlass'].includes(kind)){m.transparent=true;m.opacity=kind==='houseGlass'?.34:.12;m.depthWrite=false;m.side=THREE.DoubleSide;}
     m.onBeforeCompile=shader=>{
      shader.uniforms.dahRim=rim;
      shader.fragmentShader='uniform float dahRim;\n'+shader.fragmentShader.replace('vec3(1.0,0.95,0.86)*rimA','vec3(1.0,0.95,0.86)*rimA*dahRim');
@@ -67,6 +74,7 @@ export function createDahMaterialFactory({palette={},toon,outline}={}){
   }
   return materials.get(kind);
  };
+ materialFor.setTime=time=>{waterTime.value=time;};
  materialFor.setEnvironment=profile=>{
   environment=profile;rim.value=1-.88*(profile.night||0);
   for(const [kind,m]of materials){

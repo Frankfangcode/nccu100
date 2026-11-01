@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -73,7 +74,7 @@ test('4F19依館方平面逐組登錄七組三席影音桌，沿窗四組與內�
 });
 test('3F新增來源桌椅後仍能由共享區入口走到北端，不能讓椅子的外接方框封住整間房',async()=>{
  const {clampAtrium,atriumHeight}=await import(path+'atrium-layout.js');
- const step=.1,nx=71,nz=91,key=(x,z)=>Math.round((z+23)*10)*nx+Math.round((x+15)*10),point=k=>({x:-15+k%nx*step,y:4.5,z:-23+Math.floor(k/nx)*step}),cache=new Map();
+ const step=.1,nx=71,nz=91,key=(x,z)=>Math.round((z+23)*10)*nx+Math.round((x+15)*10),point=k=>({x:-15+k%nx*step,y:dahFloorY('3F'),z:-23+Math.floor(k/nx)*step}),cache=new Map();
  const clear=k=>{if(cache.has(k))return cache.get(k);const p=point(k),before={...p};clampAtrium(p);const value=Math.hypot(p.x-before.x,p.z-before.z)<.002&&atriumHeight(p.x,p.z,p.y)===4.5;cache.set(k,value);return value;};
  const start=key(-12.2,-14.8),goal=key(-11.8,-21.8);assert.ok(clear(start)&&clear(goal),'calibrate supported source approach and far end');
  const queue=[start],seen=new Set(queue);let reached=false;
@@ -86,7 +87,10 @@ test('source furniture is immutable, grounded in supported public floors, and om
   const f=publicFloor(id),items=rearFurniture(id);assert.ok(items.length>5,id);
   assert.ok(Object.isFrozen(items));
   for(const o of items){assert.ok(Object.isFrozen(o.bounds));assert.equal(o.y,f.y);
-   for(const r of o.bounds)for(let x=r.x0;x<=r.x1+.001;x+=Math.max(.05,(r.x1-r.x0)/6))for(let z=r.z0;z<=r.z1+.001;z+=Math.max(.05,(r.z1-r.z0)/6))assert.ok(floorContains(f,x,z),`${o.id} floor at ${x},${z}`);
+   if(o.type==='stepBench'){
+    // The diagonal tier is an oriented body, not its enclosing empty corners.
+    const c=Math.cos(o.yaw),s=Math.sin(o.yaw);for(let i=0;i<=12;i++)for(let j=0;j<=6;j++){const u=-o.w/2+o.w*i/12,v=-o.d/2+o.d*j/6,x=o.x+u*c+v*s,z=o.z-u*s+v*c;assert.ok(floorContains(f,x,z),`${o.id} oriented floor at ${x},${z}`);}
+   }else for(const r of o.bounds)for(let x=r.x0;x<=r.x1+.001;x+=Math.max(.05,(r.x1-r.x0)/6))for(let z=r.z0;z<=r.z1+.001;z+=Math.max(.05,(r.z1-r.z0)/6))assert.ok(floorContains(f,x,z),`${o.id} floor at ${x},${z}`);
   }
  }
  for(const o of rearFurnitureOmissions('3F')){assert.match(o.reason,/unsupported/);assert.ok(!rearFurniture('3F').some(i=>i.id===o.id),'omitted source sample must not be moved elsewhere');}
@@ -133,7 +137,7 @@ test('4F service counter occupies its source curved body and leaves the actual p
  const ray=new THREE.Raycaster();
  // Calibrate known solid and known empty points before interpreting strip hits.
  const hit=(x,z)=>{ray.set(new THREE.Vector3(x,o.y+3,z),new THREE.Vector3(0,-1,0));return ray.intersectObjects(root.children,true).some(h=>h.object.userData.rearId===o.id);};
- assert.ok(hit(-10,-12));assert.ok(!hit(-10,-10));
+ const[dx,dz]=o.layoutOffset||[0,0];assert.ok(hit(-10+dx,-12+dz));assert.ok(!hit(-10+dx,-10+dz));
  for(const r of o.bounds)assert.ok(hit((r.x0+r.x1)/2,(r.z0+r.z1)/2),'collision strip has an actual counter top');
 });
 
@@ -154,10 +158,10 @@ test('4F service shelves and opened public double-door frame leave the source pu
  const {createInteriorModel}=await import(path+'interior-model.js');
  const {clampAtrium,atriumHeight}=await import(path+'atrium-layout.js');
  const items=rearFurniture('4F');assert.ok(items.some(o=>o.type==='serviceShelf'));assert.equal(items.filter(o=>o.type==='doorPost').length,2);
- const root=createInteriorModel();root.updateMatrixWorld(true);const ray=new THREE.Raycaster(new THREE.Vector3(-13.847,12,-6.889),new THREE.Vector3(0,0,-1),0,1.6);
+ const root=createInteriorModel();root.updateMatrixWorld(true);const ray=new THREE.Raycaster(new THREE.Vector3(-13.847,dahFloorY('4F')+1.3,-6.889),new THREE.Vector3(0,0,-1),0,1.6);
  assert.ok(!ray.intersectObject(root,true).some(h=>h.object.userData.rearId==='rear-4F-public-door'),'doorway is visibly open');
  for(const [x,z]of [[-13.847,-6.889],[-13.847,-7.58],[-13.847,-9.088],[-13.847,-12.439],[-12.802,-13.486],[-6.533,-13.486]]){
-  const p={x,y:10.7,z};clampAtrium(p);assert.ok(Math.hypot(p.x-x,p.z-z)<.02,'public route stays clear '+JSON.stringify(p));assert.equal(atriumHeight(x,z,10.7),10.7);
+  const p={x,y:dahFloorY('4F'),z};clampAtrium(p);assert.ok(Math.hypot(p.x-x,p.z-z)<.02,'public route stays clear '+JSON.stringify(p));assert.equal(atriumHeight(x,z,dahFloorY('4F')),dahFloorY('4F'));
  }
 });
 
@@ -196,25 +200,40 @@ test('7F south window counters and single seats follow the individual official p
  for(const x of [-6,-3,0,3,6,9,12])assert.ok(!all.some(o=>o.bounds.some(r=>x>=r.x0&&x<=r.x1&&18.2>=r.z0&&18.2<=r.z1)),'open aisle at '+x);
 });
 
+// The window builder batches separate BoxGeometry parts (24 vertices each).
+// Measure each real part, keeping the empty space between frame ends empty.
+function windowPartBounds(mesh){
+ const a=mesh.geometry.attributes.position;assert.equal(a.count%24,0,'window batch contains complete box parts');
+ const boxes=[],v=new THREE.Vector3();
+ for(let i=0;i<a.count;i+=24){const b=new THREE.Box3();for(let j=i;j<i+24;j++)b.expandByPoint(v.fromBufferAttribute(a,j).applyMatrix4(mesh.matrixWorld));boxes.push(b);}
+ return boxes;
+}
+test('window collision measurement detects real frame overlap without filling the gap between batched ends',()=>{
+ const a=new THREE.BoxGeometry().attributes.position,array=new Float32Array(a.array.length*2);array.set(a.array);array.set(a.array.map((v,i)=>i%3===0?v+4:v),a.array.length);
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(array,3));const mesh=new THREE.Mesh(g);mesh.updateMatrixWorld();
+ const boxes=windowPartBounds(mesh),probe=x=>new THREE.Box3(new THREE.Vector3(x-.1,-.1,-.1),new THREE.Vector3(x+.1,.1,.1));
+ assert.equal(boxes.length,2);assert.ok(boxes.some(b=>b.intersectsBox(probe(0))));assert.ok(boxes.some(b=>b.intersectsBox(probe(4))));assert.ok(!boxes.some(b=>b.intersectsBox(probe(2))));
+});
+
 test('7F complete window desks and chair bodies stay in front of the actual glazing wall and retain a real north aisle',async()=>{
  const {rearFurniture}=await import(path+'rear-furniture-layout.js');
  const {createInteriorModel}=await import(path+'interior-model.js');
  const {clampAtrium,atriumHeight}=await import(path+'atrium-layout.js');
  const root=createInteriorModel();root.updateMatrixWorld(true);
- const windows=[];root.traverse(m=>{if(m.isMesh&&m.userData.publicWindowFloor==='7F')windows.push(new THREE.Box3().setFromObject(m));});assert.ok(windows.length);
+ const windows=[];root.traverse(m=>{if(m.isMesh&&m.userData.publicWindowFloor==='7F')windows.push(...windowPartBounds(m));});assert.ok(windows.length);
  const ids=new Set(rearFurniture('7F').filter(o=>o.windowSeat||o.type==='windowCounter').map(o=>o.id));
  const matrix=new THREE.Matrix4();let desks=0;
  root.traverse(m=>{if(!m.isInstancedMesh||m.userData.rearFloor!=='7F')return;m.geometry.computeBoundingBox();
   for(let i=0;i<m.count;i++)if(ids.has(m.userData.rearIds[i])){
    m.getMatrixAt(i,matrix);matrix.premultiply(m.matrixWorld);const box=m.geometry.boundingBox.clone().applyMatrix4(matrix);
    for(const w of windows)assert.ok(!box.intersectsBox(w),`${m.userData.rearIds[i]} ${m.userData.rearPart} avoids real exterior wall/glass/frame`);
-   if(m.userData.rearPart==='leg'&&m.userData.rearIds[i].includes('counter')){assert.ok(Math.abs(box.min.y-23.1)<.001);desks++;}
+   if(m.userData.rearPart==='leg'&&m.userData.rearIds[i].includes('counter')){assert.ok(Math.abs(box.min.y-dahFloorY('7F'))<.001);desks++;}
   }
  });assert.equal(desks,48,'all twelve counters have four actual grounded legs');
  // Exercise real resolver left to right in both directions at the clear row rear.
  for(const direction of [-1,1])for(let k=0;k<=95;k++){
-  const x=direction>0?-7+k*.2:12-k*.2,z=18.2,p={x,y:23.1,z};clampAtrium(p);
-  assert.ok(Math.hypot(p.x-x,p.z-z)<.02,`window-row north aisle clear at ${x},${z}`);assert.equal(atriumHeight(x,z,23.1),23.1);
+  const x=direction>0?-7+k*.2:12-k*.2,z=18.2,p={x,y:dahFloorY('7F'),z};clampAtrium(p);
+  assert.ok(Math.hypot(p.x-x,p.z-z)<.02,`window-row north aisle clear at ${x},${z}`);assert.equal(atriumHeight(x,z,dahFloorY('7F')),dahFloorY('7F'));
  }
 });
 
@@ -229,5 +248,5 @@ test('3F共享區逐桌登錄館方平面的西側六桌與北側十五桌，不
  const {rearFurniture}=await import('../src/world/buildings/dah-hsian/rear-furniture-layout.js');
  const tables=rearFurniture('3F').filter(o=>o.sourceCommonsTable);assert.equal(tables.length,21,'兩張原生裁切可逐一辨識21個圓桌符號');
  const toGame=(u,v)=>({x:-15+(u-782.74)*7/333.167187,z:-22+(v-200.63)*7/335.046553});assert.deepEqual(toGame(782.74,200.63),{x:-15,z:-22});
- for(const o of tables){const p=toGame(...o.sourceNativeCenter);assert.ok(Math.hypot(p.x-o.x,p.z-o.z)<1e-7,'逐桌保留來源位置');assert.ok(o.w<1.1,'110cm圖符不應變成1.45遊戲單位大桌');const chairs=rearFurniture('3F').filter(c=>c.sourceTable===o.id);assert.ok(chairs.length>=2,'明確可見的獨立座椅不能只留桌');}
+ for(const o of tables){const p=toGame(...o.sourceNativeCenter),source=o.sourceGamePosition||[o.x,o.z],offset=o.layoutOffset||[0,0];assert.ok(Math.hypot(p.x-source[0],p.z-source[1])<1e-7,'逐桌保留原始來源位置');assert.ok(Math.hypot(o.x-source[0]-offset[0],o.z-source[1]-offset[1])<1e-7,'整組退讓仍可追溯來源與偏移');assert.ok(o.w<1.1,'110cm圖符不應變成1.45遊戲單位大桌');const chairs=rearFurniture('3F').filter(c=>c.sourceTable===o.id);assert.ok(chairs.length>=2,'明確可見的獨立座椅不能只留桌');}
 });

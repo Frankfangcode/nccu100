@@ -1,9 +1,10 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDahElevator } from '../src/world/buildings/dah-hsian/elevator.js';
 const makeStops = () => [
   { id: '2f', label: '2F', y: 0, landing: { x: 1, y: 0, z: 3, yaw: 0 } },
-  { id: '3f', label: '3F', y: 4.5, landing: { x: 2, y: 4.5, z: 3, yaw: 1 } },
+  { id: '3f', label: '3F', y: dahFloorY('3F'), landing: { x: 2, y: dahFloorY('3F'), z: 3, yaw: 1 } },
 ];
 function rig(options = {}) {
   const queued = [], arrivals = [], busy = [], errors = [];

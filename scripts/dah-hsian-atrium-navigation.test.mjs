@@ -1,3 +1,5 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
+import {READING_DESK_SCALE,READING_CHAIR_SCALE} from '../src/world/buildings/dah-hsian/furniture-fit.js';
 import test from 'node:test';import assert from 'node:assert/strict';
 test('二樓D梯可連續走上第一層閱覽平台，再原路下樓而不瞬移',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
@@ -18,7 +20,7 @@ test('上層實體平台與斜梯共用配置，欄杆不讓玩家踏入挑空�
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
  for(const l of nav.ATRIUM_LEVELS){
   const p={x:l.east-.1,y:l.y,z:3};nav.clampAtrium(p);assert.ok(p.x>=l.east+.4,'挑空側有欄杆');
-  if(l.books){const wall={x:l.east+3.35,y:l.y,z:3};nav.clampAtrium(wall);assert.ok(wall.x<=l.east+2.51,'新書牆面加上角色半徑須擋人');}
+  if(l.books){const {dahReadingBandDepth}=await import('../src/world/buildings/dah-hsian/circulation-clearance.js'),depth=dahReadingBandDepth(l),wall={x:l.east+depth-.25,y:l.y,z:3};nav.clampAtrium(wall);assert.ok(wall.x<=l.east+depth-.7-.39||wall.x>=l.east+depth+.05+.39-1e-6,'書牆內非法起點須恢復到不重疊實體的合法側');}
  }
  const lower={x:-9,y:0,z:8};nav.clampAtrium(lower);assert.deepEqual(lower,{x:-9,y:0,z:8});
  assert.ok(nav.PUBLIC_NAV_FLOORS.every(f=>f.boundaries.length>0),'來源公共樓板共用邊界');
@@ -53,7 +55,7 @@ test('樓下遠離樓梯的跳躍不會橫向瞬移，上層共邊平台能連�
 
 test('高處俯視中庭的南側支柱維持柱形，不得延伸成七米深隔牆擋住全景',async()=>{
  const THREE=await import('three'),{createInteriorModel}=await import('../src/world/buildings/dah-hsian/interior-model.js');const m=createInteriorModel(),matrix=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();let count=0;
- m.traverse(o=>{if(!o.isInstancedMesh||o.name!=='中庭批次：concrete')return;for(let i=0;i<o.count;i++){o.getMatrixAt(i,matrix);matrix.decompose(p,q,s);if(p.z===13&&Math.abs(s.y-3.1)<.001){count++;assert.ok(s.z<1,'柱深不能成為橫擋視線的牆');}}});assert.ok(count>0);
+ m.traverse(o=>{if(!o.isInstancedMesh||o.name!=='中庭批次：concrete')return;for(let i=0;i<o.count;i++){o.getMatrixAt(i,matrix);matrix.decompose(p,q,s);if(p.z===13&&Math.abs(s.y-(dahFloorY('3MF')-dahFloorY('3F')-.15))<.001){count++;assert.ok(s.z<1,'柱深不能成為橫擋視線的牆');}}});assert.ok(count>0);
 });
 test('戶外出口只在二樓門口有效，高層同平面位置不能直接離館',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');assert.equal(nav.canUseDahExit(0),true);assert.equal(nav.canUseDahExit(1),true);assert.equal(nav.canUseDahExit(4.5),false);assert.equal(nav.canUseDahExit(26.2),false);
@@ -78,8 +80,10 @@ test('閱讀桌島留出間隔且同側按書牆成列，模型與家具阻擋�
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
  const a=nav.atriumDesks(nav.ATRIUM_LEVELS[0]),b=nav.atriumDesks(nav.ATRIUM_LEVELS[1]),north=a.filter(d=>d.side==='north');
  assert.ok(north.length>=2,'來源3F北翼較短，仍需多組有間隔桌島');for(let i=1;i<north.length;i++)assert.ok(north[i].u-north[i-1].u-north[i-1].width>1.2);
- assert.equal(north[0].u,b.find(d=>d.side==='north').u);
- for(const d of a){assert.ok(d.depth>=1.8&&d.width>=1.8);assert.ok(nav.atriumFurniture(nav.ATRIUM_LEVELS[0]).some(r=>Math.abs((r.x0+r.x1)/2-d.x)<.01&&Math.abs((r.z0+r.z1)/2-d.z)<.01));}
+ // Main floors have their own registered plans; mezzanines retain estimated positions.
+ assert.ok(Math.abs(north[0].u-(-15+(1077-782.74)*7/333.167187))<1e-8,'3F首桌依原圖柱網');
+ assert.ok(b.some(d=>d.side==='north'),'夾層仍有桌位');
+ for(const d of a){assert.ok(d.depth>d.width&&d.width>=1,'來源桌面長短邊比例');assert.ok(nav.atriumFurniture(nav.ATRIUM_LEVELS[0]).some(r=>Math.abs((r.x0+r.x1)/2-d.x)<.01&&Math.abs((r.z0+r.z1)/2-d.z)<.01));}
 });
 
 test('中央隔板垂直欄杆、兩側座椅相對，東北兩翼一起轉向且不侵入書牆走道',async()=>{
@@ -87,9 +91,9 @@ test('中央隔板垂直欄杆、兩側座椅相對，東北兩翼一起轉向�
  const model=createInteriorModel(),matrix=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),scale=new THREE.Vector3(),parts=[];
  model.traverse(o=>{if(!o.isInstancedMesh||!['中庭批次：white','中庭批次：wood','中庭批次：litWood'].includes(o.name))return;for(let i=0;i<o.count;i++){o.getMatrixAt(i,matrix);matrix.decompose(p,q,scale);parts.push({name:o.name,p:p.clone(),s:scale.clone()});}});
  const l=nav.ATRIUM_LEVELS[0];for(const d of nav.atriumDesks(l)){
-  const divider=parts.find(v=>v.name==='中庭批次：white'&&Math.abs(v.p.x-d.x)<.01&&Math.abs(v.p.z-d.z)<.01&&Math.abs(v.p.y-l.y-1.15)<.01);assert.ok(divider,'白色隔板應在桌島中央而非後擋板');
+  const divider=parts.find(v=>v.name==='中庭批次：white'&&Math.abs(v.p.x-d.x)<.01&&Math.abs(v.p.z-d.z)<.01&&Math.abs(v.p.y-l.y-1.02*READING_DESK_SCALE)<.01);assert.ok(divider,'白色隔板應在桌島中央而非後擋板');
   if(d.side==='north')assert.ok(Math.abs(divider.s.z-(d.depth-.08))<.001&&divider.s.x<.1);else assert.ok(Math.abs(divider.s.x-(d.depth-.08))<.001&&divider.s.z<.1);
-  for(const offset of [-1.3,1.3])for(const v of d.chairDepths){const cx=d.side==='east'?l.east+v:d.x+offset,cz=d.side==='east'?d.z+offset:l.north-v;assert.ok(parts.some(v=>Math.abs(v.p.x-cx)<.01&&Math.abs(v.p.z-cz)<.01&&Math.abs(v.p.y-l.y-.46)<.01),'兩側座椅必須相對');}
+  for(const offset of [-(d.chairHalfSpacing??1.3),d.chairHalfSpacing??1.3])for(const v of d.chairDepths){const cx=d.side==='east'?l.east+v:d.x+offset,cz=d.side==='east'?d.z+offset:l.north-v;assert.ok(parts.some(v=>Math.abs(v.p.x-cx)<.01&&Math.abs(v.p.z-cz)<.01&&Math.abs(v.p.y-l.y-.46*READING_CHAIR_SCALE)<.01),'兩側座椅必須相對');}
   assert.ok(nav.atriumFurniture(l).length>=nav.atriumDesks(l).length*3);const path={x:d.side==='east'?l.east+2.45:d.u,y:l.y,z:d.side==='east'?d.u:l.north-2.45};const before={...path};nav.clampAtrium(path);assert.deepEqual(path,before,'書牆前通道');
  }
 });
@@ -134,7 +138,7 @@ test('主樓層轉角出口可穿過書牆到後方公共走廊，夾層不憑�
  for(const l of nav.ATRIUM_LEVELS){const f=nav.PUBLIC_NAV_FLOORS.find(f=>f.id===l.id);
  if(l.estimatedTerraceOnly){assert.equal(nav.atriumRearExit(l),null);continue;}
  // Official west-column doorway connects the terrace to long north circulation; 8F has no inner terrace.
- if(l.label==='8F')continue;const north=Math.min(...f.regions[0].map(p=>p[1])),exit=nav.atriumRearExit(l),west=exit.axis==='z';
+ if(l.label==='8F')continue;const north=f.terraceNorth,exit=nav.atriumRearExit(l),west=exit.axis==='z';
  for(let i=0;i<=35;i++){const p=west?{x:exit.x+.9-i*.05,y:l.y,z:exit.z}:{x:-13.8,y:l.y,z:north+.9-i*.05},wanted={...p};nav.clampAtrium(p);assert.deepEqual(p,wanted,'來源西端出口全段可走 '+l.label);
  const down=new THREE.Raycaster(new THREE.Vector3(p.x,l.y+.2,p.z),new THREE.Vector3(0,-1,0),0,.5).intersectObject(m,true).find(h=>h.object.name==='來源校準公共樓板');assert.ok(down&&Math.abs(down.point.y-l.y)<.03,'開口後方實體地板');}
  const ray=new THREE.Raycaster(west?new THREE.Vector3(exit.x+.9,l.y+1.6,exit.z):new THREE.Vector3(-13.8,l.y+1.6,north+.9),west?new THREE.Vector3(-1,0,0):new THREE.Vector3(0,0,-1),0,1.75);assert.equal(ray.intersectObject(m,true).filter(h=>h.object.material.side!==THREE.BackSide&&!h.object.material.transparent).length,0,'人眼高開口不能被書牆封住');
@@ -163,7 +167,7 @@ test('來源西端轉角出口保持暢通，相鄰挑空邊界仍阻擋角色�
  // New source doorway is an open floor joint rather than the removed generic T appendage/frame.
  // Its neighboring physical boundary still stops a body while its center stays open.
  for(const l of nav.ATRIUM_LEVELS.filter(l=>!l.estimatedTerraceOnly&&l.label!=='8F')){
- const f=nav.PUBLIC_NAV_FLOORS.find(f=>f.id===l.id),north=Math.min(...f.regions[0].map(p=>p[1]));
+ const f=nav.PUBLIC_NAV_FLOORS.find(f=>f.id===l.id),north=f.terraceNorth;
  const exit=nav.atriumRearExit(l),center=exit.axis==='z'?{x:exit.x,y:l.y,z:exit.z}:{x:-13.8,y:l.y,z:north},wanted={...center};nav.clampAtrium(center);assert.deepEqual(center,wanted);
  const edge={x:l.east-.1,y:l.y,z:3};nav.clampAtrium(edge);assert.ok(edge.x>=l.east+.4,'相鄰真邊界不能穿入');
  }
@@ -171,7 +175,7 @@ test('來源西端轉角出口保持暢通，相鄰挑空邊界仍阻擋角色�
 
 test('手機快速下樓在不同遊戲步進落穩同一樓層，不以牆鐘毫秒假定已落地',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
- const s=nav.ATRIUM_STAIRS.find(s=>s.a.y===20&&s.b.y===23.1),dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz),ux=dx/len,uz=dz/len;
+ const s=nav.ATRIUM_STAIRS.find(s=>s.a.y===dahFloorY('6F')&&s.b.y===dahFloorY('7F')),dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz),ux=dx/len,uz=dz/len;
  for(const dt of [1/60,.05]){
   const p={x:s.b.x+ux*.65,y:s.b.y,z:s.b.z+uz*.65};let vy=0;
   const gravity=()=>{vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}};
@@ -190,12 +194,46 @@ test('registered bookshelf aisles retain a continuous body-clear route beside ev
  }
 });
 
-test('estimated intermediate south galleries remain body-wide floor rather than a narrow unsupported strip',async()=>{
+test('估算退台南側只保留梯口到東帶的身體寬平台，不再要求跨挑空的整排露台',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{publicFloor,floorContains}=await import('../src/world/buildings/dah-hsian/public-floor-layout.js');
  for(const l of nav.ATRIUM_LEVELS.filter(l=>l.estimatedTerraceOnly))for(let i=0;i<=60;i++){
-  const x=-3+i*.05,z=14.5,f=publicFloor(l.label),p={x,y:l.y,z},wanted={...p};
-  assert.equal(nav.atriumHeight(x,z,l.y),l.y,'estimated south gallery needs supported floor '+l.label);
+  const x=l.east+.1+i*.04,z=14.5,f=publicFloor(l.label),p={x,y:l.y,z},wanted={...p};
+  assert.equal(nav.atriumHeight(x,z,l.y),l.y,'stair landing needs supported floor '+l.label);
   for(let k=0;k<16;k++){const a=k/16*Math.PI*2;assert.ok(floorContains(f,x+.4*Math.cos(a),z+.4*Math.sin(a)),'entire player radius fits '+l.label);}
-  nav.clampAtrium(p);assert.ok(Math.hypot(p.x-wanted.x,p.z-wanted.z)<1e-6,'continuous south gallery '+l.label);
+  nav.clampAtrium(p);assert.ok(Math.hypot(p.x-wanted.x,p.z-wanted.z)<1e-6,'continuous stair landing '+l.label);
+ }
+});
+
+test('南側退台梯具有角色雙側通行餘裕，擴大真正可走寬度',async()=>{
+ const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
+ for(const s of nav.ATRIUM_STAIRS.filter(s=>s.terraceSide==='south'))assert.ok(s.width>=1.6,'估算梯段需至少1.6寬，不能只給角色0.3橫移量');
+});
+
+test('沿三樓梯側樓板走動不能被橫向吸入梯段',async()=>{
+ const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),s=nav.ATRIUM_STAIRS.find(s=>!s.entry),p={x:s.a.x+s.width/2+.15,y:s.a.y,z:s.a.z+(s.b.z-s.a.z)*.12},before={...p};
+ nav.clampAtrium(p);assert.ok(p.x>=before.x,'樓梯旁應擋在扶手外，不得把角色拉到梯內');assert.equal(p.y,before.y);
+});
+
+test('上端平台末端旁的同層樓板不會把人物吸回相鄰下行梯',async()=>{
+ const{atriumHeight,clampAtrium}=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
+ const{DAH_NAV_BODY}=await import('../src/world/buildings/dah-hsian/interior-space.js');
+ for(const x of[.85,.95,1.05]){const p={x,y:dahFloorY('3MF'),z:13.9};assert.equal(atriumHeight(p.x,p.z,p.y),dahFloorY('3MF'),'站位原本由3MF平台支撐');clampAtrium(p,DAH_NAV_BODY);assert.ok(p.x>.8,'已在平台外側，不得吸進寬1.6的梯段 '+JSON.stringify(p));assert.equal(p.y,dahFloorY('3MF'));}
+});
+
+test('5F南梯與書櫃之間有同層完整旁通路，不被櫃碰撞側推或吸上梯',async()=>{
+ const {clampAtrium,atriumHeight}=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{DAH_NAV_BODY}=await import('../src/world/buildings/dah-hsian/interior-space.js');
+ for(const reverse of [false,true]){const p={x:8.635,y:dahFloorY('5F'),z:reverse?14.3:8};
+  for(let i=0;i<=158;i++){const target=reverse?14.3-i*.04:8+i*.04;p.z=target;const before={...p};clampAtrium(p,DAH_NAV_BODY);assert.ok(Math.hypot(p.x-before.x,p.z-before.z)<.02,'梯櫃間不可側推 '+JSON.stringify({before,p}));assert.ok(Math.abs(atriumHeight(p.x,p.z,p.y)-dahFloorY('5F'))<.02,'旁通不能被算成上梯');}
+ }
+});
+
+test('各主樓層南梯旁通路包含角色全寬及左右餘裕，雙向不換樓層',async()=>{
+ const {clampAtrium,atriumHeight,ATRIUM_LEVELS}=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{stairSidePassages}=await import('../src/world/buildings/dah-hsian/circulation-layout.js'),{DAH_NAV_BODY:body,DAH_HORIZONTAL_SCALE:scale}=await import('../src/world/buildings/dah-hsian/interior-space.js');
+ const routes=ATRIUM_LEVELS.flatMap(stairSidePassages);assert.deepEqual(routes.map(r=>r.floor),['3F','4F','5F']);
+ for(const r of routes){const [a,b]=r.centerline,dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz),margin=(r.minBodyWidth-.68)/scale/2;
+  for(const side of [-margin,0,margin])for(const reverse of [false,true])for(let i=0;i<=160;i++){
+   const t=reverse?1-i/160:i/160,p={x:a.x+dx*t+dz/len*side,y:a.y,z:a.z+dz*t-dx/len*side},before={...p};clampAtrium(p,body);
+   assert.ok(Math.hypot(p.x-before.x,p.z-before.z)<.02,r.id+'通路側推 '+JSON.stringify({side,t,before,p}));assert.ok(Math.abs(atriumHeight(p.x,p.z,p.y)-a.y)<.02,r.id+'旁通被算成樓梯');
+  }
  }
 });

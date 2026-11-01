@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -19,7 +20,7 @@ test('registered No3/4 shaft remains solid full height and its documented main-f
 
 test('each constructed main-floor lift landing has the same visible floor and supported navigation height',async()=>{
  const {atriumHeight}=await import('../src/world/buildings/dah-hsian/atrium-layout.js');const m=model();
- for(const y of [0,4.5,10.7,16.9,23.1,26.2]){
+ for(const y of ['2F','3F','4F','5F','7F','8F'].map(dahFloorY)){
   const hits=ray(m,-18.05,y+.2,2.3,0,-1,0,.5).filter(h=>Math.abs(h.point.y-y)<.04);
   assert.ok(hits.length,`visible safe west lift landing missing at ${y}`);
   assert.equal(atriumHeight(-18.05,2.3,y),y);
@@ -29,11 +30,11 @@ test('each constructed main-floor lift landing has the same visible floor and su
 test('documented public lounge, diagonal, south reading and rear corridors have real floor, while the central atrium stays open',async()=>{
  const m=model();
  const routes={
-  '3F':{y:4.5,points:[[-21,8],[-10,-13.5],[0,18],[.2,4]]},
-  '4F':{y:10.7,points:[[-17,6.5],[0,-12],[8,2],[2,18]]},
-  '5F':{y:16.9,points:[[-14,9],[0,-12.2],[11,0],[2,18]]},
-  '7F':{y:23.1,points:[[-27,-4],[0,-15.8],[14,0],[0,17]]},
-  '8F':{y:26.2,points:[[-16,7],[0,-15.5],[14,0],[0,16]]},
+  '3F':{y:dahFloorY('3F'),points:[[-21,8],[-10,-13.5],[0,18],[.2,4]]},
+  '4F':{y:dahFloorY('4F'),points:[[-17,6.5],[0,-12],[8,2],[2,18]]},
+  '5F':{y:dahFloorY('5F'),points:[[-14,9],[0,-12.2],[11,0],[2,18]]},
+  '7F':{y:dahFloorY('7F'),points:[[-27,-4],[0,-15.8],[14,0],[0,17]]},
+  '8F':{y:dahFloorY('8F'),points:[[-16,7],[0,-15.5],[14,0],[0,16]]},
  };
  for(const [id,{y,points}]of Object.entries(routes)){
   for(const [x,z]of points)assert.ok(ray(m,x,y+.2,z,0,-1,0,.5).length,`${id} public floor absent at ${x},${z}`);
@@ -45,11 +46,11 @@ test('documented public lounge, diagonal, south reading and rear corridors have 
 
 test('floor support requires actual source floor and physical boundary blocks local movement without projecting across a void',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
- assert.equal(nav.atriumHeight(-5,4,10.7),0,'4F void does not become an invisible nearest-level platform');
- const far={x:-5,y:10.7,z:4};nav.clampAtrium(far);assert.deepEqual(far,{x:-5,y:10.7,z:4},'no remote nearest-floor teleport');
- const m=model(),edge={x:1.9,y:10.7,z:3};
+ assert.equal(nav.atriumHeight(-5,4,dahFloorY('4F')),0,'4F void does not become an invisible nearest-level platform');
+ const far={x:-5,y:dahFloorY('4F'),z:4};nav.clampAtrium(far);assert.deepEqual(far,{x:-5,y:dahFloorY('4F'),z:4},'no remote nearest-floor teleport');
+ const m=model(),edge={x:1.9,y:dahFloorY('4F'),z:3};
  for(let i=0;i<40;i++){edge.x-=.05;nav.clampAtrium(edge);assert.ok(edge.x>=2.03,'radius stays outside the atrium opening');}
- assert.ok(ray(m,2.3,11.4,3,-1,0,0,1).some(h=>h.object.name.includes('公共邊界')),'navigation edge has a real visible guard');
+ assert.ok(ray(m,2.3,dahFloorY('4F')+.7,3,-1,0,0,1).some(h=>h.object.name.includes('公共邊界')),'navigation edge has a real visible guard');
 });
 
 test('D stair occupies the source southwest L core with shared flights, a turn landing and an open overhead path',async()=>{
@@ -77,7 +78,7 @@ test('real room resolve and gravity traverse both D flights, turn and upper land
    assert.ok(Math.hypot(p.x-before.x,p.z-before.z)<=move+.035,'no remote correction');
    vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}
   }assert.fail('D route stuck '+JSON.stringify({x,z,p,dt}));};
-  step(-14,18.5);step(-8.5,18.5);assert.ok(Math.abs(p.y-4.5)<.04,'upper source landing');
+  step(-14,18.5);step(-8.5,18.5);assert.ok(Math.abs(p.y-dahFloorY('3F'))<.04,'upper source landing');
   step(-14,18.5);step(-14,13.1);
   for(let i=0;i<60;i++){vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}}
   assert.ok(Math.abs(p.y)<.04,'returns to 2F');
@@ -135,11 +136,16 @@ test('all enabled elevator stops allow a radius-safe walk out of the door and ba
 
 test('source-facing book walls stop the player body and the west corner doorway stays traversable into the long rear circulation',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
- const l=nav.ATRIUM_LEVELS.find(l=>l.label==='4F'),p={x:l.east+3.35,y:l.y,z:3};nav.clampAtrium(p);
- assert.ok(p.x<=l.east+2.82,'book wall face plus body radius is solid');
+ const {dahReadingBandDepth}=await import('../src/world/buildings/dah-hsian/circulation-clearance.js');const l=nav.ATRIUM_LEVELS.find(l=>l.label==='4F'),depth=dahReadingBandDepth(l),p={x:l.east+depth-.25,y:l.y,z:3};nav.clampAtrium(p);
+ assert.ok(p.x<=l.east+depth-1.1+1e-6||p.x>=l.east+depth+.45-1e-6,'invalid start inside bookshelf resolves outside its body clearance');
+ // 連續公共樓板現在也延伸到書牆背側；兩側合法接近都不能穿牆。
+ for(const [start,step,limit]of [[depth-1.2,.05,depth-1.1],[depth+.6,-.05,depth+.45]]){
+  const q={x:l.east+start,y:l.y,z:3};
+  for(let i=0;i<60;i++){q.x+=step;nav.clampAtrium(q);assert.ok(step>0?q.x<=l.east+limit+1e-6:q.x>=l.east+limit-1e-6,'continuous approach must not cross the bookshelf');}
+ }
  const m=model();
  for(const id of ['3F','4F','5F','7F']){
-  const l=nav.ATRIUM_LEVELS.find(l=>l.label===id),f=nav.PUBLIC_NAV_FLOORS.find(f=>f.id===id),north=Math.min(...f.regions[0].map(p=>p[1]));
+  const l=nav.ATRIUM_LEVELS.find(l=>l.label===id),f=nav.PUBLIC_NAV_FLOORS.find(f=>f.id===id),north=f.terraceNorth;
   const z0=north+.9,exit=nav.atriumRearExit(l),west=exit.axis==='z';
   for(let n=0;n<35;n++){
    const p=west?{x:exit.x+.9-n*.05,y:l.y,z:exit.z}:{x:-13.8,y:l.y,z:z0-n*.05},before={...p};nav.clampAtrium(p);assert.ok(Math.hypot(p.x-before.x,p.z-before.z)<.001,`source west doorway ${id}`);
@@ -150,15 +156,17 @@ test('source-facing book walls stop the player body and the west corner doorway 
 
 test('8F西南轉角有身體寬度的銜接，不只是兩張地板在頂點相碰',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
- const p={x:-8.6,y:26.2,z:15.85};
- for(let i=0;i<85;i++){const wanted=p.x+.04;p.x=wanted;nav.clampAtrium(p);assert.ok(Math.abs(p.x-wanted)<.005,'西南轉角卡住 '+JSON.stringify(p));assert.equal(nav.atriumHeight(p.x,p.z,p.y),26.2);}
+ const p={x:-8.3,y:dahFloorY('8F'),z:14.9};
+ // 斜向研究室為實牆；公共轉角先沿斜邊繞行，不能把穿牆直線當成通路。
+ for(const [x,z]of[[-7.4,15.8],[-5.2,15.85]])for(let i=0;i<150;i++){const dx=x-p.x,dz=z-p.z,d=Math.hypot(dx,dz);if(d<.005)break;const step=Math.min(.04,d),wanted={x:p.x+dx/d*step,z:p.z+dz/d*step};Object.assign(p,wanted);nav.clampAtrium(p);assert.ok(Math.hypot(p.x-wanted.x,p.z-wanted.z)<.005,'西南轉角卡住 '+JSON.stringify(p));assert.equal(nav.atriumHeight(p.x,p.z,p.y),dahFloorY('8F'));}
+ assert.ok(Math.hypot(p.x+5.2,p.z-15.85)<.005,'轉角應真正抵達另一側');
 });
 
 test('8F房間側在人眼高度有實際牆門，不能只剩膝高玻璃欄杆',()=>{
  const known=new THREE.Mesh(new THREE.BoxGeometry(1,1,1));known.updateMatrixWorld();assert.ok(ray(known,-1,0,0,1,0,0).length);assert.equal(ray(known,-1,2,0,1,0,0).length,0);
  const m=model();
  for(const [x,z,dx,dz]of [[0,-15.5,0,-1],[14,3,1,0],[0,16,0,1]]){
-  const hit=ray(m,x,27.8,z,dx,0,dz,3).find(h=>!h.object.material.transparent&&h.object.material.side!==THREE.BackSide);
+  const hit=ray(m,x,dahFloorY('8F')+1.6,z,dx,0,dz,3).find(h=>!h.object.material.transparent&&h.object.material.side!==THREE.BackSide);
   assert.ok(hit,'房間界面缺失 '+JSON.stringify({x,z,dx,dz}));assert.match(hit.object.name,/房間|門/);
  }
 });
@@ -166,9 +174,9 @@ test('8F房間側在人眼高度有實際牆門，不能只剩膝高玻璃欄杆
 test('8F可由電梯經西南南東北迴廊往返，機房不必被挖穿',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{INTERIOR_BOUNDS:b,interiorColliders}=await import('../src/world/buildings/dah-hsian/interior-layout.js'),{resolve,setActiveColliders,setRoomClamp}=await import('../src/core/collision.js');
  setActiveColliders(interiorColliders());setRoomClamp(p=>{p.x=Math.max(b.x0,Math.min(b.x1,p.x));p.z=Math.max(b.z0,Math.min(b.z1,p.z));nav.clampAtrium(p);});
- const route=[[-18.25,6.36],[-16.8,6.36],[-14,9],[-10.5,12.5],[-8.9,15.6],[-6,15.85],[14,15.85],[14,-15.5],[0,-15.5]];
- try{for(const dt of [1/60,.05]){const p={x:-18.25,y:26.2,z:2.3};let vy=0;
- const walk=([x,z])=>{for(let n=0;n<1800;n++){const dx=x-p.x,dz=z-p.z,d=Math.hypot(dx,dz);if(d<.09)return;const move=Math.min(d,4.6*dt);p.x+=dx/d*move;p.z+=dz/d*move;resolve(p);vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}assert.ok(Math.abs(p.y-26.2)<.04,'走廊中不能掉樓 '+JSON.stringify({target:[x,z],p,dt}));}assert.fail('8F迴廊卡住 '+JSON.stringify({x,z,p,dt}));};
+ const route=[[-18.25,6.36],[-16.8,6.36],[-14,9],[-10.5,12.5],[-8.3,14.9],[-7.4,15.8],[-7.1,15.8],[-6,15.85],[14,15.85],[14,-15.5],[0,-15.5]];
+ try{for(const dt of [1/60,.05]){const p={x:-18.25,y:dahFloorY('8F'),z:2.3};let vy=0;
+ const walk=([x,z])=>{for(let n=0;n<1800;n++){const dx=x-p.x,dz=z-p.z,d=Math.hypot(dx,dz);if(d<.09)return;const move=Math.min(d,4.6*dt);p.x+=dx/d*move;p.z+=dz/d*move;resolve(p);vy-=18*dt;p.y+=vy*dt;const h=nav.atriumHeight(p.x,p.z,p.y);if(p.y<=h){p.y=h;vy=0;}assert.ok(Math.abs(p.y-dahFloorY('8F'))<.04,'走廊中不能掉樓 '+JSON.stringify({target:[x,z],p,dt}));}assert.fail('8F迴廊卡住 '+JSON.stringify({x,z,p,dt}));};
  for(const point of route)walk(point);for(const point of [...route].reverse())walk(point);walk([-18.25,2.3]);
  }}finally{setRoomClamp(null);setActiveColliders([]);}
 });
@@ -177,7 +185,7 @@ test('退台斜梯須能從樓板真正走入，桌椅不能藏在第一階前',
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');
  for(const s of nav.ATRIUM_STAIRS.filter(s=>!s.entry)){
   const dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz),ux=dx/len,uz=dz/len;
-  const p={x:s.a.x-ux*.8,y:s.a.y,z:s.a.z-uz*.8};
+  const p={x:s.a.x-ux*(s.approachDistance??.8),y:s.a.y,z:s.a.z-uz*(s.approachDistance??.8)};
   for(let i=0;i<40;i++){const wanted={x:p.x+ux*.04,z:p.z+uz*.04};p.x=wanted.x;p.z=wanted.z;nav.clampAtrium(p);assert.ok(Math.hypot(p.x-wanted.x,p.z-wanted.z)<.005,'梯前家具卡住 '+JSON.stringify({fromY:s.a.y,p,wanted}));p.y=nav.atriumHeight(p.x,p.z,p.y);}
   assert.ok(p.y>s.a.y+.2,'須走過第一階');
  }
@@ -203,8 +211,8 @@ test('房間邊界包含官方4F西側聆賞翼，不把真公開區截在地圖
 });
 
 test('來源5F北側公共走廊不殘留舊T形門框的隱形碰撞',async()=>{
- const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),p={x:7.5,y:16.9,z:-12},wanted={...p};
- assert.equal(nav.atriumHeight(p.x,p.z,p.y),16.9);nav.clampAtrium(p);assert.deepEqual(p,wanted,'已移除模型的門框不得仍擋角色');
+ const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{dahBookBackDepth}=await import('../src/world/buildings/dah-hsian/circulation-clearance.js'),level=nav.ATRIUM_LEVELS.find(l=>l.id==='5F'),p={x:7.5,y:dahFloorY('5F'),z:level.north-dahBookBackDepth(level)-.7},wanted={...p};
+ assert.equal(nav.atriumHeight(p.x,p.z,p.y),dahFloorY('5F'));nav.clampAtrium(p);assert.deepEqual(p,wanted,'已移除模型的門框不得仍擋角色');
 });
 
 test('擴充高樓西翼不讓2F角色從風除門走出可見地板掉進空白區',async()=>{
@@ -223,7 +231,7 @@ test('3至7F公共廁所前廊的敞開入口可走入，不是封死的假門',
 
 test('各主樓層房間側有對應官方牆面，不再以低玻璃欄杆取代',()=>{
  const m=model();
- for(const [id,y,x,z,dx,dz]of [['3F',4.5,1,3,1,0],['4F',10.7,14,2,1,0],['5F',16.9,0,-12,0,-1],['7F',23.1,14,0,1,0]]){
+ for(const [id,y,x,z,dx,dz]of [['3F',dahFloorY('3F'),1,3,1,0],['4F',dahFloorY('4F'),14,2,1,0],['5F',dahFloorY('5F'),0,-14,0,-1],['7F',dahFloorY('7F'),14,0,1,0]]){
   const hit=ray(m,x,y+1.6,z,dx,0,dz,3).find(h=>h.object.userData.roomFrontFloor===id&&!h.object.material.transparent);
   assert.ok(hit,'來源房間面牆缺少 '+id);
  }
@@ -231,23 +239,23 @@ test('各主樓層房間側有對應官方牆面，不再以低玻璃欄杆取�
 
 test('公開樓板接到來源外窗牆線，不能在窗前留懸空細縫',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{INTERIOR_BOUNDS:b}=await import('../src/world/buildings/dah-hsian/interior-layout.js');
- assert.equal(nav.atriumHeight(-30.3,-10,4.5),4.5);assert.equal(nav.atriumHeight(-10,-22.5,4.5),4.5);assert.ok(b.z0<=-24,'須包含鋸齒採光窗的公開空間');
+ assert.equal(nav.atriumHeight(-30.3,-10,dahFloorY('3F')),dahFloorY('3F'));assert.equal(nav.atriumHeight(-10,-22.5,dahFloorY('3F')),dahFloorY('3F'));assert.ok(b.z0<=-24,'須包含鋸齒採光窗的公開空間');
 });
 
 test('各層南側閱覽區接完整外窗與窗框，而不是低護欄外直接看見空白',()=>{
- const m=model();for(const [id,y]of [['3F',4.5],['4F',10.7],['5F',16.9],['7F',23.1]]){
+ const m=model();for(const [id,y]of [['3F',dahFloorY('3F')],['4F',dahFloorY('4F')],['5F',dahFloorY('5F')],['7F',dahFloorY('7F')]]){
   assert.ok(ray(m,0,y+1.6,18,0,0,1,3).some(h=>h.object.userData.publicWindowFloor===id),'南閱覽外窗缺少 '+id);
  }
 });
 
 test('4F西南一般閱覽區不是誤放的封閉討論室，真房間留在來源斜邊',async()=>{
- const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');assert.equal(nav.atriumHeight(-12,15,10.7),10.7,'實際公開閱覽區被舊討論室占掉');
+ const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js');assert.equal(nav.atriumHeight(-12,15,dahFloorY('4F')),dahFloorY('4F'),'實際公開閱覽區被舊討論室占掉');
 });
 
 test('斜向討論室沿來源門位呈現關閉門片，不能只剩整塊斜盒子',async()=>{
  const {SOURCE_REAR_LAYOUT}=await import('../src/world/buildings/dah-hsian/rear-public-layout.js'),m=model();
  for(const id of ['4F','5F','7F']){
-  const d=SOURCE_REAR_LAYOUT[id].diagonal,[x,z]=d.gameDoorCenters[0],dx=d.gameB[0]-d.gameA[0],dz=d.gameB[1]-d.gameA[1],len=Math.hypot(dx,dz),nx=dz/len,nz=-dx/len,y=id==='4F'?10.7:id==='5F'?16.9:23.1;
+  const d=SOURCE_REAR_LAYOUT[id].diagonal,[x,z]=d.gameDoorCenters[0],dx=d.gameB[0]-d.gameA[0],dz=d.gameB[1]-d.gameA[1],len=Math.hypot(dx,dz),nx=dz/len,nz=-dx/len,y=dahFloorY(id);
   assert.ok(ray(m,x+nx*.6,y+1.2,z+nz*.6,-nx,0,-nz,1).some(h=>h.object.userData.roomFrontKind==='diagonal'&&h.object.name==='關閉房間門'),'斜向來源門缺少 '+id);
  }
 });
@@ -266,8 +274,9 @@ test('公開後區依官方照片有實體天花與線燈，中央中庭仍保�
  const m=model();
  for(const id of ['3F','4F','5F','7F']){
   const o=rearFurniture(id).find(o=>!['chair','taskChair','lounge','counter'].includes(o.type));
-  const h=ray(m,o.x,o.y+1.85,o.z,0,1,0,1.5);
-  assert.ok(h.some(h=>h.object.name==='公開後區裸露天花'),id+' ceiling');
+  const h=ray(m,o.x,o.y+1.85,o.z,0,1,0,dahRoomHeight(id)-1.85+.12);
+  const above={'3F':'3MF','4F':'4MF','5F':'6F','7F':'8F'}[id];
+  assert.ok(h.some(h=>h.object.name==='公開後區裸露天花'||h.object.name==='來源校準公共樓板'&&h.object.userData.floorId===above),id+' ceiling must be a real soffit or the actual upper slab underside');
   let lamp=false;m.traverse(o=>{if(o.userData.rearCeilingFloor===id&&o.name==='後區線形吊燈')lamp=true;});assert.ok(lamp,id+' actual light fixtures');
  }
  assert.ok(!ray(m,-5,6.35,4,0,1,0,1.3).some(h=>h.object.name==='公開後區裸露天花'),'central atrium remains open');
@@ -287,7 +296,7 @@ test('各主樓層電梯西落點可繞過真B梯與核心進入中庭公共後�
  setActiveColliders(interiorColliders());setRoomClamp(nav.clampAtrium);
  try{for(const l of nav.ATRIUM_LEVELS.filter(l=>!l.estimatedTerraceOnly&&l.label!=='8F')){
   const p={x:-18.25,y:l.y,z:2.3};
-  for(const [x,z]of [[-18.25,6.4],[-14.1,6.4],[-14.1,l.north-2.45],[l.east+2.45,l.north-2.45]]){
+  for(const [x,z]of [[-18.25,6.4],[-14.1,6.4],[-14.1,l.north-3.6],[l.east+2.65,l.north-3.6]]){
    let steps=0;
    while(Math.hypot(x-p.x,z-p.z)>.07&&steps++<1200){const dx=x-p.x,dz=z-p.z,len=Math.hypot(dx,dz),v=Math.min(.06,len);p.x+=dx/len*v;p.z+=dz/len*v;resolve(p);assert.equal(nav.atriumHeight(p.x,p.z,l.y),l.y,'supported whole route '+l.label);}
    assert.ok(steps<1200,l.label+' route blocked '+JSON.stringify({x,z,p}));
@@ -307,22 +316,22 @@ test('四樓東側影音區外窗有實心壁柱分隔，不能整面都是薄�
  const x=(a[0]+b[0])/2,z=(a[1]+b[1])/2,dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=dz/len,nz=-dx/len;
  // At least one substantial pier must physically stop an eye-height ray.
  let found=false;for(let t=.1;t<.95;t+=.02){const xx=a[0]+dx*t,zz=a[1]+dz*t;
-  if(ray(m,xx-nx,12.3,zz-nz,nx,0,nz,2).some(h=>h.object.name==='影音區外窗實心壁柱'))found=true;
+  if(ray(m,xx-nx,dahFloorY('4F')+1.6,zz-nz,nx,0,nz,2).some(h=>h.object.name==='影音區外窗實心壁柱'))found=true;
  }assert.ok(found,'official AV photo shows opaque piers, not only thin mullions');
 });
 
 test('7F南窗櫃桌後緣接到柱網I列外窗，保守描線不能把來源桌面留在地板外',async()=>{
  const {publicFloor,floorContains}=await import('../src/world/buildings/dah-hsian/public-floor-layout.js');
  const f=publicFloor('7F');assert.ok(floorContains(f,0,19.91),'source table rear lies on supported floor before rowI=20');
- const m=model();assert.ok(ray(m,0,23.3,19.91,0,-1,0,.5).some(h=>h.object.name==='來源校準公共樓板'),'actual slab supports window counter');
+ const m=model();assert.ok(ray(m,0,dahFloorY('7F')+.2,19.91,0,-1,0,.5).some(h=>h.object.name==='來源校準公共樓板'),'actual slab supports window counter');
 });
 
 test('7F02真公開走道接通G梯東端與H梯西端，不能被保守後區描線漏掉',async()=>{
  const nav=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{resolve,setRoomClamp,setActiveColliders}=await import('../src/core/collision.js'),{interiorColliders}=await import('../src/world/buildings/dah-hsian/interior-layout.js');
  setRoomClamp(nav.clampAtrium);setActiveColliders(interiorColliders());
- try{const p={x:-24.2,y:23.1,z:-9.714};
+ try{const p={x:-24.2,y:dahFloorY('7F'),z:-9.714};
  for(const [x,z]of [[-23.522,-9.714],[-22.053,-9.714],[-21.004,-9.714],[-21.004,-8.941],[-20.92,-8.941]]){
-  let count=0;while(Math.hypot(x-p.x,z-p.z)>.06&&count++<1500){const dx=x-p.x,dz=z-p.z,len=Math.hypot(dx,dz);p.x+=dx/len*.05;p.z+=dz/len*.05;resolve(p);assert.equal(nav.atriumHeight(p.x,p.z,23.1),23.1,'continuous source corridor floor');}
+  let count=0;while(Math.hypot(x-p.x,z-p.z)>.06&&count++<1500){const dx=x-p.x,dz=z-p.z,len=Math.hypot(dx,dz);p.x+=dx/len*.05;p.z+=dz/len*.05;resolve(p);assert.equal(nav.atriumHeight(p.x,p.z,dahFloorY('7F')),dahFloorY('7F'),'continuous source corridor floor');}
   assert.ok(count<1500,'source G/H corridor blocked '+JSON.stringify(p));
  }
  }finally{setRoomClamp(null);setActiveColliders([]);}
@@ -332,8 +341,8 @@ test('7F來源雙扇廳門保留登錄的門寬與兩扇實體門片，不把兩
  const {PUBLIC_ROOM_FRONTS}=await import('../src/world/buildings/dah-hsian/public-room-fronts.js');
  const w=PUBLIC_ROOM_FRONTS.find(w=>w.floor==='7F'&&w.doorWidth>1.2);assert.ok(w);
  const m=model(),center=w.doors[0];
- for(const dx of [-.6,.6])assert.ok(ray(m,center+dx,24.2,w.fixed+1,0,0,-1,2).some(h=>h.object.name==='關閉房間門'),'來源門寬兩側須是門片，不是錯補隔牆');
- assert.equal(ray(m,center,24.2,w.fixed+1,0,0,-1,2).filter(h=>h.object.name==='關閉房間門').length,0,'兩片門之間有可見分縫，不能一整片代替雙扇門');
+ for(const dx of [-.6,.6])assert.ok(ray(m,center+dx,dahFloorY('7F')+1.1,w.fixed+1,0,0,-1,2).some(h=>h.object.name==='關閉房間門'),'來源門寬兩側須是門片，不是錯補隔牆');
+ assert.equal(ray(m,center,dahFloorY('7F')+1.1,w.fixed+1,0,0,-1,2).filter(h=>h.object.name==='關閉房間門').length,0,'兩片門之間有可見分縫，不能一整片代替雙扇門');
 });
 
 test('3F北側共享區望向廁所東側是實牆、書寫白板與壁掛螢幕，不是矮玻璃後的空洞',()=>{
@@ -345,7 +354,7 @@ test('3F北側共享區望向廁所東側是實牆、書寫白板與壁掛螢幕
 test('3F共享區依實景有垂直吸音片與片下線燈，保留角色頭頂和挑空區的淨空',()=>{
  const m=model(),panels=[],lamps=[];m.traverse(o=>{if(o.name==='共享區垂直吸音片')panels.push(o);if(o.name==='後區線形吊燈'&&o.userData.rearCeilingFloor==='3F')lamps.push(o);});
  assert.ok(panels.length,'官方commons1/2的密集垂直片不能省成一張平天花');
- const panelBox=panels.reduce((b,o)=>b.union(new THREE.Box3().setFromObject(o)),new THREE.Box3());assert.ok(panelBox.min.y>4.5+2.8,'片下保留正常站立及跳躍頭部空間');
+ const panelBox=panels.reduce((b,o)=>b.union(new THREE.Box3().setFromObject(o)),new THREE.Box3());assert.ok(panelBox.min.y>dahFloorY('3F')+2.8,'片下保留正常站立及跳躍頭部空間');
  assert.ok(lamps.length&&lamps.every(o=>new THREE.Box3().setFromObject(o).max.y<panelBox.min.y),'燈體懸於吸音片下，不與板片互穿');
  assert.equal(ray(m,-9,1.6,8,0,1,0,8).filter(h=>h.object.name==='共享區垂直吸音片').length,0,'2F中庭仍挑空');
 });
@@ -373,7 +382,7 @@ test('3F共享區北端依照片是蜂巢實牆交錯窄窗，室內地坪與天
   // locate supported interior, rather than measuring the sky outside it.
   const offset=[.3,-.3,.1,-.1,.04,-.04].find(d=>floorContains(f,x+nx*d,z+nz*d));
   assert.notEqual(offset,undefined,'calibrated interior side '+i);
-  assert.ok(ray(m,x+nx*offset,6.5,z+nz*offset,0,1,0,2).some(h=>h.object.name==='公開後區裸露天花'),'ceiling reaches the source façade '+i);
+  assert.ok(ray(m,x+nx*offset,dahFloorY('3F')+dahRoomHeight('3F')-1,z+nz*offset,0,1,0,1.2).some(h=>h.object.name==='公開後區裸露天花'),'ceiling reaches the source façade '+i);
  }
  let tiles=false;m.traverse(o=>{if(o.name==='共享區白金蜂巢片'&&o.isInstancedMesh)tiles=true;});assert.ok(tiles,'source-specific hexagonal relief uses shared geometry');
 });
@@ -381,7 +390,7 @@ test('3F共享區北端依照片是蜂巢實牆交錯窄窗，室內地坪與天
 test('3F共享區東側依平面有完整隔牆，書寫牆與外窗上緣接上天花而不漏出天空',()=>{
  const m=model();
  for(const z of [-21,-18.5,-15.5]){
-  const h=ray(m,-9.2,6.1,z,1,0,0,1.3);assert.ok(h.some(h=>h.object.name==='來源房間隔牆'),'east source partition '+z);
+  const h=ray(m,-9.2,6.1,z,1,0,0,1.3);assert.ok(h.some(h=>h.object.name==='來源房間隔牆'||h.object.userData.serviceSpace&&h.object.userData.serviceFloor==='3F'),'east source partition '+z);
   assert.ok(!h.some(h=>h.object.name==='公共邊界玻璃護欄'),'no invented east guard '+z);
  }
  for(const y of [7.55,7.75])assert.ok(ray(m,-13.5,y,-18.8,-1,0,0,2).some(h=>h.object.name==='來源房間隔牆'),'writing wall reaches the ceiling '+y);
@@ -391,14 +400,14 @@ test('4F團體視聽室前的公開地板與天花接到真隔牆，門前不另
  const {publicFloor,floorContains}=await import('../src/world/buildings/dah-hsian/public-floor-layout.js'),m=model(),f=publicFloor('4F');
  for(const z of [2,5,8,11]){
   assert.ok(floorContains(f,14.80,z),'floor reaches source partition, not conservative trace '+z);
-  assert.ok(ray(m,14.75,12.4,z,0,1,0,1.6).some(h=>h.object.name==='公開後區裸露天花'),'ceiling reaches room front '+z);
-  assert.ok(!ray(m,13.8,11.5,z,1,0,0,1.3).some(h=>h.object.name==='公共邊界玻璃護欄'),'no invented low guard before the actual wall '+z);
+  assert.ok(ray(m,14.75,dahFloorY('4F')+dahRoomHeight('4F')-1,z,0,1,0,1.2).some(h=>h.object.name==='公開後區裸露天花'),'ceiling reaches room front '+z);
+  assert.ok(!ray(m,13.8,dahFloorY('4F')+.8,z,1,0,0,1.3).some(h=>h.object.name==='公共邊界玻璃護欄'),'no invented low guard before the actual wall '+z);
  }
 });
 
 test('角色靠近真隔牆時保留身體與牆厚的間距，不能只擋在牆中心線',async()=>{
  const {clampAtrium}=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),m=model();
- const p={x:14.85,y:10.7,z:5};clampAtrium(p);
+ const p={x:14.85,y:dahFloorY('4F'),z:5};clampAtrium(p);
  const hit=ray(m,p.x,p.y+1.05,p.z,1,0,0,1).find(h=>h.object.name==='來源房間隔牆');assert.ok(hit,'actual registered room wall');
  assert.ok(hit.distance>=.399,'full .4-radius body stays outside the wall surface, not just its centre '+hit.distance);
 });

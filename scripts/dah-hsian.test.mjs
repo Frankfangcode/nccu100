@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 /** 達賢戶外的行走行為；每個行為先失敗，再接入實際場景。 */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,7 +37,7 @@ test('小屋外觀與底層露台不可穿入，外側步道保持可走', () =>
 });
 
 test('看得見的地面與玩家腳底相同，水池沒有藏在草地下面', async () => {
-  const ray = new THREE.Raycaster(new THREE.Vector3(0,10,0), new THREE.Vector3(0,-1,0));
+  const ray = new THREE.Raycaster(new THREE.Vector3(0,dahFloorY('3MF')+2.4,0), new THREE.Vector3(0,-1,0));
   const known = new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));
   known.rotation.x=-Math.PI/2; known.position.y=2; known.updateMatrixWorld(true);
   assert.ok(Math.abs(ray.intersectObject(known)[0].point.y-2)<1e-5,'先校準射線測量方法');

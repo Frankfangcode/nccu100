@@ -1,5 +1,7 @@
+import {terrainBankColliders} from './terrain-banks.js';
 /** 達賢戶外配置。前草坡朝 +z，池畔朝 -z；標高由照片估計，非現地測繪。 */
 import site from './site-data.js';
+import {POND_SIGN} from './pond-play.js';
 export const POND = site.features.pond.outline;
 export const LIBRARY_OUTLINE = site.features.library.outline;
 export const HOUSE_OUTLINE = site.features.house.outline;
@@ -205,7 +207,7 @@ export function keepOnLand(p) {
   p.x = Math.max(BOUNDS.x0 + 0.5, Math.min(BOUNDS.x1 - 0.5, p.x));
   p.z = Math.max(BOUNDS.z0 + 0.5, Math.min(BOUNDS.z1 - 0.5, p.z));
   {
-    const boxes=[...buildingColliders(),...raisedColliders()];
+    const boxes=[...buildingColliders(),...raisedColliders(),...terrainBankColliders(p)];
     for(let n=0;n<12;n++){
       const x=p.x,z=p.z;for(const box of boxes)pushFromBox(p,box);
       if(Math.hypot(p.x-x,p.z-z)<1e-7)break;
@@ -236,6 +238,7 @@ export function keepOnLand(p) {
 export function buildingColliders() {
   const cs=Math.cos(HOUSE.angle),sn=Math.sin(HOUSE.angle);
   return [
+    {x0:POND_SIGN.x-POND_SIGN.w/2,x1:POND_SIGN.x+POND_SIGN.w/2,z0:POND_SIGN.z-POND_SIGN.d/2,z1:POND_SIGN.z+POND_SIGN.d/2,top:POND_SIGN.h},
     ...LAKE_FOREST_TREES.map(t=>({x0:t.x-.14,x1:t.x+.14,z0:t.z-.14,z1:t.z+.14,bottom:groundHeight(t.x,t.z),top:groundHeight(t.x,t.z)+t.height*.67})),
     {x0:PLAZA_WALL.x-PLAZA_WALL.w/2,x1:PLAZA_WALL.x+PLAZA_WALL.w/2,z0:PLAZA_WALL.z-PLAZA_WALL.d/2,z1:PLAZA_WALL.z+PLAZA_WALL.d/2,bottom:PLAZA_WALL.bottom,top:PLAZA_WALL.top},
     { x0:-26.7,x1:10.15,z0:-24.8,z1:28.05,bottom:3.6,top:25.4 },

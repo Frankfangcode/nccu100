@@ -21,4 +21,4 @@ export const SOUTH_READING_FURNITURE=[
  object('2F南窗共桌',1440,1975,1.2,2.2,.76,'table'),
  ...[-1,1].flatMap(side=>[-.45,.45].map(dz=>({name:`2F共桌側椅${side}-${dz}`,x:x(1440)+side*.95,z:z(1975)+dz,w:.42,d:.45,h:.86,kind:'chair',angle:side<0?Math.PI/2:-Math.PI/2,sourceArea:'2F10'}))),
  ...[-1,1].map(side=>({name:`2F共桌端椅${side}`,x:x(1440),z:z(1975)+side*1.45,w:.42,d:.45,h:.86,kind:'chair',angle:side<0?0:Math.PI,sourceArea:'2F10'})),
-];
+].map(o=>o.name.startsWith('2F南窗菱形桌')?{...o,sourceZ:o.z,z:o.z-(o.name.startsWith('2F南窗菱形桌1')?.525:.475),clearanceOffset:o.name.startsWith('2F南窗菱形桌1')?-.525:-.475}:o);

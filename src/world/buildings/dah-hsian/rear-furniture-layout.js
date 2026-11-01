@@ -1,3 +1,5 @@
+import {fitRearFurniture} from './furniture-fit.js';
+import {COMMONS_STEP_SEATS} from './commons-step-layout.js';
 /** Official plan sample centres, not a complete inventory. Dimensions/heights and
  * furniture orientation are game estimates; 3F/4F finishes use official photos.
  * No full rear floor is inferred for MF/6F. Unsupported samples are never moved.
@@ -32,7 +34,7 @@ export function rearFurnitureLayout(id){
  if(cache.has(id))return cache.get(id);
  const rear=SOURCE_REAR_LAYOUT[id],f=publicFloor(id);if(!rear||!f)return freeze({items:[],omissions:[]});
  const items=[],omissions=[];
- const add=(o)=>{o={...o,floor:id,y:f.y,bounds:[rect(o.x,o.z,o.w*Math.abs(Math.cos(o.yaw||0))+o.d*Math.abs(Math.sin(o.yaw||0)),o.d*Math.abs(Math.cos(o.yaw||0))+o.w*Math.abs(Math.sin(o.yaw||0)))]};if(supported(f,o.bounds[0])){items.push(o);return true;}omissions.push({id:o.id,type:o.type,x:o.x,z:o.z,reason:'source sample footprint crosses unsupported floor, void or closed core'});return false;};
+ const add=(o)=>{o=fitRearFurniture(o);o={...o,floor:id,y:f.y,bounds:[rect(o.x,o.z,o.w*Math.abs(Math.cos(o.yaw||0))+o.d*Math.abs(Math.sin(o.yaw||0)),o.d*Math.abs(Math.cos(o.yaw||0))+o.w*Math.abs(Math.sin(o.yaw||0)))]};if(supported(f,o.bounds[0])){items.push(o);return true;}omissions.push({id:o.id,type:o.type,x:o.x,z:o.z,reason:'source sample footprint crosses unsupported floor, void or closed core'});return false;};
  rear.furniture.forEach((set,si)=>{if((id==='3F'&&si===0)||(id==='4F'&&si===1))return;set.centers.forEach(([x,z],ci)=>{
   const prefix=`rear-${id}-${si}-${ci}`,type=set.type.includes('AV')?'av':set.type.includes('hexagonal')?'hex':set.type.includes('round tables')?'round':set.type.includes('curved')?'cluster':set.type.includes('rectangular')?'reading':set.type.includes('west exchange')?'exchange':'low';
   const low=type==='low',round=['round','exchange'].includes(type),w=low?1:round?1.45:type==='hex'?1.8:2,d=low?1:round?1.45:type==='hex'?1.56:1.05;
@@ -43,6 +45,14 @@ export function rearFurnitureLayout(id){
    add({id:`${prefix}-chair-${k}`,type:low?'lounge':type==='av'?'taskChair':'chair',x:x+dx,z:z+dz,w:low?.85:.56,d:low?.85:.56,h:low?.84:1.02,yaw:angle,colorIndex:k,source:rear.source});
   }
  });});
+ if(id==='3F')for(const o of COMMONS_STEP_SEATS){
+  // A diagonal seat must be checked in its true orientation, not its much
+  // larger enclosing axis-aligned rectangle.
+  const c=Math.cos(o.yaw),s=Math.sin(o.yaw),points=[];
+  for(let i=0;i<=12;i++)for(let j=0;j<=4;j++){const u=-o.w/2+o.w*i/12,v=-o.d/2+o.d*j/4;points.push([o.x+u*c+v*s,o.z-u*s+v*c]);}
+  if(points.every(([x,z])=>floorContains(f,x,z)))items.push({...o,floor:id,y:f.y,bounds:[rect(o.x,o.z,o.w*Math.abs(c)+o.d*Math.abs(s),o.d*Math.abs(c)+o.w*Math.abs(s))]});
+  else omissions.push({id:o.id,type:o.type,reason:'source diagonal seat lacks complete floor support'});
+ }
  if(id==='4F')for(const t of AV_POD_SYMBOLS){
   const p=mediaPoint(...t.native),seats=t.chairs.map(native=>({...mediaPoint(...native),native}));
   if(!add({id:t.id,type:'avPod',...p,w:1.8,d:1.8,h:1.18,stationAngles:seats.map(c=>Math.atan2(c.x-p.x,c.z-p.z)),sourceArea:'4F19',source:rear.source,sourceNativeCenter:t.native}))continue;
@@ -100,7 +110,15 @@ export function rearFurnitureLayout(id){
   }
   for(const [x,z]of correction.openings.find(o=>o.id==='west_public_atrium_connection').gameXZ)add({id:`rear-4F-public-door-${x}`,type:'doorPost',x,z:z+.3,w:.065,d:.8,h:2.3,source:rear.source});
  }
- if(id==='4F')items.push({id:'rear-4F-service-counter',floor:id,type:'counter',x:-10.775,z:-11.088,y:f.y,w:4.472,d:2.66,h:1.03,points:COUNTER_POINTS,bounds:polygonStrips(COUNTER_POINTS),source:rear.source});
+ if(id==='4F')items.push(fitRearFurniture({id:'rear-4F-service-counter',floor:id,type:'counter',x:-10.775,z:-11.088,y:f.y,w:4.472,d:2.66,h:1.03,points:COUNTER_POINTS,bounds:polygonStrips(COUNTER_POINTS),source:rear.source}));
+ // 閱覽帶加深後，相鄰整組家具同向退讓，維持原有相對座位與通道寬。
+ // 原圖與原遊戲中心留存，不用縮小碰撞體或只搬走可見模型。
+ for(const o of items){
+  const offset=id==='3F'&&/^commons3-north-(13|14)(-|$)/.test(o.id)?[0,-.8]:id==='4F'&&(/^av4-group-/.test(o.id)||/^rear-4F-(shelf|service-counter|public-door)/.test(o.id))?[0,-.8]:id==='4F'&&/^(av4-bank-0-3|av4-bank-2-0|av4-nook-0|av4-nook-2)(-|$)/.test(o.id)?[.8,0]:null;
+  if(!offset)continue;const[dx,dz]=offset;o.sourceGamePosition=[o.x,o.z];o.layoutOffset=offset;o.x+=dx;o.z+=dz;
+  o.bounds=o.bounds.map(b=>({x0:b.x0+dx,x1:b.x1+dx,z0:b.z0+dz,z1:b.z1+dz}));
+  if(o.points){o.sourceGamePoints=o.points;o.points=o.points.map(([x,z])=>[x+dx,z+dz]);}
+ }
  const result=freeze({items,omissions});cache.set(id,result);return result;
 }
 export function rearFurniture(id){return SOURCE_REAR_LAYOUT[id]?rearFurnitureLayout(id).items:EMPTY;}

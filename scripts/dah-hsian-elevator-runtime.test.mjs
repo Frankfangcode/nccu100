@@ -1,3 +1,4 @@
+import {dahFloorY,dahRoomHeight} from '../src/world/buildings/dah-hsian/interior-height-profile.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mountDahElevator} from '../src/world/buildings/dah-hsian/elevator-runtime.js';
@@ -8,7 +9,7 @@ test('只有所在樓層的電梯可呼叫；抵達落腳點且離場移除互�
  const runtime=mountDahElevator({state,pos,spots,stops,transition:fn=>{state.busy=true;arrival=fn;},resetInput:()=>clears++,stopMotion:()=>{},createMenu:options=>{props=options;return{open:()=>true,dispose:()=>removed++};}});
  assert.equal(spots.length,stops.length);assert.equal(spots[0].ok(),true);assert.equal(spots[1].ok(),false);
  spots[0].fn();assert.equal(state.busy,true);assert.equal(clears,1);
- props.onSelect('2F','4F');assert.equal(pos.y,0);arrival();assert.equal(pos.y,10.7);assert.equal(pos.x,-18.25);assert.equal(state.vy,0);assert.equal(state.busy,true,'轉場完成前不能解除全域鎖');
+ props.onSelect('2F','4F');assert.equal(pos.y,0);arrival();assert.equal(pos.y,dahFloorY('4F'));assert.equal(pos.x,-18.25);assert.equal(state.vy,0);assert.equal(state.busy,true,'轉場完成前不能解除全域鎖');
  state.busy=false;assert.equal(spots[2].ok(),true);runtime.dispose();assert.equal(spots.length,0);assert.equal(removed,1);
 });
 

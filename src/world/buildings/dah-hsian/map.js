@@ -1,3 +1,7 @@
+import {DAH_BUS_STOP} from './transit.js';
+import {createDahGrass} from './grass.js';
+import {batchDahStatic} from './static-batch.js';
+import {partitionDahInstances} from './spatial-instances.js';
 /** 達賢場景接線：沿用卡通材質、文字貼圖與既有碰撞，不改共用引擎。 */
 import * as THREE from 'three';
 import { scene } from '../../../core/engine.js';
@@ -10,12 +14,16 @@ import {createDahMaterialFactory,addDahContactShadows} from './materials.js';
 import {createDahLighting,configureDahShadows} from './daylight.js';
 import {createDahAtmosphere} from './atmosphere.js';
 import {dahClock} from './visual-clock.js';
+import {createPondSign} from './pond-sign.js';
 import {createDucks,updateDucks} from './ducks.js';
 import {LAKESIDE_SHOPS,LOWER_WC,HOTPOT_MENU,LAKESIDE_Y} from './layout.js';
-let ducks,materialFor,lighting,contacts,atmosphere;
+let grass,pondSign,ducks,materialFor,lighting,contacts,atmosphere;
+export const getDahDucks=()=>ducks;
+export const getDahPondSign=()=>pondSign;
 const canopy=[];
 const reducedMotion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):null;
 export function updateMap(time,position){
+ materialFor?.setTime(reducedMotion?.matches?0:time);grass?.userData.setTime(reducedMotion?.matches?0:time);
  const profile=dahClock.sample(time);materialFor?.setEnvironment(profile);contacts?.update(profile);lighting?.update(profile,position);
  atmosphere?.update(time,profile,{reducedMotion:reducedMotion?.matches});
  if(ducks)updateDucks(ducks,time,reducedMotion?.matches);
@@ -36,7 +44,14 @@ function textSign(parent,text,x,y,z,w,h,color,background,angle=0) {
 export function buildMap() {
   materialFor=createDahMaterialFactory({palette:COLORS,toon,outline:OUT});
   const model=createOutdoorModel(materialFor);scene.add(model);
+  // 僅處理固定建物；草葉、鴨子、命名牌及後續互動不進靜態合批。
+  model.userData.dahStaticBatches=batchDahStatic(model);
+  model.userData.dahSpatialInstances=partitionDahInstances(model);
+  grass=createDahGrass(toon('#ffffff'));model.add(grass);
   ducks=createDucks(color=>toon(color));model.add(ducks);
+  ducks.children.at(-1).userData.resting={x:6,y:.02,z:-38,face:Math.PI/2};
+  const busPost=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,2.3,6),toon('#47544d'));busPost.position.set(DAH_BUS_STOP.x,1.15,DAH_BUS_STOP.z);busPost.name='達賢公車站牌柱';model.add(busPost);textSign(model,'校園公車・本區',DAH_BUS_STOP.x,2.05,DAH_BUS_STOP.z,2.1,.5,'#232a4d','#fffaef');
+  pondSign=createPondSign();model.add(pondSign.root);
   for(const s of LAKESIDE_SHOPS){
     // A1僅能確認新承租者，不能確認實體招牌；不虛構PUFFIN或沿用舊RUKO招牌。
     if(s.id!=='A3')continue;
@@ -69,7 +84,7 @@ export function buildMap() {
   textSign(model,'指南校區',-22,groundHeight(-22,89)+0.80,89.29,5.6,0.8,'#e6d09b');
   colliders.push({x0:-26.1,x1:-17.9,z0:88.7,z1:89.3});
   contacts=addDahContactShadows(model);
-  atmosphere=createDahAtmosphere({water:model.getObjectByName('景觀池水面'),foliage:canopy});
+  atmosphere=createDahAtmosphere({foliage:canopy});
 }
 
 export function mapLight(s) {
