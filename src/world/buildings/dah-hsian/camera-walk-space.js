@@ -127,7 +127,8 @@ export function createCameraWalkSpace(body){
  }};
 }
 /** 遊戲每幀的達賢通行夾制。低幀率或奔跑時單幀位移較大，一次夾制會整步插進家具或梯身，
- * 推出時可能選到另一側而瞬移；同層的大步先切成不超過20公分的小步依序夾制。
+ * 推出時可能選到另一側而瞬移；只有試算會被推出超過步長時，才把同層的這一步切成不超過20公分的小步。
+ * 其餘情況照原本一次夾制，避免小步在牆角觸發防瞬移退回而失去滑移。
  * 跨層、電梯或入室等超過1.5公尺的位移仍一次處理，不沿途掃過中間空間。
  */
 export function createDahNavClamp(body){
@@ -135,7 +136,8 @@ export function createDahNavClamp(body){
  const once=q=>{clampAtrium(q,body);space.clamp(q);};
  return{reset(){space.reset();last=null;},clamp(p){
   const dx=last?p.x-last.x:0,dz=last?p.z-last.z:0,distance=Math.hypot(dx,dz);
-  if(last&&Math.abs(p.y-last.y)<.3&&distance>.2&&distance<1.5){
+  const probe={...p};if(last)clampAtrium(probe,body);
+  if(last&&Math.abs(p.y-last.y)<.3&&distance>.2&&distance<1.5&&Math.hypot(probe.x-last.x,probe.z-last.z)>distance+.05){
    const n=Math.ceil(distance/.2),q={x:last.x,y:p.y,z:last.z};
    for(let i=0;i<n;i++){q.x+=dx/n;q.z+=dz/n;once(q);}
    p.x=q.x;p.y=q.y;p.z=q.z;
