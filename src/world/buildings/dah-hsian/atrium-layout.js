@@ -69,6 +69,9 @@ export function clampAtriumCeiling(p,body=DEFAULT_BODY){
  let hit=false;
  for(const {floor:f,underside} of CEILING_SURFACES){
  if(p.y>=underside||p.y+body.height<=underside)continue;
+  // 夾層邊緣旁的低樓層天花只是頭部旁的邊緣，不是頭頂；不能把人壓到腳下樓板以下。
+  // 低幀率步伐較大時，邊緣採樣會碰到這片天花，曾連鎖把人壓回下一層。
+  if(PUBLIC_NAV_FLOORS.some(g=>g.y>underside-body.height&&g.y<=p.y+.05&&floorContains(g,p.x,p.z)))continue;
   // 梯端最後一階的前方採樣會碰到門檻側面，不能把側面誤當頭頂樓板。
   // 腳下仍須在同一座梯的實際寬度內，且接近板底；真正板下方仍照常阻擋。
   if(p.y>=underside-.15&&!floorContains(f,p.x,p.z)&&NAV_STAIRS.some(s=>Math.abs(s.b.y-f.y)<1e-6&&onStair(s,p.x,p.z)!==null&&Math.abs(p.y-(s.a.y+(s.b.y-s.a.y)*onStair(s,p.x,p.z)))<.4))continue;
@@ -103,6 +106,10 @@ export function clampAtrium(p,body=DEFAULT_BODY){
   // 梯級側面不是可穿越的捷徑：腳下仍在低層樓板、頭部卻碰到斜梯底時，
   // 沿原來所在側退到真正梯寬之外；只從上下梯口進梯，不吸到踏面。
   const treadY=stair.a.y+(stair.b.y-stair.a.y)*Math.max(0,Math.min(1,t));
+  // 中庭梯與入口梯兩側有扶手：站在下層樓板的人只能從梯口正面上梯，從側面靠近時停在扶手外，不能穿進梯身或鑽到梯下。
+  // 只擋扶手那一圈（梯寬邊緣到外側一個身寬），梯寬中央是正面上梯，低幀率大步踏上第一階時不能被橫推。
+  // 推到扶手外後仍要繼續檢查柱子與家具，不能提前結束。
+  if((stair.terraceSide||stair.entry)&&t>0&&t<1&&Math.abs(p.y-stair.a.y)<.2&&treadY-p.y>.15&&Math.abs(side)>stair.width/2-.05&&Math.abs(side)<stair.width/2+body.radius){const shift=(side<0?-1:1)*(stair.width/2+body.radius)-side;p.x+=shift*dz/len;p.z-=shift*dx/len;break;}
   if(stair.terraceSide==='north'&&t>0&&t<1&&p.y<treadY-.65&&p.y+body.height>treadY-.4&&Math.abs(side)<stair.width/2+body.radius+.06){
    const floor=PUBLIC_NAV_FLOORS.find(f=>Math.abs(f.y-p.y)<.2),clear=stair.width/2+body.radius+.065;
    const preferred=stair.terraceSide==='north'?-1:(side<0?-1:1);
@@ -122,7 +129,8 @@ export function clampAtrium(p,body=DEFAULT_BODY){
    const shift=Math.sign(side)*(stair.width/2+body.radius)-side;p.x+=shift*dz/len;p.z-=shift*dx/len;return;
   }
   if(along&&Math.abs(side)<stair.width/2+body.radius&&supportedStair(p.y,stair.a.y+(stair.b.y-stair.a.y)*clampedT)){
-   const safe=Math.max(-stair.width/2+body.radius,Math.min(stair.width/2-body.radius,side)),shift=safe-side;p.x+=shift*dz/len;p.z-=shift*dx/len;return;
+   // 腳仍在下層樓板、從梯口斜側踏上第一階時逐幀滑入梯寬，不一幀橫拉半公尺；已在梯面上者照舊直接對齊。
+   const safe=Math.max(-stair.width/2+body.radius,Math.min(stair.width/2-body.radius,side)),limit=Math.abs(p.y-stair.a.y)<.2?.12:Infinity,shift=Math.max(-limit,Math.min(limit,safe-side));p.x+=shift*dz/len;p.z-=shift*dx/len;return;
   }
  }
  for(const r of CORE_STAIR_LANDINGS)if(r.coreStair==='G'&&Math.abs(p.y-r.y)<.4&&floorContains({regions:[r.points],holes:[]},p.x,p.z))return;

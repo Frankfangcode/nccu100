@@ -21,7 +21,7 @@ export function createDahUserOrbit({camera,state,getPosition,obstacles=[]}){
   const pitch=clamp(state.pitch??.22,-.05,1.15),yaw=state.yaw??0,desired=clamp(state.dist??6,2,7.2);
   back.set(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch));
   region.setFromCenterAndSize(target,forecast.set(2*(desired+1),2*(desired+1),2*(desired+1)));region.expandByPoint(forecast.copy(target).addScaledVector(motion,.6));
-  meshes.length=softMeshes.length=boxes.length=0;for(const o of index.query(region,candidates)){if(o.mesh){meshes.push(o.mesh);if(o.bounds.max.y>target.y+.3)softMeshes.push(o.mesh);}else if(o.furniture)boxes.push(o);}
+  meshes.length=softMeshes.length=boxes.length=0;for(const o of index.query(region,candidates)){if(o.mesh){if(!o.soft)meshes.push(o.mesh);if(o.bounds.max.y>target.y+.3)softMeshes.push(o.mesh);}else if(o.furniture)boxes.push(o);}
   const h=camera.near*Math.tan(camera.getEffectiveFOV()*Math.PI/360),radius=Math.hypot(camera.near,h,h*camera.aspect)+.02;
   const safeAt=point=>Math.max(.025,sweep(point,back,desired,radius,meshes,boxes)-.02);
   const safe=Math.min(desired,safeAt(target));let anticipated=safe;

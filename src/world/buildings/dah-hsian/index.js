@@ -3,7 +3,7 @@ import {toon,canvasTex} from '../../../render/kit.js';
 import {circC} from '../../../core/collision.js';
 import {mountDahTransit,DAH_BUS_BOARD,DAH_BUS_STOP,DAH_GATE_BUS_STOP} from './transit.js';
 import {createDahLiftTransition} from './lift-transition.js';
-import {createCameraWalkSpace} from './camera-walk-space.js';
+import {createDahNavClamp} from './camera-walk-space.js';
 import {createHotpotInterior,HOTPOT_ROOM} from './hotpot-model.js';
 import {createDahMaterialFactory} from './materials.js';
 import {COLORS} from './model.js';
@@ -52,7 +52,7 @@ import {DAH_GAME_STOPS,dahFloorAtHeight} from './architecture-layout.js';
 import {mountDahInput} from './interior-input.js';
 import {mountDahElevator} from './elevator-runtime.js';
 let elevatorRuntime,interiorLens,disposeInteriorInput,interiorVisit=0,diningRuntime,diningVisit=0;
-const cameraWalkSpace=createCameraWalkSpace(DAH_NAV_BODY);
+const navClamp=createDahNavClamp(DAH_NAV_BODY);
 function enterDining(){
  const visit=++diningVisit;
  document.body.classList.add('dah-hsian-mode');
@@ -63,7 +63,7 @@ function enterDining(){
 }
 function exitDining(){diningVisit++;diningRuntime?.dispose();diningRuntime=null;document.body.classList.remove('dah-hsian-mode');}
 function enterInterior(){
- const visit=++interiorVisit;cameraWalkSpace.reset();enterVisual();document.body.classList.add('dah-interior-mode');updateInterior(state.time,late.pos);
+ const visit=++interiorVisit;navClamp.reset();enterVisual();document.body.classList.add('dah-interior-mode');updateInterior(state.time,late.pos);
  Promise.all([import('../../../core/gameplay.js'),import('../../../core/input.js'),import('../../../systems/feel.js')]).then(([{spots,vel,camT},{resetHeldInput},{placePrompt}])=>{
   if(visit!==interiorVisit||state.room!==ROOM_ID)return;
   disposeInteriorInput?.();disposeInteriorInput=mountDahInput({state,window,document,stick:document.getElementById('stick'),resetInput:resetHeldInput});
@@ -98,7 +98,8 @@ export default defineBuilding({
     returnTo:{x:DAH_BUS_BOARD.x-1.2,z:DAH_BUS_BOARD.z,yaw:Math.PI/2,pitch:0.3,face:-Math.PI/2},
   },{
     id:ROOM_ID,name:'達賢圖書館',build:buildInterior,light:interiorLight,
-    heightAt:(x,z)=>atriumHeight(x/DAH_HORIZONTAL_SCALE,z/DAH_HORIZONTAL_SCALE,(late.pos?.y??0)/DAH_VERTICAL_SCALE)*DAH_VERTICAL_SCALE,clamp:p=>clampDahWorld(p,q=>{clampAtrium(q,DAH_NAV_BODY);cameraWalkSpace.clamp(q);}),
+    heightAt:(x,z)=>atriumHeight(x/DAH_HORIZONTAL_SCALE,z/DAH_HORIZONTAL_SCALE,(late.pos?.y??0)/DAH_VERTICAL_SCALE)*DAH_VERTICAL_SCALE,// 房間夾制也會被同房間NPC的碰撞呼叫；只有主角使用帶前一幀狀態的分步夾制，NPC不改寫主角狀態。
+    clamp:p=>clampDahWorld(p,p===late.pos?q=>navClamp.clamp(q):q=>clampAtrium(q,DAH_NAV_BODY)),
     entrance:OUTDOOR_DOOR,spawn:toDahWorld(INTERIOR_SPAWN),exit:toDahWorld(INTERIOR_EXIT),
     returnRoom:'dah-hsian',returnTo:OUTDOOR_RETURN,bounds:dahWorldBounds(INTERIOR_BOUNDS),zone:p=>p.y/DAH_VERTICAL_SCALE>3.9?dahVisitorZone(p):interiorZone(toDahPlan(p)),
     miniSub:'大廳・挑空展示・閱覽',

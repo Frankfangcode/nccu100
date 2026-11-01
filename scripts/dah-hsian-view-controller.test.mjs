@@ -66,8 +66,18 @@ test('貼牆例外門檻來回走動不能突然跳動四十公分',async()=>{
 test('牆面退讓與真正館內材質的世界紋理變數不重複宣告',async()=>{
  const{createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js'),{createDahForegroundFade}=await import('../src/world/buildings/dah-hsian/interior-foreground.js');const root=new THREE.Group(),mat=createDahMaterialFactory()('concrete'),mesh=new THREE.Mesh(new THREE.BoxGeometry(),mat);root.add(mesh);const fade=createDahForegroundFade(root),shader={uniforms:{},vertexShader:'#include <begin_vertex>\n#include <project_vertex>',fragmentShader:'#include <alphatest_fragment>'};mesh.material.onBeforeCompile(shader);const declarations=[...shader.vertexShader.matchAll(/vec3\s+(\w+)\s*=/g)].map(m=>m[1]);assert.equal(new Set(declarations).size,declarations.length,'世界紋理與退讓需要各自獨立名稱');fade.dispose();
 });
-test('一般桌椅與家具不得因經過鏡頭附近被前景遮罩消除',async()=>{
- const{createDahForegroundFade}=await import('../src/world/buildings/dah-hsian/interior-foreground.js'),{createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js');const factory=createDahMaterialFactory(),model=new THREE.Group(),meshes=['wood','timber','white','metal','clear'].map(kind=>new THREE.Mesh(new THREE.BoxGeometry(),factory(kind)));model.add(...meshes);const originals=meshes.map(o=>o.material),fade=createDahForegroundFade(model);fade.update({target:new THREE.Vector3(0,1,0),back:new THREE.Vector3(0,0,1),distance:6},new THREE.PerspectiveCamera(),0);for(let i=0;i<meshes.length;i++)assert.equal(meshes[i].material,originals[i],'未登記為可退讓的普通家具不能進入遮罩 '+originals[i].userData.dahKind);fade.dispose();
+test('家具只在桌面高度以上擋住鏡頭時淡出，桌椅高度以下與牆窗永遠不透明',async()=>{
+ // 2026-11-01 使用者核可：書牆、隔板等高物擋在鏡頭與角色間時改為網點淡出；桌椅與牆窗維持不透明。
+ const{createDahForegroundFade,DAH_FADE_MIN_HEIGHT}=await import('../src/world/buildings/dah-hsian/interior-foreground.js'),{createDahMaterialFactory}=await import('../src/world/buildings/dah-hsian/materials.js');const factory=createDahMaterialFactory(),model=new THREE.Group();
+ const furniture=['wood','timber','white','metal','clear'].map(kind=>new THREE.Mesh(new THREE.BoxGeometry(),factory(kind))),hard=['wall','window','concrete','floor','glass'].map(kind=>new THREE.Mesh(new THREE.BoxGeometry(),factory(kind)));model.add(...furniture,...hard);
+ const originals=[...furniture,...hard].map(o=>o.material),fade=createDahForegroundFade(model,{contact:false});fade.update({target:new THREE.Vector3(0,1,0),back:new THREE.Vector3(0,0,1),distance:6},new THREE.PerspectiveCamera(),0);
+ assert.ok(DAH_FADE_MIN_HEIGHT>=.62,'淡出下緣不得低於達賢桌面高度');
+ for(const mesh of hard)assert.equal(mesh.material,originals[furniture.length+hard.indexOf(mesh)],'牆窗樓板不換材質 '+mesh.material.userData.dahKind);
+ for(const mesh of furniture){
+  const shader={uniforms:{},vertexShader:'#include <begin_vertex>\n#include <project_vertex>',fragmentShader:'#include <alphatest_fragment>'};mesh.material.onBeforeCompile(shader);
+  assert.match(shader.fragmentShader,new RegExp('smoothstep\\(dahViewFeet\\+'+DAH_FADE_MIN_HEIGHT.toFixed(2)),'家具只淡出桌面高度以上 '+originals[furniture.indexOf(mesh)].userData.dahKind);
+ }
+ fade.dispose();for(let i=0;i<furniture.length;i++)assert.equal(furniture[i].material,originals[i],'離館還原原材質');
 });
 test('桌椅保持存在時，身體視線被薄桌面阻擋也會縮近相機',async()=>{
  const{createDahViewSolver}=await import('./lib/dah-playable-view.mjs');const bounds=new THREE.Box3(new THREE.Vector3(-1,0,1.5),new THREE.Vector3(1,.8,2)),camera=new THREE.PerspectiveCamera(66,1.6,.08,100),state={yaw:0,pitch:.12,dist:6,time:0},solver=createDahViewSolver({camera,state,getPosition:()=>new THREE.Vector3(),obstacles:[{bounds,furniture:true}]});for(let i=0;i<120;i++){state.time+=1/60;solver.update();}const chest=new THREE.Vector3(0,.35,0),direction=camera.position.clone().sub(chest).normalize(),hit=new THREE.Ray(chest,direction).intersectBox(bounds,new THREE.Vector3());assert.ok(!hit||hit.distanceTo(chest)>=camera.position.distanceTo(chest),'胸部到相機不能穿過桌子');assert.ok(camera.position.z<3,'應縮短機位而非消除家具');

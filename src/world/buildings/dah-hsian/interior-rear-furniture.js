@@ -7,7 +7,7 @@ import {MAIN_FLOORS} from './public-floor-layout.js';
 import {rearFurniture} from './rear-furniture-layout.js';
 import {cloneDahMaterial} from './materials.js';
 const BOX=new THREE.BoxGeometry(1,1,1),ROUND=new THREE.CylinderGeometry(.5,.5,1,12),HEX=new THREE.CylinderGeometry(.5,.5,1,6),WHEEL=new THREE.CylinderGeometry(.5,.5,1,6).rotateY(Math.PI/6).rotateZ(Math.PI/2);
-const COLORS={stepWood:'#bfa17c',pale:'#ddd7bb',steel:'#8a9291',black:'#303638',green:'#9cab53',gray:'#909492',white:'#d9ded4',red:'#bb583f',teal:'#91b5ac',upholstery:'#929c9b'};
+const COLORS={stepWood:'#bfa17c',pale:'#ddd7bb',steel:'#8a9291',black:'#303638',green:'#9cab53',gray:'#909492',white:'#d9ded4',red:'#bb583f',teal:'#91b5ac',upholstery:'#929c9b',bookRed:'#bc7969',bookGold:'#d6b465',bookBlue:'#7195a4',bookGreen:'#8ca68b'};
 export function buildRearFurniture(parent,mat){
  const root=new THREE.Group();root.name='來源公開後區家具';parent.add(root);
  const batches=new Map(),materials=new Map(),pose=new THREE.Object3D();
@@ -32,6 +32,9 @@ export function buildRearFurniture(parent,mat){
    }else if(o.type==='serviceShelf'){
     add('shelfBack','pale',0,o.h/2,0,o.w,o.h,o.d*.18);
     for(let j=0;j<=3;j++)add('shelf','pale',0,.035+(o.h-.07)*j/3,0,o.w,.07,o.d);
+    // 三格層板放書，與書牆同色系；寬高以固定規律變化，不用隨機數，畫面每次載入一致。
+    const along=Math.max(o.w,o.d),books=['bookRed','bookGold','bookBlue','bookGreen','pale'],bay=(o.h-.07)/3-.07;
+    for(let j=0;j<3;j++){let u=-along/2+.04,n=j*7;while(u<along/2-.1){const width=.045+(n*13%5)*.008,height=bay*(.72+(n*7%4)*.06),c=books[(n*3+j)%books.length],y=.07+(o.h-.07)*j/3+height/2;if(o.w>=o.d)add('book',c,u+width/2,y,0,width,height,o.d*.78);else add('book',c,0,y,u+width/2,o.w*.78,height,width);u+=width+.006+(n%9===4?.05:0);n++;}}
    }else if(o.type==='counter'){
     const shape=new THREE.Shape(o.points.map(([x,z])=>new THREE.Vector2(x,-z)));
     for(const [role,y,h,color]of [['body',0,.94,'pale'],['top',.94,.09,'pale']]){

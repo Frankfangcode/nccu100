@@ -71,7 +71,7 @@ function wallContact(p,w){
  }
  if(distance>=margin)return null;
  const nx=distance>.00001&&(side>=0||endCap)?vx/distance:w.nx,nz=distance>.00001&&(side>=0||endCap)?vz/distance:w.nz;
- return{nx,nz,depth:margin-distance+.002};
+ return{nx,nz,depth:margin-distance+.002,endCap};
 }
 const nearWall=(p,w)=>!!wallContact(p,w);
 // 低層樓板上的旁通者需要離開真正斜梯底板的側面；踏在梯面或上下梯口者不適用。
@@ -103,7 +103,14 @@ export function createCameraWalkSpace(body){
   // 正常走路只能滑移或停止，不能藉保留帶獲得超過輸入步長的瞬間位移。
   if(previous?.floor===f.id&&Math.abs(previous.y-p.y)<.1){
    const step=Math.hypot(original.x-previous.x,original.z-previous.z),move=Math.hypot(candidate.x-previous.x,candidate.z-previous.z);
-   if(step<.7&&move>step+.002){const ratio=step/Math.max(move,.00001);candidate.x=previous.x+(candidate.x-previous.x)*ratio;candidate.z=previous.z+(candidate.z-previous.z)*ratio;}
+   if(step<.7&&move>step+.002){
+    const ratio=step/Math.max(move,.00001);candidate.x=previous.x+(candidate.x-previous.x)*ratio;candidate.z=previous.z+(candidate.z-previous.z)*ratio;
+    // 牆身漸變段的保留帶邊界是曲線，沿直線縮短會微陷回帶內；低幀率步伐大時每幀都被退回而卡死。
+    // 只在單一道牆的牆身範圍內、且整段步伐沒有被中庭欄杆推移或吸附時補推一次；
+    // 端點圓角、多牆夾角與欄杆推移仍照原本停止。總位移不超過步長一成。
+    const contacts=walls.map(w=>wallContact(candidate,w)).filter(Boolean),freeStep=[.25,.5,.75,1].every(t=>{const a={x:previous.x+(original.x-previous.x)*t,y:p.y,z:previous.z+(original.z-previous.z)*t},q={...a};clampAtrium(q,body);return Math.hypot(q.x-a.x,q.z-a.z)<.001;});
+    if(contacts.length===1&&!contacts[0].endCap&&freeStep){const c=contacts[0],x=candidate.x+c.nx*c.depth,z=candidate.z+c.nz*c.depth;if(Math.hypot(x-previous.x,z-previous.z)<=step*1.1+.002){candidate.x=x;candidate.z=z;}}
+   }
   }
   if(clear(candidate)){
    const q={...candidate};clampAtrium(q,body);
@@ -117,5 +124,22 @@ export function createCameraWalkSpace(body){
    const resolved={...q};clampAtrium(resolved,body);if(Math.hypot(resolved.x-q.x,resolved.z-q.z)>.01)continue;
    p.x=q.x;p.z=q.z;previous={...p,floor:f.id};return;
   }
+ }};
+}
+/** 遊戲每幀的達賢通行夾制。低幀率或奔跑時單幀位移較大，一次夾制會整步插進家具或梯身，
+ * 推出時可能選到另一側而瞬移；同層的大步先切成不超過20公分的小步依序夾制。
+ * 跨層、電梯或入室等超過1.5公尺的位移仍一次處理，不沿途掃過中間空間。
+ */
+export function createDahNavClamp(body){
+ const space=createCameraWalkSpace(body);let last=null;
+ const once=q=>{clampAtrium(q,body);space.clamp(q);};
+ return{reset(){space.reset();last=null;},clamp(p){
+  const dx=last?p.x-last.x:0,dz=last?p.z-last.z:0,distance=Math.hypot(dx,dz);
+  if(last&&Math.abs(p.y-last.y)<.3&&distance>.2&&distance<1.5){
+   const n=Math.ceil(distance/.2),q={x:last.x,y:p.y,z:last.z};
+   for(let i=0;i<n;i++){q.x+=dx/n;q.z+=dz/n;once(q);}
+   p.x=q.x;p.y=q.y;p.z=q.z;
+  }else once(p);
+  last={x:p.x,y:p.y,z:p.z};
  }};
 }

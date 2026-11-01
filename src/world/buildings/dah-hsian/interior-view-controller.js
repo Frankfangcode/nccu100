@@ -10,6 +10,7 @@ import {dahEnvelopeCameraObstacles} from './interior-envelope.js';
 import {FURNITURE} from './interior-layout.js';
 import {DAH_HORIZONTAL_SCALE,DAH_VERTICAL_SCALE} from './interior-space.js';
 import {collectCameraOccluders} from '../../../systems/camera-occluders.js';
+import {createDahForegroundFade,isDahFadeMaterial} from './interior-foreground.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const smooth=v=>{const t=clamp(v,0,1);return t*t*(3-2*t);};
 export function createDahViewSolver({camera,state,getPosition,obstacles=[],contactException=false,distanceScale=1}){
@@ -170,14 +171,26 @@ function composeDahProjection(camera,view,composition,dt,warp){
 /** 真正房間Scene的最後提交入口；共用loop不再決定達賢最終構圖。 */
 export function mountDahInteriorView({scene,model,camera,state,getPosition,onFrame,motionPreference=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')}){
  model?.updateMatrixWorld(true);
+ // 書牆、書架、隔板、櫃台等可淡出的物件不推近鏡頭，改由前景淡出看穿；
+ // 天花這類薄水平板、木色核心這類高於2.6m的建築量體仍當硬面，鏡頭不能鑽上樓或鑽進核心。
  const obstacles=collectCameraOccluders(model).filter(o=>{
   if(o.userData.dahEnvelope&&!o.name.includes('屋頂'))return false;
   const m=Array.isArray(o.material)?o.material[0]:o.material,k=m?.userData?.dahKind;
-  return !['clear','outline','metal','contact','taskGlow'].includes(k);
- }).map(mesh=>({mesh,bounds:new THREE.Box3().setFromObject(mesh)}));
+  if(['clear','outline','metal','contact','taskGlow'].includes(k))return false;
+  return true;
+ }).map(mesh=>{const bounds=new THREE.Box3().setFromObject(mesh),size=bounds.getSize(new THREE.Vector3()),m=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;
+  // 軟物件只參與預先平順縮距，不構成硬性碰撞上限；鏡頭最多縮到近景下限，其餘由前景淡出看穿。
+  return{mesh,bounds,soft:isDahFadeMaterial(m)&&!(size.y<.3&&Math.max(size.x,size.z)>1||size.y>2.6)};});
  obstacles.push(...dahEnvelopeCameraObstacles(model));
- for(const o of FURNITURE){if(!['table','chair','sofa','bench','gameTV','books'].includes(o.kind))continue;const angle=o.angle||0,w=Math.abs(Math.cos(angle))*o.w+Math.abs(Math.sin(angle))*o.d,d=Math.abs(Math.sin(angle))*o.w+Math.abs(Math.cos(angle))*o.d;obstacles.push({furniture:true,bounds:new THREE.Box3(new THREE.Vector3((o.x-w/2)*DAH_HORIZONTAL_SCALE,0,(o.z-d/2)*DAH_HORIZONTAL_SCALE),new THREE.Vector3((o.x+w/2)*DAH_HORIZONTAL_SCALE,groundFurnitureTop(o)*DAH_VERTICAL_SCALE,(o.z+d/2)*DAH_HORIZONTAL_SCALE))});}
- const solver=createDahUserOrbit({camera,state,getPosition,obstacles});
+ // 合批實例的柱與牆不在共用遮擋清單內；逐一以包圍盒擋住鏡頭，不讓鏡頭鑽進柱子。
+ const instanceMatrix=new THREE.Matrix4(),instanceBox=new THREE.Box3();
+ model?.traverse(o=>{
+  if(!o.isInstancedMesh||o.userData.noOcc)return;const m=Array.isArray(o.material)?o.material[0]:o.material;if(!['concrete','wall'].includes(m?.userData?.dahKind))return;
+  if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();
+  for(let i=0;i<o.count;i++){o.getMatrixAt(i,instanceMatrix);instanceBox.copy(o.geometry.boundingBox).applyMatrix4(instanceMatrix).applyMatrix4(o.matrixWorld);const size=instanceBox.getSize(new THREE.Vector3());if(size.y>.5)obstacles.push({furniture:true,bounds:instanceBox.clone()});}
+ });
+ for(const o of FURNITURE){if(!['table','chair','sofa','bench'].includes(o.kind))continue;const angle=o.angle||0,w=Math.abs(Math.cos(angle))*o.w+Math.abs(Math.sin(angle))*o.d,d=Math.abs(Math.sin(angle))*o.w+Math.abs(Math.cos(angle))*o.d;obstacles.push({furniture:true,bounds:new THREE.Box3(new THREE.Vector3((o.x-w/2)*DAH_HORIZONTAL_SCALE,0,(o.z-d/2)*DAH_HORIZONTAL_SCALE),new THREE.Vector3((o.x+w/2)*DAH_HORIZONTAL_SCALE,groundFurnitureTop(o)*DAH_VERTICAL_SCALE,(o.z+d/2)*DAH_HORIZONTAL_SCALE))});}
+ const solver=createDahUserOrbit({camera,state,getPosition,obstacles}),fade=createDahForegroundFade(model,{contact:false});
  const previous=scene.onBeforeRender,originalZoom=camera.zoom,originalNear=camera.near,originalFar=camera.far,background=scene.background;
  const backdrop=new THREE.Color('#b8d9ec'),sky=scene.getObjectByName('dah-gradient-sky'),skyVisible=sky?.visible;
  const diagnostic={active:false,distance:0,shoulder:0,target:[0,0,0]};let disposed=false,applied=null,nearMode=false,lensFov=null,lensTime=null;const composition={chest:null,chestPoint:new THREE.Vector3(),headPoint:new THREE.Vector3()};
@@ -185,14 +198,15 @@ export function mountDahInteriorView({scene,model,camera,state,getPosition,onFra
  function beforeRender(renderer,world,renderCamera,...rest){
   previous?.call(this,renderer,world,renderCamera,...rest);
   if(disposed||renderCamera!==camera)return;
-  if(state.room!=='dah-hsian-2f'||state.viewCam){solver.reset();restoreZoom();diagnostic.active=false;nearMode=false;lensFov=null;lensTime=null;composition.chest=null;return;}
+  if(state.room!=='dah-hsian-2f'||state.viewCam){solver.reset();fade.clear();restoreZoom();diagnostic.active=false;nearMode=false;lensFov=null;lensTime=null;composition.chest=null;return;}
   camera.near=.025;camera.far=140;
   const goalFov=85;
   const lensDt=lensTime===null?0:clamp(state.time-lensTime,0,.1);lensTime=state.time;
   lensFov=lensFov===null?goalFov:lensFov+(goalFov-lensFov)*(1-Math.exp(-lensDt*12));if(Math.abs(lensFov-goalFov)<.005)lensFov=goalFov;const fov=lensFov;
   const zoom=Math.tan(camera.fov*Math.PI/360)/Math.tan(fov*Math.PI/360);
   if(camera.zoom!==zoom){camera.zoom=zoom;camera.updateProjectionMatrix();}applied=zoom;
-  const view=solver.update();if(!view)return;
+  const view=solver.update();if(!view){fade.clear();return;}
+  fade.update(view,camera,view.position.y);
   diagnostic.shoulder=composeDahProjection(camera,view,composition,lensDt,lensDt===0);
   scene.background=backdrop;if(sky)sky.visible=false;
   diagnostic.active=true;diagnostic.distance=view.distance;diagnostic.horizontalDistance=view.horizontalDistance;diagnostic.highView=view.highView;diagnostic.target[0]=view.target.x;diagnostic.target[1]=view.target.y;diagnostic.target[2]=view.target.z;diagnostic.framingFailed=composition.failed;applied=camera.zoom;diagnostic.contactWall=!!view.contact;state.dahView=diagnostic;
@@ -201,7 +215,7 @@ export function mountDahInteriorView({scene,model,camera,state,getPosition,onFra
  }
  scene.onBeforeRender=beforeRender;
  return{dispose(){
-  if(disposed)return;disposed=true;restoreZoom();
+  if(disposed)return;disposed=true;restoreZoom();fade.dispose();
   if(scene.onBeforeRender===beforeRender)scene.onBeforeRender=previous;
   scene.background=background;if(sky)sky.visible=skyVisible;
   if(state.dahView===diagnostic)delete state.dahView;

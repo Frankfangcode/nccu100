@@ -12,7 +12,7 @@ import {mergeBufferGeometries} from 'three/examples/jsm/utils/BufferGeometryUtil
 import {createDahFloorGeometry} from './floor-geometry.js';
 import {ATRIUM_PORTALS,portalParts} from './atrium-portals.js';
 import {ATRIUM_LEVELS,ATRIUM_STAIRS,ENTRY_STAIR_GUARDS,isEntryStairGuardEdge,atriumDesks,atriumColumns,atriumBookSpans} from './atrium-layout.js';
-import {ATRIUM_FLOOR_LEVELS,ENTRY_STAIR_LANDINGS,ENTRY_LANDING_GUARDS,CORE_STAIR_FLIGHTS,CORE_STAIR_LANDINGS,MAIN_FLOORS,publicFloor,floorBoundarySegments,floorContains} from './public-floor-layout.js';
+import {ATRIUM_FLOOR_LEVELS,ENTRY_STAIR_LANDINGS,ENTRY_LANDING_GUARDS,CORE_STAIR_FLIGHTS,CORE_STAIR_LANDINGS,MAIN_FLOORS,publicFloor,floorBoundarySegments,floorContains,rectPolygon} from './public-floor-layout.js';
 import {roomFrontAtBoundary,splitRoomFrontBoundary,coreBoundaryKind} from './public-room-fronts.js';
 import {buildPublicRooms} from './interior-public-rooms.js';
 import {hStairGuardSegments,westStairGuardSegments} from './source-stair-layout.js';
@@ -36,6 +36,8 @@ export function buildAtrium(parent,mat){
   const g=createDahFloorGeometry(publicFloor(f.id),.32);
   const slabMaterial=cloneDahMaterial(mat('concrete'));slabMaterial.shadowSide=THREE.FrontSide;
   const mesh=new THREE.Mesh(g,slabMaterial);mesh.position.y=f.y-.32;mesh.name='來源校準公共樓板';mesh.userData.floorId=f.id;mesh.userData.cameraOccluder=true;root.add(mesh);
+  // 3F E梯起步段梯下禁止通行，但樓板不能因此開洞透出背景；以同材質補梯下封底板，通行範圍不變。
+  if(f.id==='3F'){const under=new THREE.Mesh(createDahFloorGeometry({regions:[rectPolygon(-29.853,-28.21,-6.156,-2.75)],holes:[]},.32),slabMaterial);under.position.y=f.y-.32;under.name='E梯梯下封底板';under.userData.floorId=f.id;root.add(under);}
  }
  for(const f of ATRIUM_FLOOR_LEVELS){
  const edges=floorBoundarySegments(publicFloor(f.id)).flatMap(e=>splitRoomFrontBoundary(f.id,e)).flatMap(e=>splitEnvelopeBoundary(f.id,e)).flatMap(e=>hStairGuardSegments(f.id,e)).flatMap(e=>westStairGuardSegments(f.id,e)).filter(e=>!(coreBoundaryKind(e)||roomFrontAtBoundary(f.id,e)||enclosedExteriorEdge(f.id,e)||envelopeWallAtBoundary(f.id,e)||f.id==='3F'&&isEntryStairGuardEdge(e)));

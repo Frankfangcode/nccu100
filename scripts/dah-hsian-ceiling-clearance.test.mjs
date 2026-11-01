@@ -33,3 +33,19 @@ test('後區天花不能橫封退台梯的高段洞口，角色沿梯面有完�
  const THREE=await import('three'),{createInteriorModel}=await import('../src/world/buildings/dah-hsian/interior-model.js'),{ALL_PUBLIC_STAIRS}=await import('../src/world/buildings/dah-hsian/public-floor-layout.js'),{clampAtriumCeiling}=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),model=createInteriorModel();model.updateMatrixWorld(true);
  for(const s of ALL_PUBLIC_STAIRS.filter(s=>!s.entry))for(const t of [.7,.8,.9,.98]){const p={x:s.a.x+(s.b.x-s.a.x)*t,y:s.a.y+(s.b.y-s.a.y)*t,z:s.a.z+(s.b.z-s.a.z)*t},before={...p};clampAtriumCeiling(p);assert.ok(Math.abs(p.y-before.y)<1e-6,'梯面角色不可被低樓層天花壓下 '+JSON.stringify({s,t,p,before}));const hits=new THREE.Raycaster(new THREE.Vector3(p.x,p.y+.01,p.z),new THREE.Vector3(0,1,0),0,1.79).intersectObject(model,true);assert.equal(hits.some(h=>h.object.name==='公開後區裸露天花'),false,'梯口高段不得殘留天花');}
 });
+
+test('夾層邊緣旁的低樓層天花只能擋頭，不能把站立或起跳的人壓到腳下樓板以下',async()=>{
+ const {ATRIUM_LEVELS,clampAtriumCeiling,clampAtrium}=await import('../src/world/buildings/dah-hsian/atrium-layout.js'),{publicFloor,floorContains}=await import('../src/world/buildings/dah-hsian/public-floor-layout.js'),{DAH_NAV_BODY}=await import('../src/world/buildings/dah-hsian/interior-space.js');
+ // CI低幀率重現點：3MF上往東南走，一步落在樓板邊緣，曾被3F後區天花連鎖壓回3F。
+ const ci={x:1.771,y:dahFloorY('3MF'),z:13.781};clampAtrium(ci,DAH_NAV_BODY);assert.equal(ci.y,dahFloorY('3MF'),'CI重現點不可掉回樓下');
+ for(const id of ['3MF','4MF','6F']){
+  const l=ATRIUM_LEVELS.find(l=>l.label===id),f=publicFloor(id),bad=[];
+  for(let x=-32;x<=20;x+=.1)for(let z=-24;z<=20;z+=.1){
+   if(!floorContains(f,x,z))continue;
+   for(const lift of [0,.5]){const p={x,y:l.y+lift,z};clampAtriumCeiling(p,DAH_NAV_BODY);if(p.y<l.y-1e-6&&bad.length<5)bad.push({x:+x.toFixed(2),z:+z.toFixed(2),lift,y:p.y});}
+  }
+  assert.deepEqual(bad,[],id+'樓板上的人被天花壓到樓板以下');
+ }
+ // 真正的低天花仍要擋住從下方起跳的頭部。
+ const under={x:0,y:dahFloorY('3F')+dahRoomHeight('3F')-1.8+.12,z:18};assert.equal(clampAtriumCeiling(under),true);
+});
