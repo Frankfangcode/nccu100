@@ -9,6 +9,7 @@ import { deactivateWardrobe, refreshWardrobeForm } from './wardrobe-factory.js';
 import { registerTrialPlayer } from './actor-rig-identity.js';
 import { characterRegistry } from './character-registry.js';
 import { registerPlayerCharacter } from './character-part-sources.js';
+import { installKaykitHero } from './kaykit-hero/index.js';
 import { state } from '../core/state.js';
 import { scene } from '../core/engine.js';
 import { BOX, OUT, SPH, basic, canvasTex, mk, outline, toon } from '../render/kit.js';
@@ -190,5 +191,8 @@ function becomeEagle(){
 registerTrialPlayer(player,rig,H,hc,limbParts,()=>!state.isEagle,{hairTop:HAIR.filter(node=>node!==back),backpack:PACK});
 
 registerPlayerCharacter({model,appearance:{hair:HAIR,body:EARS,top:PACK.slice(0,2),accessory:PACK.slice(2)},form:()=>state.isEagle?'eagle':state.outfit,supported:()=>!state.isEagle&&state.outfit==='normal'});
+
+// 原型：網址帶 ?hero=kaykit 時改用 KayKit 骨架主角（沒帶參數不做事）
+installKaykitHero({player,rig});
 
 export { hc as headCenter, limbParts, H, HC, animateHero, becomeEagle, outlineU, part, player, rig, setOutfit, shadowBlob };

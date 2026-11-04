@@ -22,6 +22,7 @@ import { late } from './late.js';
 import { grassU } from '../world/environment/grass.js';
 import { PN, dGeo, pGeo } from '../world/environment/particles.js';
 import { H, animateHero, player, rig, shadowBlob } from '../actors/player.js';
+import { updateKaykitHero } from '../actors/kaykit-hero/index.js';
 import { pang, updatePangolin } from '../actors/pangolin.js';
 import { crystals } from '../systems/stories.js';
 import { banner, dlg } from '../ui/dialog.js';
@@ -72,7 +73,7 @@ function update(dt){
   player.position.copy(pos);
   const sp=Math.hypot(vel.x,vel.z);
   if(sp>0.3) player.rotation.y=lerpA(player.rotation.y,Math.atan2(vel.x,vel.z),1-Math.exp(-dt*14));
-  { const before=Math.floor(state.walkPh/Math.PI); animateHero(dt,sp,run); if(state.grounded&&sp>1&&Math.floor(state.walkPh/Math.PI)!==before){ AU.sfx('step'); if(run&&sp>6) puff(pos.x,pos.y,pos.z,1,0.6,0.26); } }
+  { const before=Math.floor(state.walkPh/Math.PI); animateHero(dt,sp,run); updateKaykitHero(dt,sp,run,state); if(state.grounded&&sp>1&&Math.floor(state.walkPh/Math.PI)!==before){ AU.sfx('step'); if(run&&sp>6) puff(pos.x,pos.y,pos.z,1,0.6,0.26); } }
   heroJuice(dt,sp,run); cameraFov(dt,sp,run);
   shadowBlob.position.set(pos.x,gh+0.03,pos.z); shadowBlob.scale.setScalar(1-Math.min(0.5,(pos.y-gh)*0.3));
   if(state.holdPang||state.holdNaiwa){ H.shL.rotation.x=-1.35; H.shR.rotation.x=-1.35; H.shL.rotation.z=-0.35; H.shR.rotation.z=0.35; }
