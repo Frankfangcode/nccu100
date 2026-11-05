@@ -20,7 +20,7 @@ export function mountBoothBrowser({ data, state, document = globalThis.document,
   const college = node('span', '', 'bz-browser__college');
   const title = node('h2'); title.id = `${prefix}-title`;
   const closeButton = node('button', '關閉 ×', 'bz-browser__close'); closeButton.type = 'button'; closeButton.dataset.boothClose = ''; closeButton.setAttribute('aria-label', '關閉科系介紹');
-  const eyebrow = node('span', '2026 包種茶節 · 學習探索', 'bz-browser__eyebrow'); head.append(college, closeButton, eyebrow, title);
+  const eyebrow = node('span', '蓋亞造界包種茶節 · 學習探索', 'bz-browser__eyebrow'); head.append(college, closeButton, eyebrow, title);
   const navigation = node('div', null, 'bz-browser__tabs'); navigation.setAttribute('role', 'tablist'); navigation.setAttribute('aria-label', '科系介紹內容');
   const content = node('div', null, 'bz-browser__content'); content.tabIndex = 0; content.id = `${prefix}-panel`; content.setAttribute('role', 'tabpanel'); content.dataset.boothPanel = '';
   const tabButtons = tabs.map((label, index) => { const button = node('button', label); button.type = 'button'; button.id = `${prefix}-tab-${index}`; button.dataset.boothTab = String(index); button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', content.id); button.addEventListener('click', () => selectTab(index)); button.addEventListener('keydown', event => { let next; if (event.key === 'ArrowRight') next = (index + 1) % tabs.length; if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length; if (event.key === 'Home') next = 0; if (event.key === 'End') next = tabs.length - 1; if (next != null) { event.preventDefault(); selectTab(next); tabButtons[next].focus(); } }); navigation.append(button); return button; });
