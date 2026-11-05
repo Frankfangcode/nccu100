@@ -37,7 +37,16 @@ function needsLegacy(state) {
 }
 
 let mixer = null, model = null, actions = {}, current = null;
-let wasGrounded = true, landT = 0, rig = null, root = null;
+let wasGrounded = true, landT = 0, rig = null, root = null, heroScale = 1;
+
+// 動畫原速（timeScale = 1）時，著地那隻腳往後滑的速度，單位是模型原尺寸／秒。
+// 用 scripts/prep-kaykit-hero.mjs 產出的 hero.glb 實際量的：Walking_A 約 0.70、Running_A 約 3.1。
+// 乘上縮放後就是「腳會跟地面黏住」的移動速度，動畫速度 = 實際速度 ÷ 這個值。
+const WALK_STRIDE = 0.70, RUN_STRIDE = 3.1;
+// 慢慢推搖桿用走路，正常移動（4.6 m/s）以上用小跑步；中間留一點差距避免來回切換
+const TO_RUN = 1.8, TO_WALK = 1.3;
+// 動畫最快播幾倍：再快腳會糊成一團，超過的部分寧可有一點點滑步
+const MAX_WALK_TS = 3.0, MAX_RUN_TS = 3.6;
 
 function play(name, fade = 0.18) {
   const next = actions[name];
@@ -67,7 +76,7 @@ export function installKaykitHero({ player, rig: legacyRig }) {
       for (let i = 0; i < n; i++) { o.boneTransform(i, v); modelBox.expandByPoint(v.applyMatrix4(o.matrixWorld)); }
     });
     const k = (legacyBox.max.y - legacyBox.min.y) / Math.max(0.01, modelBox.max.y - modelBox.min.y);
-    model.scale.setScalar(k);
+    model.scale.setScalar(k); heroScale = k;
 
     model.traverse((o) => {
       if (!o.isSkinnedMesh) return;
@@ -108,14 +117,15 @@ export function updateKaykitHero(dt, sp, run, state) {
     if (!wasGrounded) { play('Jump_Land', 0.06); landT = 0.22; }
     landT -= dt;
     if (landT <= 0) {
-      if (run && sp > 1) play('Running_A');
-      else if (sp > 0.3) play('Walking_A');
+      const moving = current === actions.Running_A ? sp > TO_WALK : sp > TO_RUN;
+      if (moving) play('Running_A', 0.15);
+      else if (sp > 0.3) play('Walking_A', 0.15);
       else play('Idle', 0.25);
     }
   }
-  // 走路／跑步動畫速度跟著實際移動速度，減少滑步
-  if (current === actions.Walking_A) current.timeScale = THREE.MathUtils.clamp(sp / 4.6, 0.6, 1.4);
-  else if (current === actions.Running_A) current.timeScale = THREE.MathUtils.clamp(sp / 8.2, 0.7, 1.3);
+  // 依實際移動速度調動畫快慢，讓著地的腳跟地面同速，不會滑
+  if (current === actions.Walking_A) current.timeScale = THREE.MathUtils.clamp(sp / (WALK_STRIDE * heroScale), 0.5, MAX_WALK_TS);
+  else if (current === actions.Running_A) current.timeScale = THREE.MathUtils.clamp(sp / (RUN_STRIDE * heroScale), 0.8, MAX_RUN_TS);
   else if (current) current.timeScale = 1;
 
   wasGrounded = state.grounded;
