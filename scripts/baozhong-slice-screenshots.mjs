@@ -146,7 +146,7 @@ try {
       await page.waitForFunction(() => window.__game.state.near === window.__bz26.activitySign.spot);
       await page.keyboard.press('e');
       await page.locator('#bz-activity-map').waitFor({ state: 'visible' });
-      assert.match(await page.locator('#bz-activity-map').innerText(), /2026 包種茶節/);
+      assert.match(await page.locator('#bz-activity-map').innerText(), /蓋亞造界包種茶節/);
       await capture('activity-map', { renderedText: await page.locator('#bz-activity-map').innerText() });
       await page.getByRole('searchbox', { name: '搜尋學系或攤號' }).fill('D26');
       await page.locator('[data-booth-id="D26"]').click();

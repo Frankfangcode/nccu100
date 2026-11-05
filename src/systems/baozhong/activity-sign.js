@@ -21,7 +21,7 @@ export function createActivitySign({ onOpen, layout, content } = {}) {
   block(0,2.7,0,5.6,3.8,.24,'#2f6f4f',.02,group);
   for (const side of [-2.35,2.35]) block(side,.65,0,.16,1.3,.16,'#c9ad84',.015,group);
   block(0,4.65,0,5.85,.15,.35,'#f0c94a',.015,group);
-  const titleMap = hText('2026 包種茶節','#f4f4ee','900 76px "M PLUS Rounded 1c",sans-serif',1024,160,55);
+  const titleMap = hText('蓋亞造界包種茶節','#f4f4ee','900 76px "M PLUS Rounded 1c",sans-serif',1024,160,55);
   const hintMap = hText('活動地圖・學系在哪裡','#f4f4ee','700 45px "Noto Sans TC",sans-serif',1024,128,55);
   const titleMat = basic({map:titleMap,transparent:true}), hintMat = basic({map:hintMap,transparent:true});
   const title = new THREE.Mesh(FACE,titleMat); title.position.set(0,4.13,.13); group.add(title);

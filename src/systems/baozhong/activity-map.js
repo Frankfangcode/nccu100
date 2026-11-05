@@ -28,8 +28,8 @@ export function mountActivityMap({ layout, content, state, getPosition, fountain
   const style = make('style'); style.textContent = CSS; doc.head.append(style);
   const button = make('button', '活動地圖 G'); button.id = 'bz-activity-button'; button.type = 'button'; hud.append(button);
   const overlay = make('div'); overlay.id = 'bz-activity-map'; overlay.hidden = true;
-  const panel = make('section'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', '2026 包種茶節活動地圖');
-  const header = make('header'), title = make('h2', '2026 包種茶節'), closeButton = make('button', '關閉');
+  const panel = make('section'); panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', '蓋亞造界包種茶節活動地圖');
+  const header = make('header'), title = make('h2', '蓋亞造界包種茶節'), closeButton = make('button', '關閉');
   header.append(title, closeButton);
   const filters = make('div'); filters.className = 'bz-map-filters';
   const search = make('input'); search.type = 'search'; search.placeholder = '搜尋學系或攤號，例如 D26'; search.setAttribute('aria-label', '搜尋學系或攤號');
