@@ -3,14 +3,22 @@
  */
 import * as THREE from 'three';
 import { CAMPUS_GUIDE } from '../../campus-guide-layout.js';
-import { basic, block, canvasTex, flat, hText, mk, plane, toon } from '../../../render/kit.js';
+import { GRAD, basic, block, canvasTex, flat, hText, mk, plane, toon } from '../../../render/kit.js';
 import { boxC } from '../../../core/collision.js';
 import { hipRoof, winMat } from '../../building-kit.js';
 
 export function buildExterior() {
   /* ---------- 四維堂外觀 ---------- */
   const SW='#9c9d98', SW2='#8f908b';
-  flat(28,10,'#dcd0ba',0,0.018,-71);
+  // 前庭地坪：依現場照片是方格地磚，每 8 塊有一條較淺的分隔帶，兩側紅磚收邊（下面兩行）。
+  // 一張 256 畫布 16×16 塊，代表 4.8 公尺見方（每塊約 30 公分）；顏色取自照片並提亮。
+  { const tile=['#d4cdc1','#dcd5c9','#cbc3b6','#d8d0c2'];
+    const tex=canvasTex(256,256,(g,w,h)=>{ const n=16, s=w/n; let k=7;
+      g.fillStyle='#b5ada1'; g.fillRect(0,0,w,h);   // 磚縫
+      for(let j=0;j<n;j++) for(let i=0;i<n;i++){ k=(Math.imul(k,1103515245)+12345)&0x7fffffff;
+        const band=i%8===0||j%8===0;   // 淺色分隔帶
+        g.fillStyle=band?'#e6e0d5':tile[k%tile.length]; g.fillRect(i*s+1,j*s+1,s-2,s-2); } },[28/4.8,10/4.8]);
+    flat(28,10,new THREE.MeshToonMaterial({map:tex,gradientMap:GRAD}),0,0.018,-71); }
   [-14,14].forEach(x=>flat(0.6,10,'#b8634e',x,0.02,-71));
   flat(28.6,0.6,'#b8634e',0,0.02,-66);
   block(CAMPUS_GUIDE.hallFront.x,6,CAMPUS_GUIDE.hallFront.z,CAMPUS_GUIDE.hallFront.width,12,CAMPUS_GUIDE.hallFront.depth,SW,0.07);

@@ -10,9 +10,20 @@ import { WV, waterU } from '../../render/water.js';
 
 /* 噴水池廣場 */
 const FZ=CAMPUS_GUIDE.fountain.z;
-const plazaTex=canvasTex(512,512,(g,w,h)=>{ g.fillStyle='#b9b8b2'; g.fillRect(0,0,w,h);
-  for(let i=0;i<2400;i++){ g.fillStyle=['#a9a8a2','#c6c5bf','#b1b0aa'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); }
-  g.strokeStyle='#9d9c96'; g.lineWidth=3; for(let r=24;r<250;r+=14){ g.beginPath(); g.arc(256,256,r,0,7); g.stroke(); } });
+/*
+ * 依現場照片：水池四周的小方塊花崗石沿著水池排成一圈圈同心弧，石材和大道同一種（灰、米、帶粉的褐色）。
+ * 畫布 512 代表直徑 21 公尺，每顆約 25 公分（約 12 像素），和大道的石塊一樣大。
+ */
+const PLAZA_STONE=['#b8afa6','#c6b5ab','#d0c4b1','#a69e96','#d8d0c4','#bfb0a3'];
+const plazaTex=canvasTex(512,512,(g,w,h)=>{ let k=32;
+  g.fillStyle='#8e877f'; g.fillRect(0,0,w,h);   // 石縫
+  for(let r=18;r<w*0.72;r+=12){
+    const count=Math.max(6,Math.round(2*Math.PI*r/12));
+    for(let i=0;i<count;i++){ k=(Math.imul(k,1103515245)+12345)&0x7fffffff;
+      const a=(i+(r/12)%2*0.5)/count*Math.PI*2;   // 相鄰兩圈錯開半顆
+      g.save(); g.translate(w/2+Math.cos(a)*r,h/2+Math.sin(a)*r); g.rotate(a);
+      g.fillStyle=PLAZA_STONE[k%PLAZA_STONE.length]; g.fillRect(-4.5,-4.5,9,9); g.restore(); }
+  } });
 const plaza=new THREE.Mesh(new THREE.CircleGeometry(10.5,64),new THREE.MeshToonMaterial({map:plazaTex,gradientMap:GRAD}));
 plaza.rotation.x=-Math.PI/2;
 plaza.position.set(0,0.022,FZ);

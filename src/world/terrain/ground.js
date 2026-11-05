@@ -15,7 +15,24 @@ const brickTex=canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#c77563'; g.fillRect(0,
   g.strokeStyle='#a95a48'; g.lineWidth=2;
   for(let y=0;y<h;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/32)%2?0:32;x<=w;x+=64){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+32); g.stroke(); } } },[5,44]);
 const brickMat=(rx,ry)=>{ const t=brickTex.clone(); t.repeat.set(rx,ry); t.needsUpdate=true; return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); };
-flat(GUIDE.avenue.width,GUIDE.avenue.length,stoneMat(6,37),GUIDE.avenue.x,0.019,GUIDE.avenue.z); // 校門到四維堂的大道（灰色石磚）
+/*
+ * 校門到四維堂的大道：依現場照片（噴水池往四維堂看），是一顆顆小方塊花崗石，
+ * 灰、米、帶粉的褐色混在一起，深淺斑駁。照美術規範簡化成約 25 公分的方塊（實際約 10 公分），
+ * 顏色從照片取色後提亮一到兩成。一張 512 畫布 32×32 顆，代表 8 公尺見方。
+ * 用固定亂數種子，畫布釋放後重畫也是同一個花樣。
+ */
+const COBBLE=['#b8afa6','#c6b5ab','#d0c4b1','#a69e96','#d8d0c4','#bfb0a3'];
+function seeded(s){ return ()=>{ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const cobbleTex=canvasTex(512,512,(g,w,h)=>{ const rnd=seeded(1927), n=32, s=w/n;
+  g.fillStyle='#8e877f'; g.fillRect(0,0,w,h);   // 石縫
+  let c=COBBLE[0];
+  for(let j=0;j<n;j++) for(let i=0;i<n;i++){
+    // 三成機率沿用前一顆的顏色，兩三顆同色連在一起，比完全隨機更像現場的斑駁
+    if(rnd()>0.3) c=COBBLE[Math.floor(rnd()*COBBLE.length)];
+    g.fillStyle=c; g.fillRect(i*s+1.5,j*s+1.5,s-3,s-3);
+    g.fillStyle='rgba(255,255,255,.10)'; g.fillRect(i*s+1.5,j*s+1.5,s-3,2);   // 上緣一點亮邊，讓石塊有顆粒感
+  } },[GUIDE.avenue.width/8,GUIDE.avenue.length/8]);
+flat(GUIDE.avenue.width,GUIDE.avenue.length,new THREE.MeshToonMaterial({map:cobbleTex,gradientMap:GRAD}),GUIDE.avenue.x,0.019,GUIDE.avenue.z);
 flat(0.3,74,'#8f8e88',-6.1,0.02,-39);
 flat(0.3,74,'#8f8e88',6.1,0.02,-39);
 flat(GUIDE.crosswalk.width,GUIDE.crosswalk.depth,stoneMat(24,2),GUIDE.crosswalk.x,0.0185,GUIDE.crosswalk.z); // 橫向步道
