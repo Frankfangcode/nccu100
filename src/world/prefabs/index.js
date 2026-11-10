@@ -22,6 +22,7 @@
 import * as THREE from 'three';
 import { scene } from '../../core/engine.js';
 import { OUT } from '../../render/kit.js';
+import { EXPORT } from '../../core/export-mode.js';
 
 const CHUNK = 48;                // 區塊大小（公尺）：同一區塊的同款東西合成一批，鏡頭看不到的區塊整批不畫
 const batches = new Map();       // key → { geo, mat, cast, items: [{ m, fade, sway }] }
@@ -77,7 +78,7 @@ function record(mesh, fadeSet, swayNode, swayInv) {
  * 回傳 { setFade(a) } 給樹冠淡出用。
  */
 export function asPrefab(fn, opts = {}) {
-  if (flushed) {
+  if (flushed || EXPORT) {
     const n = scene.children.length; fn(); const roots = scene.children.slice(n);
     const visible = roots.map(r => r.visible); let shown = true;
     return { setFade() {}, isVisible: () => shown, setVisible(on) { shown = !!on; roots.forEach((r, i) => { r.visible = shown ? visible[i] : false; }); } };

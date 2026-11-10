@@ -3,5 +3,6 @@
  * 把蓋好的室外場景做一次靜態烘焙。
  */
 import { flushBake } from './index.js';
+import { EXPORT } from '../../core/export-mode.js';
 
-flushBake();
+if (!EXPORT) flushBake();

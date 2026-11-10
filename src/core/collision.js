@@ -40,4 +40,4 @@ function resolveCore(p){
     p.x=Math.max(-265,Math.min(195,p.x)); p.z=Math.max(-230,Math.min(zMax,p.z)); }
 }
 
-export { addWalkArea, boxC, circC, colliders, obbC, resolve, setActiveColliders, setRoomClamp };
+export { walkAreas, addWalkArea, boxC, circC, colliders, obbC, resolve, setActiveColliders, setRoomClamp };

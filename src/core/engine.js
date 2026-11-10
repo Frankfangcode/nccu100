@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { $ } from './dom.js';
 import { installContextRecovery } from './context-recovery.js';
 import { LOOK2 } from '../render/look.js';
+import { EXPORT, sourceTag } from './export-mode.js';
 
 THREE.ColorManagement.legacyMode = false;
 /* ---------- renderer / scene ---------- */
@@ -21,6 +22,7 @@ $('stage').appendChild(renderer.domElement);
 const contextRecovery = installContextRecovery(renderer.domElement);
 const scene = new THREE.Scene();
 scene.fog = LOOK2 ? new THREE.Fog('#bfe2fb',90,520) : new THREE.Fog('#cfe8f7',140,560);
+if (EXPORT) { const add0 = scene.add.bind(scene); scene.add = (...o) => { const t = sourceTag(); o.forEach(x => { if (x && x.userData && !x.userData.src) x.userData.src = t; }); return add0(...o); }; }
 const camera = new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.25,1200);
 document.body.classList.add('title');
 
