@@ -3,6 +3,7 @@
  */
 import * as THREE from 'three';
 import { scene } from '../core/engine.js';
+import { LOOK2 } from './look.js';
 
 /* ---------- helpers ---------- */
 function gradTex(steps){
@@ -20,11 +21,23 @@ function rampTex(){
     const c=Math.min(255,Math.round(v*255)); d[i*4]=d[i*4+1]=d[i*4+2]=c; d[i*4+3]=255; }
   const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t;
 }
-const GRAD=rampTex();
+/* look v2：暗面不是同色變暗，而是偏藍紫的冷色；明暗交界帶一點暖橘，像陽光透進來 */
+function rampTex2(){
+  const N=256, d=new Uint8Array(N*4), sh=[0.52,0.57,0.76];
+  for(let i=0;i<N;i++){ const x=i/(N-1);
+    const s=x<0.36?0:x>0.52?1:(x-0.36)/0.16, ss=s*s*(3-2*s);
+    const edge=Math.max(0,1-Math.abs(x-0.44)/0.09);
+    const h=x<0.86?0:x>0.96?1:(x-0.86)/0.10, hl=0.07*h*h*(3-2*h);
+    const warm=[0.10*edge,0.03*edge,-0.05*edge];
+    for(let k=0;k<3;k++) d[i*4+k]=Math.max(0,Math.min(255,Math.round((sh[k]+(1-sh[k])*ss+warm[k]+hl)*255)));
+    d[i*4+3]=255; }
+  const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t;
+}
+const GRAD=LOOK2?rampTex2():rampTex();
 /* 所有卡通材質加上邊緣光（rim light），讓角色與建築輪廓更立體 */
 THREE.ShaderLib.toon.fragmentShader=THREE.ShaderLib.toon.fragmentShader.replace('#include <output_fragment>',
   `{ float rimD=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);
-     float rimA=smoothstep(0.62,0.80,rimD)*0.30*clamp(normal.y*0.5+0.6,0.0,1.0);
+     float rimA=smoothstep(0.62,0.80,rimD)*${LOOK2?'0.42':'0.30'}*clamp(normal.y*0.5+0.6,0.0,1.0);
      outgoingLight+=diffuseColor.rgb*vec3(1.0,0.95,0.86)*rimA; }
    #include <output_fragment>`);
 const matCache={};

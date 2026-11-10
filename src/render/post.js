@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { renderer } from '../core/engine.js';
 import { createQualityController } from './quality-controller.js';
+import { LOOK2 } from './look.js';
 
 /* ---------- 畫面後製：MSAA、柔光 Bloom、色彩分級、暗角 ---------- */
 const POST=(()=>{
@@ -16,8 +17,8 @@ const POST=(()=>{
     fragmentShader:'uniform sampler2D t;varying vec2 vUv;void main(){vec3 c=texture2D(t,vUv).rgb;float l=max(c.r,max(c.g,c.b));float k=smoothstep(0.82,1.25,l);gl_FragColor=vec4(c*k,1.0);}'});
   const blur=new THREE.ShaderMaterial({uniforms:{t:{value:null},dir:{value:new THREE.Vector2()}},vertexShader:VS,depthTest:false,depthWrite:false,
     fragmentShader:'uniform sampler2D t;uniform vec2 dir;varying vec2 vUv;void main(){vec3 s=texture2D(t,vUv).rgb*0.2270;s+=(texture2D(t,vUv+dir*1.3846).rgb+texture2D(t,vUv-dir*1.3846).rgb)*0.3162;s+=(texture2D(t,vUv+dir*3.2308).rgb+texture2D(t,vUv-dir*3.2308).rgb)*0.0703;gl_FragColor=vec4(s,1.0);}'});
-  const comp=new THREE.ShaderMaterial({uniforms:{tS:{value:main.texture},tB1:{value:null},tB2:{value:null},bloom:{value:0.55},time:{value:0},indoor:{value:0}},vertexShader:VS,depthTest:false,depthWrite:false,
-    fragmentShader:`uniform sampler2D tS,tB1,tB2;uniform float bloom,time,indoor;varying vec2 vUv;
+  const comp=new THREE.ShaderMaterial({uniforms:{tS:{value:main.texture},tB1:{value:null},tB2:{value:null},bloom:{value:0.55},time:{value:0},indoor:{value:0},look:{value:LOOK2?1:0}},vertexShader:VS,depthTest:false,depthWrite:false,
+    fragmentShader:`uniform sampler2D tS,tB1,tB2;uniform float bloom,time,indoor,look;varying vec2 vUv;
     void main(){
       vec3 c=texture2D(tS,vUv).rgb;
       vec3 bl=texture2D(tB1,vUv).rgb*0.6+texture2D(tB2,vUv).rgb*0.8;
@@ -28,6 +29,7 @@ const POST=(()=>{
       c*=mix(cool,warm,smoothstep(0.03,0.55,l));
       c=c/(1.0+c*0.16)*1.04;
       c=pow(c,vec3(1.06));
+      if(look>0.5){ float l2=dot(c,vec3(0.2126,0.7152,0.0722)); c=mix(vec3(l2),c,1.10); c=mix(c,c*c*(3.0-2.0*c),0.22); c*=1.03; }
       vec2 q=vUv-0.5; q.x*=1.25;
       c*=1.0-smoothstep(0.25,0.95,length(q))*mix(0.32,0.45,indoor);
       gl_FragColor=vec4(max(c,0.0),1.0);

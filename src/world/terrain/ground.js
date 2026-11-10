@@ -5,11 +5,18 @@ import * as THREE from 'three';
 import { CAMPUS_GUIDE as GUIDE } from '../campus-guide-layout.js';
 import { GRAD, basic, block, canvasTex, flat, hText, plane } from '../../render/kit.js';
 import { stoneMat } from '../props.js';
+import { LOOK2 } from '../../render/look.js';
 
 /* ---------- ground ---------- */
-flat(1400,1400,'#86c35a',0,-0.06,-200);
-flat(79.6,96,'#86c35a',-5.2,0,-36);
-flat(60,96,'#86c35a',71.7,0,-36);
+/* look v2：草地不再是一整片單色，加上柔和的深淺色塊與小草點（平塗，不畫陰影） */
+const lawnTex=LOOK2?canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#86c35a'; g.fillRect(0,0,w,h);
+  const blob=(c,n,r0,r1)=>{ g.fillStyle=c; for(let i=0;i<n;i++){ const x=Math.random()*w, y=Math.random()*h, r=r0+Math.random()*(r1-r0);
+    for(const ox of [-w,0,w]) for(const oy of [-h,0,h]){ g.beginPath(); g.ellipse(x+ox,y+oy,r,r*0.7,Math.random()*3,0,7); g.fill(); } } };
+  blob('#7dbb52',9,22,44); blob('#90cc62',8,18,36); blob('#9ad56a',26,2,4); blob('#74b34c',26,2,4); },[1,1]):null;
+const lawn=(w,d)=>{ if(!LOOK2) return '#86c35a'; const t=lawnTex.clone(); t.repeat.set(w/22,d/22); t.needsUpdate=true; return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); };
+flat(1400,1400,lawn(1400,1400),0,-0.06,-200);
+flat(79.6,96,lawn(79.6,96),-5.2,0,-36);
+flat(60,96,lawn(60,96),71.7,0,-36);
 const brickTex=canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#c77563'; g.fillRect(0,0,w,h);
   for(let i=0;i<500;i++){ g.fillStyle=['#b9644f','#d48a74','#bd6d5a'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); }
   g.strokeStyle='#a95a48'; g.lineWidth=2;

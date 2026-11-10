@@ -4,20 +4,21 @@
 import * as THREE from 'three';
 import { MOBILE, scene } from '../../core/engine.js';
 import { gradTex } from '../../render/kit.js';
+import { LOOK2 } from '../../render/look.js';
 
 /* ---------- sky, light, clouds ---------- */
-const SUN=new THREE.Vector3(0.72,0.6,0.34).normalize();
+const SUN=(LOOK2?new THREE.Vector3(0.70,0.52,0.42):new THREE.Vector3(0.72,0.6,0.34)).normalize();
 const sky=new THREE.Mesh(new THREE.SphereGeometry(450,32,16),new THREE.ShaderMaterial({
   side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{sunDir:{value:SUN}},
   vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:'varying vec3 vP;uniform vec3 sunDir;void main(){vec3 d=normalize(vP);float h=d.y;vec3 top=vec3(0.22,0.52,0.92);vec3 hor=vec3(0.81,0.91,0.97);vec3 warm=vec3(1.0,0.90,0.74);vec3 c=mix(hor,top,pow(clamp(h,0.0,1.0),0.5));float s=max(dot(d,sunDir),0.0);c=mix(c,warm,pow(s,6.0)*0.5);c+=vec3(1.0,0.96,0.86)*pow(s,260.0)*1.4;if(h<0.0)c=hor;gl_FragColor=vec4(c,1.0);}'
+  fragmentShader:'varying vec3 vP;uniform vec3 sunDir;void main(){vec3 d=normalize(vP);float h=d.y;'+(LOOK2?'vec3 top=vec3(0.10,0.42,0.95);vec3 hor=vec3(0.74,0.90,1.0);vec3 warm=vec3(1.0,0.90,0.70);':'vec3 top=vec3(0.22,0.52,0.92);vec3 hor=vec3(0.81,0.91,0.97);vec3 warm=vec3(1.0,0.90,0.74);')+'vec3 c=mix(hor,top,pow(clamp(h,0.0,1.0),0.5));float s=max(dot(d,sunDir),0.0);c=mix(c,warm,pow(s,6.0)*0.5);c+=vec3(1.0,0.96,0.86)*pow(s,260.0)*1.4;if(h<0.0)c=hor;gl_FragColor=vec4(c,1.0);}'
 }));
 sky.frustumCulled=false;
 sky.renderOrder=-1;
 scene.add(sky);
-const hemi=new THREE.HemisphereLight('#bfe0ff','#a89a7a',0.74);
+const hemi=LOOK2?new THREE.HemisphereLight('#9cc4ff','#c8c08a',0.92):new THREE.HemisphereLight('#bfe0ff','#a89a7a',0.74);
 scene.add(hemi);
-const sun=new THREE.DirectionalLight('#fff1d4',1.7);
+const sun=LOOK2?new THREE.DirectionalLight('#ffe8bd',1.62):new THREE.DirectionalLight('#fff1d4',1.7);
 sun.castShadow=true;
 sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);   // 手機用 1024，省 12 MB 顯示記憶體
 const sc=sun.shadow.camera;

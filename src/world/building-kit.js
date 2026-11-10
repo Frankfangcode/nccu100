@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { scene } from '../core/engine.js';
 import { BOX, GRAD, basic, block, canvasTex, mk, outline, plane, toon } from '../render/kit.js';
 import { boxC } from '../core/collision.js';
+import { LOOK2 } from '../render/look.js';
 
 /** 屋頂淺灰色 */
 export const ROOFTOP = toon('#c4c7c0');
@@ -52,6 +53,24 @@ export function greenRoofUHall(side) {
     const r=mk(hipRoof(L+1.8,W+1.8,2.6),ROOF,cx,6.5,cz,{out:0.06}); if(alongZ) r.rotation.y=Math.PI/2;
     block(cx,9.12,cz,alongZ?0.3:L-W,0.22,alongZ?L-W:0.3,'#46623f');
     boxC(cx-sx/2,cx+sx/2,cz-sz/2,cz+sz/2);
+    if(LOOK2) facadeDepth(cx,cz,L,W,alongZ);
+  }
+  /* look v2：長向立面加上台灣校舍常見的層次（柱列、窗上遮陽板、窗台、窗框直櫺、屋簷飾帶），靠太陽投影做出深度。
+     都是沒有名字的純色小方塊，場景蓋完會被靜態烘焙合併。 */
+  function facadeDepth(cx,cz,L,W,alongZ){
+    const n=Math.round(L/3.2), bay=L/n, ww=bay*92/128;
+    const put=(a,y,out,la,h,d,c,o)=>{ // a：沿牆位置；out：離牆面距離的中心；la：沿牆長度；d：凸出厚度
+      [-1,1].forEach(f=>{ const off=f*(W/2+out);
+        if(alongZ) block(cx+off,y,cz+a,d,h,la,c,o); else block(cx+a,y,cz+off,la,h,d,c,o); }); };
+    for(let i=0;i<=n;i++) put(-L/2+i*bay,3.4,0.09,0.42,6.2,0.18,'#d9d3c4',0.015);          // 柱列
+    for(let i=0;i<n;i++){ const a=-L/2+(i+0.5)*bay;
+      [5.0,1.75].forEach(y=>{
+        put(a,y+0.76,0.24,ww+0.28,0.1,0.48,'#f1ede3',0.012);                                  // 遮陽板
+        put(a,y-0.70,0.11,ww+0.16,0.1,0.22,'#cfc9ba',0.01);                                   // 窗台
+        put(a,y,0.03,0.07,1.3,0.06,'#f4f1e8',0);                                              // 中央直櫺
+        put(a,y+0.2,0.03,ww,0.06,0.06,'#f4f1e8',0); }); }                                     // 橫櫺
+    put(0,6.38,0.16,L+0.3,0.24,0.32,'#c9c3b2',0.015);                                         // 屋簷下飾帶
+    put(0,3.28,0.07,L,0.16,0.14,'#d2ccbc',0);                                                 // 樓層腰線
   }
   wing(s*28,-32.5,35,6,true);
   wing(s*21.5,-17.5,19,5,false);

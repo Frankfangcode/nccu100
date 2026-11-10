@@ -8,10 +8,14 @@ import { circC, colliders } from '../core/collision.js';
 import { inLot } from './layout.js';
 import { asPrefab } from './prefabs/index.js';
 import { inPhotoDistrict } from './photo-district.js';
+import { LOOK2 } from '../render/look.js';
 
 /* ---------- 樹、椰子、路燈 ---------- */
 const TRUNK=new THREE.CylinderGeometry(0.2,0.3,2.6,7);
-const greens=['#4c9a47','#5cb150','#6bc35b'];
+/* look v2：樹冠改用較圓滑的球、由下到上漸亮的三色，最上面一團最亮 */
+const CROWN=LOOK2?new THREE.IcosahedronGeometry(1,2):SPH;
+const greens=LOOK2?['#3f9a4b','#56b651','#7ccf5c']:['#4c9a47','#5cb150','#6bc35b'];
+const LOBE2=[0,1,1,2];
 /**
  * 會擋鏡頭的樹冠清單：{ x, z, r 樹冠半徑, y0 樹冠底, y1 樹冠頂, parts 會變透明的網格 }
  * systems/foliage-fade.js 每一幀檢查，擋在鏡頭和主角中間的樹冠會淡掉。
@@ -26,7 +30,7 @@ function tree(x,z,s){
     const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=Math.random()*6; scene.add(g);
     const tr=mk(TRUNK,toon('#7a5a43'),0,1.3,0,{parent:g,out:0.05}); tr.scale.setScalar(s); tr.position.y=1.3*s;
     [[0,3.6,0,1.8],[1.1,3.1,0.3,1.25],[-0.9,3.3,-0.4,1.3],[0.2,4.6,-0.2,1.15]].forEach((b,i)=>{
-      const m=mk(SPH,toon(greens[(i+Math.floor(Math.abs(x)))%3]),b[0]*s,b[1]*s,b[2]*s,{parent:g,out:0.1}); m.scale.setScalar(b[3]*s); parts.push(m);
+      const m=mk(CROWN,toon(greens[LOOK2?LOBE2[i]:(i+Math.floor(Math.abs(x)))%3]),b[0]*s,b[1]*s,b[2]*s,{parent:g,out:LOOK2?0.05:0.1}); m.scale.setScalar(b[3]*s); parts.push(m);
     });
   },{fade:()=>parts});
   FOLIAGE.push({x,z,r:2.3*s,y0:1.9*s,y1:5.8*s,parts,setFade:pf.setFade,setVisible:pf.setVisible,isVisible:pf.isVisible});

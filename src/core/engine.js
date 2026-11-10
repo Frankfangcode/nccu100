@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { $ } from './dom.js';
 import { installContextRecovery } from './context-recovery.js';
+import { LOOK2 } from '../render/look.js';
 
 THREE.ColorManagement.legacyMode = false;
 /* ---------- renderer / scene ---------- */
@@ -19,7 +20,7 @@ renderer.shadowMap.type = MOBILE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 $('stage').appendChild(renderer.domElement);
 const contextRecovery = installContextRecovery(renderer.domElement);
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog('#cfe8f7',140,560);
+scene.fog = LOOK2 ? new THREE.Fog('#bfe2fb',90,520) : new THREE.Fog('#cfe8f7',140,560);
 const camera = new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.25,1200);
 document.body.classList.add('title');
 
