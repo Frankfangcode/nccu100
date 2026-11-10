@@ -24,6 +24,7 @@ const port = server.address().port;
 /** 固定機位：[鏡頭 x, y, z, 看向 x, y, z] */
 const VIEWS = {
   gate: [0, 7, 40, 0, 5, 0],
+  play: [3, 9, 4, 0, 1, -24],
   avenue: [0, 4, 2, 0, 6, -87],
   fountain: [16, 5, -20, 0, 2, -34],
   siwei: [-12, 5, -62, 0, 7, -90],
