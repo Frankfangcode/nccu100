@@ -90,3 +90,13 @@ PR111 f41039c 的正式 smoke 失敗，原因不是 HTTP 缺檔：原多頁共�
 改為兩次隔離 Vite build：第一遍維持正式遊戲原單入口；第二遍只建 wardrobe，保留 dist、不複製 public，並使用獨立 wardrobe/assets 目錄以免覆蓋主遊戲 chunk。不修改房間、main、loop 初始化，不以可選鏈忽略缺失互動點。
 
 新增 `scripts/wardrobe-build-order-check.mjs`，在 npm build 最後自動比較 dist 的正式主遊戲與原單入口設定重建的全部 14 個輸出，要求逐位元相同；同時檢查四維堂註冊、gameplay、pangolin-grab 留在同一 chunk 且執行順序正確。原 MPA 方案無法滿足此證明。兩次 build 前後另以 SHA256 核對 19 個原 dist 檔案未變。工作台現在為 13 個 JS 依賴，根／子路徑 HTTP、scaffold 與真 404 檢查通過。此處舊 MPA 描述僅保留為歷史，不代表現行發布方法。仍需 CI 瀏覽器 smoke 與 Grok 新入口驗收，不把編譯圖證據當實機完成。
+
+## 換衣間介面（v2.11）
+
+遊戲內的「角色換裝」視窗從貼 JSON 改成換衣間：上方選角色，左邊是角色預覽（可拖曳旋轉），右邊是分類頁籤與品項格子。點品項是試穿，按「保存形象」才保存；沒保存就關閉或換角色會穿回原樣。原本貼 JSON 的流程收在「進階：用 JSON 匯入」，行為與檢查不變。
+
+- 資料層（`wardrobe-config.js`、`wardrobe-factory.js`、`controller.js`）沒有改，保存格式與鍵不變。
+- 預覽與縮圖（`src/systems/wardrobe/preview.js`）用遊戲原本的渲染器畫到離屏畫面再貼到 2D 畫布，不另開 WebGL；關閉視窗時釋放離屏畫面。預覽的是角色的複製品，共用形狀與材質。
+- 縮圖是把每個品項單獨穿上拍一張，一格畫面拍一張，同一步驟內穿回原樣。
+- 面板以「衣櫃」為單位（品項清單、讀取、試穿、保存、還原）；`?newplayer` 時主角的衣櫃換成標準人形的顏色與配件，見 `src/actors/std-humanoid/README.md`。
+- 尚未驗證：手機實機的流暢度與觸控拖曳；雄鷹與泳裝形態下的預覽。

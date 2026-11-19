@@ -44,9 +44,9 @@ const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), pars
 const lum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
 const textureCache = new Map();
 /** 把貼圖裡各部位的顏色換成造型指定的顏色；陰影與亮部依原本的明暗比例跟著變 */
-function lookTexture(baseMap, look) {
+function lookTexture(baseMap, look, shared = true) {
   const key = ['top', 'bottom', 'hair', 'skin', 'bag'].map(k => look[k] || '').join('|');
-  if (textureCache.has(key)) return textureCache.get(key);
+  if (shared && textureCache.has(key)) return textureCache.get(key);
   const table = new Map();
   for (const [group, tones] of Object.entries(BASE_PALETTE)) {
     if (!look[group] || look[group] === tones[0]) continue;
@@ -75,7 +75,7 @@ function lookTexture(baseMap, look) {
     // 壓縮後的 UV 靠貼圖的位移與縮放還原，新貼圖要照抄
     map.offset.copy(baseMap.offset); map.repeat.copy(baseMap.repeat); map.center.copy(baseMap.center); map.rotation = baseMap.rotation;
   }
-  textureCache.set(key, map);
+  if (shared) textureCache.set(key, map);
   return map;
 }
 
@@ -110,6 +110,9 @@ function outlineMaterial(width) {
 
 /* ---------- 每一幀更新：在畫面算出之前跑一次 ---------- */
 const actors = new Set();
+const byRig = new WeakMap();
+/** 找出裝在某個舊身體節點上的標準人形（沒有就回傳 undefined），換衣間用它即時換造型 */
+export const stdActorFor = rig => byRig.get(rig);
 let hooked = false, lastT = 0;
 function hookRenderer() {
   if (hooked) return;
@@ -148,6 +151,22 @@ export function installStdHumanoid({ rig, joints, look = {}, active = () => true
 
   const bones = {}, restQ = {}, restLocal = {}, parentInv = {};
   let mixer = null, clips = {}, ready = false, shown = false, speed = 0, waveW = 0;
+  // 目前的造型；painted 記下每個網格的原始貼圖，props 是掛在頭上的配件
+  let current = look;
+  const painted = [], props = [];
+  function applyLook(shared) {
+    for (const { mesh, baseMap } of painted) {
+      const old = mesh.material.map, map = lookTexture(baseMap, current, shared);
+      mesh.material.map = map;
+      // 換衣間試穿用的貼圖不進共用快取，換掉就釋放
+      if (old && old !== map && old !== baseMap && old.userData.stdPrivate) old.dispose();
+      if (!shared && map !== baseMap) map.userData.stdPrivate = true;
+    }
+    for (const node of props.splice(0)) node.removeFromParent();
+    const before = new Set(bones.Head.children);
+    for (const name of current.accessories || []) ACCESSORY_BUILDERS[name]?.(bones.Head);
+    for (const node of bones.Head.children) if (!before.has(node)) props.push(node);
+  }
   const lastPos = new THREE.Vector3(); let hasLast = false;
 
   loadAsset().then(({ gltf, clone }) => {
@@ -157,7 +176,8 @@ export function installStdHumanoid({ rig, joints, look = {}, active = () => true
     root.traverse(o => { if (o.isBone) bones[o.name] = o; if (o.isSkinnedMesh) skinned.push(o); });
     for (const mesh of skinned) {
       const baseMap = mesh.material.map;
-      mesh.material = new THREE.MeshToonMaterial({ map: lookTexture(baseMap, look), gradientMap: GRAD });
+      mesh.material = new THREE.MeshToonMaterial({ map: baseMap, gradientMap: GRAD });
+      painted.push({ mesh, baseMap });
       mesh.castShadow = true; mesh.frustumCulled = false;
       // 壓縮後的頂點座標不是公尺：用包圍盒換算描邊寬（模型實際高 1 公尺）
       const g = mesh.geometry; if (!g.boundingBox) g.computeBoundingBox();
@@ -173,7 +193,7 @@ export function installStdHumanoid({ rig, joints, look = {}, active = () => true
     const rel = o => o.getWorldQuaternion(new THREE.Quaternion()).premultiply(inv);
     for (const b of Object.values(bones)) { restQ[b.name] = rel(b); restLocal[b.name] = b.quaternion.clone(); parentInv[b.name] = rel(b.parent).invert(); }
     bones.Head.scale.setScalar(HEAD_SCALE);
-    for (const name of look.accessories || []) ACCESSORY_BUILDERS[name]?.(bones.Head);
+    applyLook(current === look);
     mixer = new THREE.AnimationMixer(root);
     for (const clip of gltf.animations) { const a = mixer.clipAction(clip); a.play(); a.setEffectiveWeight(clip.name === 'Idle' ? 1 : 0); clips[clip.name] = a; }
     mixer.update(Math.random() * 2);   // 每個角色起始相位不同，不會整齊劃一
@@ -218,9 +238,12 @@ export function installStdHumanoid({ rig, joints, look = {}, active = () => true
       }
       holder.updateMatrixWorld(true);
     },
-    dispose() { actors.delete(actor); show(false); holder.removeFromParent(); },
+    /** 即時換造型（顏色與配件）。模型還沒載好時先記著，載好就套用。 */
+    setLook(next) { current = next || {}; if (ready) applyLook(false); },
+    dispose() { actors.delete(actor); byRig.delete(rig); show(false); holder.removeFromParent(); },
   };
   actors.add(actor);
+  byRig.set(rig, actor);
   return actor;
 }
 
