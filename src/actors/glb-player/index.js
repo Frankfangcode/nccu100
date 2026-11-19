@@ -7,14 +7,14 @@
  * 游泳裝與雄鷹形態新模型還沒有對應造型，這兩種狀態自動切回舊模型。
  */
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { GRAD } from '../../render/kit.js';
 import { scene } from '../../core/engine.js';
 import { state } from '../../core/state.js';
-import modelUrl from './player.glb?url';
 
 export const GLB_PLAYER_ENABLED = typeof location !== 'undefined' && new URLSearchParams(location.search).has('newplayer');
+
+// 不用 import 引入 .glb：Node 單元測試會載入 player.js，不認得 .glb；Vite 打包時仍會處理這種寫法
+const modelUrl = () => new URL('./player.glb', import.meta.url).href;
 
 const SCALE = 1.3;          // 模型原高 1 公尺，放大到與舊主角相近（約 1.3 公尺）
 const HEAD_SCALE = 1.15;    // 頭再放大一點，接近專案的 Q 版比例
@@ -47,9 +47,14 @@ export function installGlbPlayer({ player, rig, H }) {
   let ready = false, active = false;
   const tmpR = new THREE.Quaternion(), tmpE = new THREE.Euler(), inv = new THREE.Quaternion();
 
+  // 載入器只在啟用時才下載，預設遊戲不多載任何程式
+  Promise.all([
+    import('three/examples/jsm/loaders/GLTFLoader.js'),
+    import('three/examples/jsm/libs/meshopt_decoder.module.js'),
+  ]).then(([{ GLTFLoader }, { MeshoptDecoder }]) => {
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
-  loader.load(modelUrl, gltf => {
+  loader.load(modelUrl(), gltf => {
     const root = gltf.scene;
     root.scale.setScalar(SCALE);
     const skinned = [];
@@ -83,6 +88,7 @@ export function installGlbPlayer({ player, rig, H }) {
     bones[key('head')].scale.setScalar(HEAD_SCALE);
     ready = true;
   }, undefined, err => console.warn('[glb-player] 模型載入失敗，沿用舊主角', err));
+  }).catch(err => console.warn('[glb-player] 載入器載入失敗，沿用舊主角', err));
 
   /** 在模型空間轉 R 之後換回骨頭的區域旋轉：local = 父靜止⁻¹ × R × 自己靜止 */
   function pose(name, R) {
