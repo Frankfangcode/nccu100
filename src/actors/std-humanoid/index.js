@@ -45,7 +45,7 @@ const lum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
 const textureCache = new Map();
 /** 把貼圖裡各部位的顏色換成造型指定的顏色；陰影與亮部依原本的明暗比例跟著變 */
 function lookTexture(baseMap, look) {
-  const key = ['top', 'bottom', 'hair', 'skin', 'bag', 'stripe'].map(k => look[k] || '').join('|');
+  const key = ['top', 'bottom', 'hair', 'skin', 'bag'].map(k => look[k] || '').join('|');
   if (textureCache.has(key)) return textureCache.get(key);
   const table = new Map();
   for (const [group, tones] of Object.entries(BASE_PALETTE)) {

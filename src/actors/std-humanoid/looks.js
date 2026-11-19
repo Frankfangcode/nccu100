@@ -5,18 +5,17 @@
 
 /** 模型貼圖用到的顏色，依部位分組；每組第一個是本色，其餘是陰影或亮部 */
 export const BASE_PALETTE = Object.freeze({
-  hair: ['#5b331d', '#3c2214', '#8a5634'],
-  top: ['#2e57bd', '#223f8e'],
-  bottom: ['#2b3040', '#20232f'],
+  hair: ['#3a1a10', '#2a120a', '#57301c'],
+  top: ['#2e57bd', '#1d3a8a', '#223f8e', '#3d5fb3'],
+  bottom: ['#2b3040', '#1b1e29', '#20232f'],
   bag: ['#f7bf2d', '#d9931d'],
-  skin: ['#f3b692', '#f6c6a2', '#e2a07c'],
-  stripe: ['#3d5fb3'],
+  skin: ['#f3b692', '#e2a07c', '#f6c6a2'],
 });
 
 export const CAMPUS_COLORS = Object.freeze({
   top: ['#2e57bd', '#c8443c', '#3f8f5a', '#8a8f9c', '#e8dcc0', '#e58aa5', '#6b5bb0', '#33363f', '#e8843a', '#2f9c9a', '#f0c94a'],
   bottom: ['#2b3040', '#4a6fa5', '#b89b6c', '#26272e', '#6d7280', '#3d4a3a'],
-  hair: ['#23201f', '#3a2a22', '#5b331d', '#8a5a36', '#c9a154', '#7a2f3a'],
+  hair: ['#23201f', '#3a1a10', '#5b331d', '#8a5a36', '#c9a154', '#7a2f3a'],
   skin: ['#f3b692', '#f7c4a0', '#e6a680', '#d39870'],
   bag: ['#f7bf2d', '#d9433d', '#2d4f9e', '#3f8f5a', '#e58aa5', '#33363f', '#f4f4f6'],
 });
@@ -42,7 +41,7 @@ function weighted(rand, items, weights) {
 /**
  * 用種子產生固定的校園造型：同一個種子每次結果一樣。
  * @param {number} seed
- * @returns {{top:string,bottom:string,hair:string,skin:string,bag:string,stripe:string,accessories:string[]}}
+ * @returns {{top:string,bottom:string,hair:string,skin:string,bag:string,accessories:string[]}}
  */
 export function campusLook(seed) {
   let h = Math.imul(seed + 1, 0x9e3779b1); h ^= h >>> 15; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13;
@@ -57,5 +56,5 @@ export function campusLook(seed) {
   const accessories = [];
   if (rand() < 0.3) accessories.push('glasses');
   if (rand() < 0.18) accessories.push('headphones');
-  return { top, bottom, hair: weighted(rand, C.hair, HAIR_WEIGHTS), skin: pick(C.skin), bag, stripe: top, accessories };
+  return { top, bottom, hair: weighted(rand, C.hair, HAIR_WEIGHTS), skin: pick(C.skin), bag, accessories };
 }
