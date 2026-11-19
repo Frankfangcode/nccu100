@@ -15,8 +15,9 @@
 3. Blender（Python 腳本）處理：
    - 修貼圖：補掉 AI 滲進來的白灰斑點、背面書包改回黃色、還原眼睛與白色衣領、補畫嘴巴。
    - 建 19 根骨頭（hips、spine、chest、neck、head、左右 shoulder／upperarm／forearm／hand／thigh／shin／foot），自動權重綁定。
-   - 匯出 glTF，只保留 base color 貼圖（JPEG 1024）。
-4. `gltfpack -cc -kn` 壓縮（meshopt 與量化），從 836 KB 降到約 373 KB。
+   - 匯出 glTF，只保留 base color 貼圖。
+4. 重新上色成賽璐璐風（v2.09）：AI 貼圖像水彩、雜色多，改成依色群對應到固定色票，每區 1 到 3 個乾淨色（頭髮三階、帽 T 兩階、褲子、白、書包兩階、膚色），臉部只保留眼睛、眉毛、嘴巴，鞋子只留白與藍條紋。貼圖存成 48 色 PNG（約 90 KB）。
+5. `gltfpack -cc -kn` 壓縮（meshopt 與量化），整個檔案約 232 KB。
 
 ## 和舊主角怎麼對接
 
@@ -33,7 +34,7 @@
 
 ## 與美術規範的差異（需要 wenzhotw 決定）
 
-- 使用貼圖，不是純色材質（`docs/art-style.md` 第十二節 B）。
-- 檔案約 373 KB，超過單檔 300 KB。
+- 使用貼圖，不是純色材質（`docs/art-style.md` 第十二節 B）；不過 v2.09 起貼圖已是少量平塗色塊，接近純色風格。
+- 檔案約 232 KB，在單檔 300 KB 以內。
 - 材質已換成 `MeshToonMaterial`（共用 `GRAD`），描邊用 `#2a2c4a`、寬約 0.01 公尺（蒙皮網格用法線外推，不能用 `outline()` 的縮放法）。
 - Tripo 免費版生成的模型是公開的，授權條件需要再確認是否適合放進專案。
