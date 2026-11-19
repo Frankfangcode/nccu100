@@ -7,6 +7,7 @@ import { createCapybara } from './capybara-factory.js';
 import { npcHumanoidProfile } from './humanoid-profiles.js';
 import { registerTrialNpc } from './actor-rig-identity.js';
 import { registerNpcCharacter, readyNpcCharacter } from './character-part-sources.js';
+import { installCampusStudent } from './std-humanoid/index.js';
 import { state } from '../core/state.js';
 import { MOBILE, scene } from '../core/engine.js';
 import { AU } from '../systems/audio.js';
@@ -152,6 +153,8 @@ function npcUpdate(n,dt){
 NPC_LIST.forEach(o=>addNPC({...o, indoorNPC:!!o.indoor, home:{x:num(o.home.x),z:num(o.home.z)}, face:o.face===undefined?undefined:num(o.face)}));
 const cop=NPCS.find(n=>n.id==='cop');
 STUDENTS.paths.forEach((path,i)=>{
-  const c=STUDENTS.colors[i]; addNPC({appearanceId:`students-${i}`,title:STUDENTS.title,home:{x:path[0][0],z:path[0][1]},path,speed:1.1+Math.random()*0.5,look:{top:c[0],pants:c[1],hair:c[2],bag:c[3],hairStyle:i%2?'short':'side',scale:1.1},dialog:[{lines:STUDENTS.lines[i%STUDENTS.lines.length]}]}); });
+  const c=STUDENTS.colors[i]; const student=addNPC({appearanceId:`students-${i}`,title:STUDENTS.title,home:{x:path[0][0],z:path[0][1]},path,speed:1.1+Math.random()*0.5,look:{top:c[0],pants:c[1],hair:c[2],bag:c[3],hairStyle:i%2?'short':'side',scale:1.1},dialog:[{lines:STUDENTS.lines[i%STUDENTS.lines.length]}]});
+  installCampusStudent(student,i);   // 校園造型試做：網址加 ?campuslook 才啟用（見 std-humanoid/README.md）
+});
 
 export { NPCS, addNPC, cop, npcUpdate, readyNpcCharacter };
