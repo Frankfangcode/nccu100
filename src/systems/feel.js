@@ -40,7 +40,9 @@ function heroJuice(dt,sp,run){
 }
 let fovNow=LOOK_RO?RO_CFG.fov:55;
 function cameraFov(dt,sp,run){
-  const base=(LOOK_RO&&!indoor()&&!state.driving)?(run&&sp>5?RO_CFG.fov+2.2:RO_CFG.fov):(run&&sp>5?60:55);
+  const pBoost=(LOOK_RO&&camera.aspect<0.9)?(0.9-Math.max(0.42,camera.aspect))*20:0;
+  const roBase=RO_CFG.fov+pBoost;
+  const base=(LOOK_RO&&!indoor()&&!state.driving)?(run&&sp>5?roBase+2.2:roBase):(run&&sp>5?60:55);
   const want=state.driving?57+Math.min(10,Math.abs(state.carSpeed)*0.5):base;
   fovNow+=(want-fovNow)*(1-Math.exp(-dt*4));
   if(Math.abs(camera.fov-fovNow)>0.02){ camera.fov=fovNow; camera.updateProjectionMatrix(); }

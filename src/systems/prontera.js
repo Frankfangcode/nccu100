@@ -13,7 +13,7 @@ import { LOOK_RO, RO_CFG } from '../render/look.js';
 import { state } from '../core/state.js';
 import { late } from '../core/late.js';
 import { $ } from '../core/dom.js';
-import { camera, scene } from '../core/engine.js';
+import { camera, renderer, scene } from '../core/engine.js';
 import { OUT, basic, canvasTex } from '../render/kit.js';
 import { SUN, cloudBot, cloudTop, hemi, skyU, sun } from '../world/environment/sky.js';
 import { waterU } from '../render/water.js';
@@ -267,37 +267,53 @@ if (LOOK_RO) {
   const miniEl = $('mini');
   const sndBtn = $('snd');
 
-  // 左上卡片
+  renderer.domElement.addEventListener('pointerdown', () => {
+    if (roCard.classList.contains('open')) {
+      roCard.classList.remove('open');
+      cardToggleBtn.setAttribute('aria-expanded', 'false');
+      cardToggleBtn.textContent = '▾';
+    }
+    if (document.body.classList.contains('ro-menu-open')) {
+      document.body.classList.remove('ro-menu-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.textContent = '☰ 選單';
+    }
+  });
+
+  // 左上卡片（桌面完整展開；手機預設收合為極簡地點膠囊，點一下展開控制項）
   const roCard = document.createElement('div');
   roCard.id = 'ro-card';
   roCard.innerHTML = `
-    <div class="ro-head">
+    <div class="ro-head" id="ro-head-bar">
       <div class="ro-badge" aria-hidden="true">✦</div>
       <div class="ro-titles">
         <div class="ro-main-title">政大校園 · Prontera</div>
         <div class="ro-sub-slot"></div>
       </div>
       <div class="ro-tools-inline"></div>
+      <button type="button" class="ro-card-toggle" id="ro-card-toggle" aria-expanded="false" aria-label="展開或收合環境面板">▾</button>
     </div>
-    <div class="ro-meta">
-      <span id="ro-role">初心者</span>
-      <span class="ro-coord" id="ro-coord">0, 0</span>
-    </div>
-    <div class="ro-wet-wrap">
-      <div class="ro-wet-row">
-        <span>💧 鞋底潮濕度</span>
-        <span id="ro-wet-pct">0%</span>
+    <div class="ro-drawer">
+      <div class="ro-meta">
+        <span id="ro-role">初心者</span>
+        <span class="ro-coord" id="ro-coord">0, 0</span>
       </div>
-      <div class="ro-wet-track"><div class="ro-wet-fill" id="ro-wet-bar"></div></div>
-    </div>
-    <div class="ro-seg" role="group" aria-label="時段切換">
-      <button type="button" class="ro-btn on" data-phase="day">☀️ 日間</button>
-      <button type="button" class="ro-btn" data-phase="dusk">🌅 黃昏</button>
-      <button type="button" class="ro-btn" data-phase="night">🌙 夜晚</button>
-    </div>
-    <div class="ro-sub-seg">
-      <button type="button" class="ro-btn" id="ro-pix-btn">🎮 復古像素：關</button>
-      <button type="button" class="ro-btn" id="ro-reset-btn">🧭 重置視角</button>
+      <div class="ro-wet-wrap">
+        <div class="ro-wet-row">
+          <span>💧 鞋底潮濕度</span>
+          <span id="ro-wet-pct">0%</span>
+        </div>
+        <div class="ro-wet-track"><div class="ro-wet-fill" id="ro-wet-bar"></div></div>
+      </div>
+      <div class="ro-seg" role="group" aria-label="時段切換">
+        <button type="button" class="ro-btn on" data-phase="day">☀️ 日間</button>
+        <button type="button" class="ro-btn" data-phase="dusk">🌅 黃昏</button>
+        <button type="button" class="ro-btn" data-phase="night">🌙 夜晚</button>
+      </div>
+      <div class="ro-sub-seg">
+        <button type="button" class="ro-btn" id="ro-pix-btn">🎮 復古像素：關</button>
+        <button type="button" class="ro-btn" id="ro-reset-btn">🧭 重置視角</button>
+      </div>
     </div>
   `;
   roCard.querySelector('.ro-sub-slot').appendChild(locEl);
@@ -305,12 +321,52 @@ if (LOOK_RO) {
   if (oldLocChip) oldLocChip.remove();
   leftCol.prepend(roCard);
 
-  // 右上方形小地圖外框卡片
+  // 右上方形小地圖外框卡片 ＋ 手機極簡選單收合鈕
   const mapCard = document.createElement('div');
   mapCard.id = 'ro-map-card';
   mapCard.innerHTML = `<div class="ro-map-head"><span>nccu100</span><span class="ro-map-sub">可點擊導航</span></div>`;
   mapCard.appendChild(miniEl);
-  rightCol.prepend(mapCard);
+  const menuBtn = document.createElement('button');
+  menuBtn.type = 'button';
+  menuBtn.id = 'ro-menu-btn';
+  menuBtn.className = 'chip ro-menu-btn';
+  menuBtn.setAttribute('aria-expanded', 'false');
+  menuBtn.textContent = '☰ 選單';
+  rightCol.prepend(mapCard, menuBtn);
+
+  const cardToggleBtn = $('ro-card-toggle');
+  function toggleRoCard(force) {
+    const next = typeof force === 'boolean' ? force : !roCard.classList.contains('open');
+    roCard.classList.toggle('open', next);
+    cardToggleBtn.setAttribute('aria-expanded', String(next));
+    cardToggleBtn.textContent = next ? '▴' : '▾';
+    if (next && document.body.classList.contains('ro-menu-open')) {
+      document.body.classList.remove('ro-menu-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.textContent = '☰ 選單';
+    }
+  }
+  $('ro-head-bar').addEventListener('click', e => {
+    if (innerWidth > 760 || e.target.closest('#snd') || e.target.closest('.ro-tools-inline button')) return;
+    toggleRoCard();
+  });
+
+  menuBtn.addEventListener('click', () => {
+    const next = !document.body.classList.contains('ro-menu-open');
+    document.body.classList.toggle('ro-menu-open', next);
+    menuBtn.setAttribute('aria-expanded', String(next));
+    menuBtn.textContent = next ? '✕ 收合' : '☰ 選單';
+    if (next && roCard.classList.contains('open')) toggleRoCard(false);
+  });
+
+  rightCol.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (btn && btn !== menuBtn && document.body.classList.contains('ro-menu-open')) {
+      document.body.classList.remove('ro-menu-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.textContent = '☰ 選單';
+    }
+  });
 
   // 底部操作列說明更新為普隆德拉雙操作提示
   const keysEl = $('keys');

@@ -321,16 +321,119 @@ body.look-ro #keys .ro-tip-water {
   color: #8ad8ff;
 }
 
+.ro-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ro-card-toggle,
+.ro-menu-btn {
+  display: none;
+}
+
+/* 窄螢幕與手機版極簡介面：左上收合為單顆地點膠囊、右上無字框小地圖 */
 @media (max-width: 760px) {
-  #ro-card {
-    width: 210px;
-    padding: 9px 10px;
+  body.look-ro #hud {
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
+    gap: 8px;
+  }
+
+  .ro-card-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(59, 125, 221, 0.14);
+    color: #2c4c82;
+    font-size: 11px;
+    font-weight: 900;
+    flex: none;
+  }
+
+  #ro-card:not(.open) {
+    width: auto;
+    max-width: min(52vw, 188px);
+    padding: 5px 8px 5px 6px;
+    border-radius: 999px;
+    gap: 0;
+    background: rgba(246, 250, 255, 0.88);
+    box-shadow: 0 4px 14px rgba(20, 40, 80, 0.14);
+  }
+
+  #ro-card:not(.open) .ro-head {
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  #ro-card:not(.open) .ro-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+
+  #ro-card:not(.open) .ro-main-title,
+  #ro-card:not(.open) .ro-tools-inline,
+  #ro-card:not(.open) .ro-drawer {
+    display: none;
+  }
+
+  #ro-card:not(.open) #locname {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #1f3358;
+  }
+
+  #ro-card.open {
+    width: 212px;
+    padding: 10px 11px;
+    gap: 7px;
+    border-radius: 15px;
+  }
+
+  #ro-card.open .ro-drawer {
     gap: 6px;
   }
-  body.look-ro #mini {
-    width: 112px;
-    height: 112px;
+
+  #ro-card.open .ro-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    font-size: 13px;
   }
+
+  #ro-card.open .ro-main-title {
+    font-size: 12px;
+  }
+
+  #ro-card.open .ro-btn {
+    font-size: 11px;
+    padding: 4px 3px;
+  }
+
+  /* 右上小地圖拿掉標題列，改為極簡精緻圓角方框 */
+  #ro-map-card {
+    padding: 3px;
+    border-radius: 12px;
+    gap: 0;
+    background: rgba(246, 250, 255, 0.88);
+    box-shadow: 0 4px 14px rgba(20, 40, 80, 0.15);
+  }
+
+  .ro-map-head {
+    display: none;
+  }
+
+  body.look-ro #mini {
+    width: 74px;
+    height: 74px;
+    border-radius: 9px;
+  }
+
   body.look-ro #keys {
     white-space: normal;
     border-radius: 16px;
@@ -339,24 +442,85 @@ body.look-ro #keys .ro-tip-water {
   }
 }
 
-@media (max-width: 480px) {
-  #ro-card {
-    width: 182px;
-    padding: 8px 9px;
-    gap: 5px;
-  }
-  .ro-btn {
-    font-size: 10.5px;
-    padding: 4px 3px;
-  }
-  body.look-ro #mini {
-    width: 92px;
-    height: 92px;
-  }
-}
-
+/* 觸控裝置（手機／平板）：右側功能鈕統一收進單顆「☰ 選單」，搖桿與跳躍鍵改為輕透玻璃質感 */
 @media (pointer: coarse) {
   body.look-ro #keys {
     display: none;
+  }
+
+  body.look-ro #hud .col.r {
+    gap: 6px;
+  }
+
+  body.look-ro #ro-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: auto;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    background: rgba(246, 250, 255, 0.88);
+    border: 1.2px solid rgba(176, 202, 240, 0.9);
+    color: #22385e;
+    box-shadow: 0 4px 12px rgba(20, 40, 80, 0.13);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  body.look-ro.ro-menu-open #ro-menu-btn {
+    background: linear-gradient(180deg, #4788f4, #2f6cd6);
+    border-color: #295ec2;
+    color: #ffffff;
+  }
+
+  body.look-ro:not(.ro-menu-open) #hud .col.r > *:not(#ro-map-card):not(#ro-menu-btn) {
+    display: none !important;
+  }
+
+  body.look-ro.ro-menu-open #hud .col.r > *:not(#ro-map-card):not(#ro-menu-btn) {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 12px rgba(20, 40, 80, 0.14) !important;
+  }
+
+  body.look-ro .bz-shortcut {
+    display: none !important;
+  }
+
+  body.look-ro #stick {
+    width: 100px;
+    height: 100px;
+    left: calc(env(safe-area-inset-left, 0px) + 18px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    background: rgba(240, 247, 255, 0.24);
+    border: 1.5px solid rgba(255, 255, 255, 0.52);
+    box-shadow: 0 4px 16px rgba(15, 30, 60, 0.14);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  body.look-ro #knob {
+    width: 42px;
+    height: 42px;
+    margin: -21px 0 0 -21px;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 3px 10px rgba(25, 45, 85, 0.22);
+  }
+
+  body.look-ro #jump {
+    width: 58px;
+    height: 58px;
+    right: calc(env(safe-area-inset-right, 0px) + 20px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
+    font-size: 16px;
+    background: rgba(246, 250, 255, 0.76);
+    border: 1.5px solid rgba(182, 206, 242, 0.82);
+    color: #243b63;
+    box-shadow: 0 4px 14px rgba(15, 30, 60, 0.16);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 }
