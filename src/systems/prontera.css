@@ -1,6 +1,6 @@
-/* 普隆德拉微縮城鎮風（LOOK_RO）專屬介面樣式：淺藍白卡片資訊欄、右上方形導航小地圖、底部半透明操作列 */
+/* 普隆德拉微縮城鎮風（LOOK_RO）極簡介面樣式：輕透毛玻璃地點列、表情泡泡選單、明信片／奇遇圖鑑、右上雷達小地圖 */
 body.look-ro #hud {
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-right, 0px) + 16px) 0 calc(env(safe-area-inset-left, 0px) + 16px);
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px) 0 calc(env(safe-area-inset-left, 0px) + 14px);
   align-items: flex-start;
 }
 
@@ -11,189 +11,61 @@ body.title.look-ro #keys {
   pointer-events: none !important;
 }
 
-/* 左上：普隆德拉風藍白資訊控制卡 */
-#ro-card {
-  pointer-events: auto;
-  width: 248px;
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.95) 0%, rgba(235, 243, 255, 0.93) 100%);
-  border: 1.5px solid rgba(176, 202, 240, 0.92);
-  border-radius: 16px;
-  padding: 12px 13px;
-  box-shadow: 0 8px 24px rgba(25, 50, 95, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: #1f3152;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  box-sizing: border-box;
-}
-
-.ro-head {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.ro-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(145deg, #4b8df8, #2f6bd6);
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 900;
-  box-shadow: 0 3px 8px rgba(47, 107, 214, 0.35);
-  flex: none;
-}
-
-.ro-titles {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.ro-main-title {
-  font-size: 13.5px;
-  font-weight: 900;
-  color: #1c2e4f;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-body.look-ro #locname {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #5b7196;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ro-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 700;
-  color: #41567a;
-  padding-top: 2px;
-  border-top: 1px solid rgba(176, 202, 240, 0.45);
-}
-
-.ro-coord {
-  background: rgba(214, 228, 248, 0.72);
-  color: #2c4670;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.ro-wet-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ro-wet-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #47618a;
-}
-
-.ro-wet-track {
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(192, 211, 238, 0.65);
-  overflow: hidden;
-}
-
-.ro-wet-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #4da6ff, #2b7de9);
-  transition: width 0.18s ease-out;
-}
-
-.ro-seg {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-}
-
-.ro-sub-seg {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 5px;
-}
-
-.ro-btn {
-  border: 1px solid rgba(175, 200, 236, 0.85);
-  background: rgba(255, 255, 255, 0.82);
-  color: #2c436b;
-  border-radius: 8px;
-  padding: 5px 4px;
-  font-size: 11.5px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  box-shadow: 0 2px 4px rgba(30, 55, 100, 0.06);
-  transition: background 0.15s, color 0.15s, transform 0.1s;
-  white-space: nowrap;
-}
-
-.ro-btn:hover {
-  background: #ffffff;
-}
-
-.ro-btn:active {
-  transform: translateY(1px);
-}
-
-.ro-btn.on {
-  background: linear-gradient(180deg, #4788f4, #2f6cd6);
-  border-color: #295ec2;
-  color: #ffffff;
-  box-shadow: 0 3px 8px rgba(47, 108, 214, 0.28);
-}
-
-/* 音樂按鈕與動態插入的山上天色按鈕 */
-.ro-tools-inline {
-  display: flex;
+/* 左上：極簡橫列（地點膠囊 ＋ 音樂 ＋ 表情 ＋ 拍照），移除原本占空間的大面板 */
+body.look-ro #hud > .col:not(.r) {
+  position: relative;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
-  pointer-events: auto;
+  max-width: min(68vw, 440px);
 }
 
-body.look-ro #snd {
-  width: 30px;
-  height: 30px;
+body.look-ro #ro-loc-pill {
+  padding: 6px 12px 6px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 6px;
+  background: rgba(246, 250, 255, 0.90);
+  border: 1.2px solid rgba(176, 202, 240, 0.92);
+  color: #1f3358;
+  box-shadow: 0 4px 14px rgba(20, 42, 82, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body.look-ro #ro-loc-pill .ico {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: linear-gradient(145deg, #4b8df8, #2f6bd6);
+  color: #ffffff;
+}
+
+body.look-ro #snd,
+body.look-ro .ro-icon-chip {
+  pointer-events: auto;
+  width: 34px;
+  height: 34px;
   padding: 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(175, 200, 236, 0.85);
-  box-shadow: 0 2px 5px rgba(30, 55, 100, 0.08);
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 15px;
+  background: rgba(246, 250, 255, 0.90);
+  border: 1.2px solid rgba(176, 202, 240, 0.92);
+  box-shadow: 0 4px 14px rgba(20, 42, 82, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
 }
 
 body.look-ro #snd .ico {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
   font-size: 12px;
   background: #3b7ddd;
   color: #ffffff;
@@ -203,14 +75,52 @@ body.look-ro #snd.off .ico {
   background: #9aa9c4;
 }
 
-/* 右上：普隆德拉方形導航小地圖卡片與任務列 */
+/* 表情與坐下快選浮動條 */
+#ro-emote-bar {
+  pointer-events: auto;
+  flex-basis: 100%;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+  padding: 5px 8px;
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(246, 250, 255, 0.94);
+  border: 1.2px solid rgba(176, 202, 240, 0.95);
+  box-shadow: 0 8px 22px rgba(20, 42, 82, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+#ro-emote-bar button {
+  border: 0;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(25, 45, 85, 0.08);
+}
+
+#ro-emote-bar button.ro-sit-pill {
+  font-size: 12px;
+  font-weight: 800;
+  color: #233b66;
+  padding: 0 10px;
+}
+
+/* 右上：普隆德拉方形雷達小地圖與功能列 */
 #ro-map-card {
   pointer-events: auto;
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.95) 0%, rgba(235, 243, 255, 0.93) 100%);
+  background: linear-gradient(180deg, rgba(248, 251, 255, 0.94) 0%, rgba(235, 243, 255, 0.92) 100%);
   border: 1.5px solid rgba(176, 202, 240, 0.92);
   border-radius: 14px;
   padding: 7px 8px 8px;
-  box-shadow: 0 8px 24px rgba(25, 50, 95, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 24px rgba(25, 50, 95, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
@@ -235,8 +145,8 @@ body.look-ro #snd.off .ico {
 }
 
 body.look-ro #mini {
-  width: 154px;
-  height: 154px;
+  width: 150px;
+  height: 150px;
   border-radius: 9px;
   box-shadow: inset 0 0 0 1.5px rgba(154, 182, 224, 0.85);
   background: #86cf63;
@@ -257,7 +167,7 @@ body.look-ro #mini .n {
 }
 
 body.look-ro .chip {
-  background: rgba(245, 250, 255, 0.93);
+  background: rgba(246, 250, 255, 0.92);
   border: 1px solid rgba(176, 202, 240, 0.9);
   color: #1f3152;
   box-shadow: 0 5px 16px rgba(25, 50, 95, 0.13);
@@ -266,6 +176,14 @@ body.look-ro .chip {
 body.look-ro .ico {
   background: #356ec9;
   color: #ffffff;
+}
+
+body.look-ro #ro-codex-open {
+  pointer-events: auto;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 12px;
+  cursor: pointer;
 }
 
 body.look-ro #prompt button {
@@ -290,22 +208,22 @@ body.look-ro #dname {
   color: #ffffff;
 }
 
-/* 底部中央深色半透明膠囊操作提示列（對齊參考圖下方說明列） */
+/* 桌面底部精簡操作提示列 */
 body.look-ro #keys {
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  background: rgba(20, 27, 41, 0.80);
+  background: rgba(20, 27, 41, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #dbe6f7;
   border-radius: 999px;
-  padding: 7px 18px;
-  gap: 8px 14px;
+  padding: 6px 16px;
+  gap: 8px 13px;
   font-size: 12px;
-  box-shadow: 0 6px 20px rgba(10, 18, 34, 0.28);
-  max-width: min(94vw, 860px);
+  box-shadow: 0 6px 20px rgba(10, 18, 34, 0.26);
+  max-width: min(94vw, 760px);
   white-space: nowrap;
   justify-content: center;
 }
@@ -317,105 +235,29 @@ body.look-ro #keys kbd {
   border-radius: 5px;
 }
 
-body.look-ro #keys .ro-tip-water {
-  color: #8ad8ff;
-}
-
-.ro-drawer {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.ro-card-toggle,
 .ro-menu-btn {
   display: none;
 }
 
-/* 窄螢幕與手機版極簡介面：左上收合為單顆地點膠囊、右上無字框小地圖 */
+/* 窄螢幕小地圖極簡無框化 */
 @media (max-width: 760px) {
   body.look-ro #hud {
     padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 12px) 0 calc(env(safe-area-inset-left, 0px) + 12px);
     gap: 8px;
   }
 
-  .ro-card-toggle {
-    display: inline-grid;
-    place-items: center;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(59, 125, 221, 0.14);
-    color: #2c4c82;
-    font-size: 11px;
-    font-weight: 900;
-    flex: none;
-  }
-
-  #ro-card:not(.open) {
-    width: auto;
-    max-width: min(52vw, 188px);
-    padding: 5px 8px 5px 6px;
-    border-radius: 999px;
-    gap: 0;
-    background: rgba(246, 250, 255, 0.88);
-    box-shadow: 0 4px 14px rgba(20, 40, 80, 0.14);
-  }
-
-  #ro-card:not(.open) .ro-head {
-    gap: 6px;
-    cursor: pointer;
-  }
-
-  #ro-card:not(.open) .ro-badge {
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
+  body.look-ro #ro-loc-pill {
+    padding: 5px 10px 5px 7px;
     font-size: 12px;
   }
 
-  #ro-card:not(.open) .ro-main-title,
-  #ro-card:not(.open) .ro-tools-inline,
-  #ro-card:not(.open) .ro-drawer {
-    display: none;
+  body.look-ro #snd,
+  body.look-ro .ro-icon-chip {
+    width: 31px;
+    height: 31px;
+    font-size: 14px;
   }
 
-  #ro-card:not(.open) #locname {
-    font-size: 12.5px;
-    font-weight: 800;
-    color: #1f3358;
-  }
-
-  #ro-card.open {
-    width: 212px;
-    padding: 10px 11px;
-    gap: 7px;
-    border-radius: 15px;
-  }
-
-  #ro-card.open .ro-drawer {
-    gap: 6px;
-  }
-
-  #ro-card.open .ro-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    font-size: 13px;
-  }
-
-  #ro-card.open .ro-main-title {
-    font-size: 12px;
-  }
-
-  #ro-card.open .ro-btn {
-    font-size: 11px;
-    padding: 4px 3px;
-  }
-
-  /* 右上小地圖拿掉標題列，改為極簡精緻圓角方框 */
   #ro-map-card {
     padding: 3px;
     border-radius: 12px;
@@ -442,7 +284,7 @@ body.look-ro #keys .ro-tip-water {
   }
 }
 
-/* 觸控裝置（手機／平板）：右側功能鈕統一收進單顆「☰ 選單」，搖桿與跳躍鍵改為輕透玻璃質感 */
+/* 觸控裝置（手機／平板）：右側僅留小地圖、角色換裝與單顆「☰ 選單」，其餘統一收合 */
 @media (pointer: coarse) {
   body.look-ro #keys {
     display: none;
@@ -526,7 +368,149 @@ body.look-ro #keys .ro-tip-water {
   }
 }
 
-/* 換衣間（wenzhotw/nccu100 v2.11）套用普隆德拉藍白視覺主題 */
+/* 明信片與奇遇圖鑑對話框 */
+#ro-modal {
+  width: min(520px, calc(100vw - 28px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1.5px solid rgba(170, 198, 240, 0.95);
+  border-radius: 22px;
+  padding: 18px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eaf2ff 100%);
+  color: #1e3152;
+  box-shadow: 0 18px 46px rgba(16, 36, 72, 0.32);
+  box-sizing: border-box;
+}
+
+#ro-modal::backdrop {
+  background: rgba(15, 28, 52, 0.55);
+}
+
+.ro-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ro-modal-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.ro-modal-close {
+  border: 1px solid rgba(176, 202, 240, 0.9);
+  background: #ffffff;
+  color: #263f6b;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.ro-photo-img {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  display: block;
+  box-shadow: 0 6px 20px rgba(20, 42, 82, 0.16);
+}
+
+.ro-modal-tip {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #536c96;
+  margin: 10px 0 12px;
+  line-height: 1.5;
+}
+
+.ro-modal-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.ro-primary-btn {
+  display: inline-block;
+  text-decoration: none;
+  background: linear-gradient(180deg, #4788f4, #2f6cd6);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(47, 108, 214, 0.32);
+}
+
+.ro-codex-sec {
+  margin: 12px 0 8px;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #35548a;
+}
+
+.ro-codex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ro-codex-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(182, 206, 242, 0.85);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.ro-codex-card.is-done {
+  background: linear-gradient(90deg, rgba(235, 246, 255, 0.96), rgba(255, 252, 235, 0.96));
+  border-color: #6ea4f4;
+}
+
+.ro-codex-ico {
+  font-size: 24px;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.ro-codex-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ro-codex-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #1e3152;
+}
+
+.ro-codex-title span {
+  font-size: 11px;
+  font-weight: 800;
+  color: #3b72cc;
+  background: rgba(218, 232, 255, 0.75);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ro-codex-desc {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #556d94;
+  line-height: 1.5;
+}
+
+/* 換衣間套用普隆德拉藍白視覺主題 */
 body.look-ro #game-wardrobe-panel {
   background: linear-gradient(180deg, #f7faff 0%, #ebf3ff 100%);
   border: 1.5px solid rgba(170, 198, 240, 0.95);

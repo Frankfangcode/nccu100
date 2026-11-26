@@ -96,6 +96,8 @@ function update(dt){
   // 雄鷹飛行：翅膀拍動（上升拍快、下降滑翔慢）
   if(state.isEagle&&!state.grounded){ const flap=Math.sin(state.time*(state.vy>0?14:6))*0.9;
     H.shL.rotation.set(flap,0,-0.9-Math.abs(flap)*0.3); H.shR.rotation.set(-flap,0,0.9+Math.abs(flap)*0.3); }
+  if(state.roSitting&&sp<0.2&&state.grounded&&!state.swimming&&!state.isEagle) late.roPose?.(dt);
+  else if(state.roSitting&&sp>=0.2) state.roSitting=false;
   }
 
   // 所在房間自己的每一幀更新（例如泳池的水波、游泳的人）
@@ -139,7 +141,10 @@ function update(dt){
   const RC=roomCameraAtHeight(ROOMS.current&&ROOMS.current.def&&ROOMS.current.def.camera,pos.y);
   let dWant=indoor()?Math.min(state.dist,(RC&&RC.maxDist)||6.5):(state.driving?Math.max(state.dist,10):state.dist); if(tf) dWant=Math.min(dWant,4.6);
   roomOrbitDirection(camDir,state.yaw,state.pitch,camT,dWant,RC);
-  if(state.OCC.length){ camRay.set(camT,camDir); camRay.far=dWant+0.6; const hit=camRay.intersectObjects(state.OCC,false)[0]; if(hit) dWant=Math.max(0.9,hit.distance-0.45); }
+  if(state.OCC.length){
+    if(LOOK_RO&&!indoor()&&!tf&&late.roFadeOccluder) late.roFadeOccluder(dt,camT,camDir,dWant);
+    else { camRay.set(camT,camDir); camRay.far=dWant+0.6; const hit=camRay.intersectObjects(state.OCC,false)[0]; if(hit) dWant=Math.max(0.9,hit.distance-0.45); }
+  }
   state.camD=dWant<state.camD?dWant:state.camD+(dWant-state.camD)*(1-Math.exp(-dt*3));
   camera.position.copy(camT).addScaledVector(camDir,state.camD);
   // 室內：鏡頭不能出房間、不能高過天花板（範圍由房間設定的 camera 決定）
@@ -166,7 +171,7 @@ function loop(){
   const s=ROOMS.activeScene();
   performanceMonitor.beginRender(renderer);
   late.actorPartsRefresh?.(); // 動作完成後同步已裝配原生部件，沒有設定時是空集合
-  try { if(POST) POST.render(s,camera,state.time,indoor()); else renderer.render(s,camera); }
+  try { if(POST) POST.render(s,camera,state.time,indoor()); else renderer.render(s,camera); late.roAfterRender?.(); }
   finally { performanceMonitor.endFrame(); }
   requestAnimationFrame(loop);
 }

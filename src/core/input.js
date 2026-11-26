@@ -19,25 +19,57 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyQ'&&dlg.hidden){ state.roTarget=null; late.interactAlt(); }
   if(e.code==='KeyM'){ if($('mapw').hidden) late.openMap(); else late.closeMap(); }
   if(e.code==='Escape'){ state.roTarget=null; late.closeMap(); }
+  if(ro&&dlg.hidden){
+    if(e.code>='Digit1'&&e.code<='Digit6') late.roEmote?.(Number(e.code.slice(5))-1);
+    if(e.code==='KeyX'){ state.roTarget=null; late.roToggleSit?.(); }
+  }
 });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=renderer.domElement;
-let lx=0, ly=0, downX=0, downY=0, dragged=false, downBtn=0; state.camPtr=null;
+let lx=0, ly=0, downX=0, downY=0, dragged=false, downBtn=0, wasPinch=false, pinchD0=0, pinchDist0=0;
+const ptrs=new Map();
+state.camPtr=null;
 cv.addEventListener('contextmenu',e=>{ if(ro) e.preventDefault(); });
-cv.addEventListener('pointerdown',e=>{ if(state.bzBoothBrowsing||state.camPtr!==null) return; state.camPtr=e.pointerId; lx=downX=e.clientX; ly=downY=e.clientY; dragged=false; downBtn=e.button; try{cv.setPointerCapture(e.pointerId);}catch(_){} });
+cv.addEventListener('pointerdown',e=>{
+  if(state.bzBoothBrowsing) return;
+  if(ro) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ro&&ptrs.size===2){
+    const [a,b]=[...ptrs.values()];
+    pinchD0=Math.max(12,Math.hypot(a.x-b.x,a.y-b.y));
+    pinchDist0=state.dist;
+    wasPinch=true;
+    return;
+  }
+  if(state.camPtr!==null) return;
+  state.camPtr=e.pointerId; lx=downX=e.clientX; ly=downY=e.clientY; dragged=false; wasPinch=false; downBtn=e.button;
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+});
 cv.addEventListener('pointermove',e=>{
-  if(state.bzBoothBrowsing||e.pointerId!==state.camPtr) return;
-  if(!dragged&&Math.hypot(e.clientX-downX,e.clientY-downY)>5) dragged=true;
-  if(ro&&e.pointerType==='mouse'&&downBtn===0&&!dragged) return;
+  if(state.bzBoothBrowsing) return;
+  if(ro&&ptrs.has(e.pointerId)) ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ro&&ptrs.size>=2){
+    const [a,b]=[...ptrs.values()];
+    const d=Math.max(12,Math.hypot(a.x-b.x,a.y-b.y));
+    const ind=late.indoor?.();
+    if(!ind&&pinchD0>0) state.dist=Math.min(42,Math.max(8.5,pinchDist0*(pinchD0/d)));
+    wasPinch=true;
+    return;
+  }
+  if(e.pointerId!==state.camPtr||wasPinch) return;
+  const dragThresh=e.pointerType==='touch'?8:5;
+  if(!dragged&&Math.hypot(e.clientX-downX,e.clientY-downY)>dragThresh) dragged=true;
+  if(ro&&downBtn===0&&!dragged) return;
   state.yaw-=(e.clientX-lx)*0.0055;
   const pMin=ro&&!late.indoor?.()?0.22:-0.05, pMax=ro?1.22:1.15;
   state.pitch=Math.min(pMax,Math.max(pMin,state.pitch+(e.clientY-ly)*0.004));
   lx=e.clientX; ly=e.clientY;
 });
 const endCam=e=>{
+  if(ro) ptrs.delete(e.pointerId);
   if(e.pointerId!==state.camPtr) return;
   state.camPtr=null;
-  if(ro&&!dragged&&downBtn===0&&e.pointerType!=='touch') late.roGroundClick?.(e.clientX,e.clientY);
+  if(ro&&!dragged&&!wasPinch&&(downBtn===0||e.pointerType==='touch')) late.roGroundClick?.(e.clientX,e.clientY);
+  if(ptrs.size===0) wasPinch=false;
 };
 cv.addEventListener('pointerup',endCam);
 cv.addEventListener('pointercancel',endCam);
@@ -52,7 +84,7 @@ stick.addEventListener('pointerup',stickEnd);
 stick.addEventListener('pointercancel',stickEnd);
 state.flyHeld=false;
 const jumpBtn=$('jump');
-jumpBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); if(state.bzBoothBrowsing) return; if(!dlg.hidden) advance(); else { late.jump(); state.flyHeld=true; } });
+jumpBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); if(state.bzBoothBrowsing) return; state.roTarget=null; state.roSitting=false; if(!dlg.hidden) advance(); else { late.jump(); state.flyHeld=true; } });
 const jumpEnd=()=>{ state.flyHeld=false; };
 jumpBtn.addEventListener('pointerup',jumpEnd);
 jumpBtn.addEventListener('pointercancel',jumpEnd);
@@ -70,6 +102,6 @@ function resetHeldInput(){
       try { element.releasePointerCapture(id); } catch (_) { /* pointer already ended */ }
     }
   }
-  state.camPtr=null; stickPtr=null; state.stickV={x:0,y:0}; state.flyHeld=false; knob.style.transform='';
+  ptrs.clear(); wasPinch=false; state.camPtr=null; stickPtr=null; state.stickV={x:0,y:0}; state.flyHeld=false; knob.style.transform='';
 }
 export { keys, resetHeldInput };

@@ -1,11 +1,12 @@
 /**
- * 普隆德拉微縮城鎮風系統（LOOK_RO）：
- * 在完全不改動既有建築與角色幾何模型、不改變任務與碰撞玩法的前提下，提供：
- * 1. 場景低多邊形折面化（flatShading）與角色專屬深色輪廓線分離
- * 2. 日間／黃昏／夜晚即時天色、光影、水面色溫與路燈發光切換
- * 3. 左鍵點擊地面導航（附地面目標光圈）、右鍵拖曳旋轉視角、右上方形小地圖點擊導航
- * 4. 鞋底潮濕度（靠近噴水池、醉夢溪畔、淋雨或游泳時累積）與上岸後的潮濕腳印蒸發效果
- * 5. 櫻花樹飄落花瓣與普隆德拉風藍白資訊面板
+ * 普隆德拉微縮城鎮風全面升級系統（LOOK_RO）：
+ * 保留全部既有建築與角色模型、碰撞與任務機制不變，提供：
+ * 1. 場景低多邊形折面化（flatShading）與角色專屬深色輪廓邊分離
+ * 2. 依現實世界時間（new Date）自動平滑轉換晨曦／白晝／黃昏／星空夜景與校舍暖黃窗光
+ * 3. 手機雙指縮放、單指點擊地面自動繞障導航、右上雷達小地圖點擊導航
+ * 4. 戶外高樓遮擋自動半透明退讓（維持斜俯視盆景距離不急縮鏡頭）
+ * 5. RO 經典頭頂表情泡泡、原地坐下休息姿勢、一鍵紀念明信片拍照與校園奇遇圖鑑
+ * 6. 噴水池／溪畔潮濕腳印蒸發與飄落櫻花瓣粒子
  */
 import './prontera.css';
 import * as THREE from 'three';
@@ -15,69 +16,121 @@ import { late } from '../core/late.js';
 import { $ } from '../core/dom.js';
 import { camera, renderer, scene } from '../core/engine.js';
 import { OUT, basic, canvasTex } from '../render/kit.js';
+import { resolve } from '../core/collision.js';
 import { SUN, cloudBot, cloudTop, hemi, skyU, sun } from '../world/environment/sky.js';
 import { waterU } from '../render/water.js';
 import { FZ } from '../world/terrain/fountain.js';
 import { BR, RIV, riverDist } from '../world/terrain/river.js';
 import { FOLIAGE, SAKURA_TREES } from '../world/vegetation.js';
+import { winMat } from '../world/building-kit.js';
 import { CREEK_ROAD, MAP_BOUNDS, SIWEI, bdZ, swZ } from '../world/layout.js';
 import { world } from '../world/registry.js';
 import * as ROOMS from '../core/rooms.js';
-import { player } from '../actors/player.js';
+import { H, player, rig } from '../actors/player.js';
 import { pang } from '../actors/pangolin.js';
 import { NPCS } from '../actors/npc.js';
 import { driveCar } from '../actors/campus-bus.js';
 import { police } from '../actors/police-car.js';
-import { dlg } from '../ui/dialog.js';
-import { groundH, indoor, pos, vel } from '../core/gameplay.js';
+import { crystals } from './stories.js';
+import { dlg, toast } from '../ui/dialog.js';
+import { groundH, indoor, pos, spots, vel } from '../core/gameplay.js';
+import { resetHeldInput } from '../core/input.js';
+import ACHIEVEMENTS from '../content/achievements.json';
 
 if (LOOK_RO) {
   document.body.classList.add('look-ro');
 
-  /* ---------- 1. 場景低多邊形折面光影 vs 角色清晰輪廓邊 ---------- */
+  /* ---------- 1. 場景低多邊形折面光影、角色深色輪廓邊與夜間暖窗材質收集 ---------- */
   const CHAR_OUT = new THREE.MeshBasicMaterial({ color: '#1d2238', side: THREE.BackSide });
   const flatCache = new Map();
   const lampMats = [];
   const lampSeen = new Set();
+  const winMats = new Set();
   let styledNpcCount = 0;
 
   function markActorTree(root, set) {
     if (!root) return;
     root.traverse(o => {
-      set.add(o);
+      if (set) set.add(o);
       if (o.isMesh && o.material === OUT) o.material = CHAR_OUT;
     });
   }
 
+  function collectMat(m) {
+    if (!m) return;
+    if (m.userData?.roWin || m.emissiveMap) {
+      winMats.add(m);
+      return;
+    }
+    if (!lampSeen.has(m) && m.emissive && m.emissiveIntensity > 0 && m !== cloudTop && m !== cloudBot) {
+      lampSeen.add(m);
+      lampMats.push({ mat: m, base: m.emissiveIntensity });
+    }
+  }
+
+  const roOccluders = [];
+
+  function hasNoOccAncestor(o) {
+    for (let p = o; p; p = p.parent) if (p.userData?.noOcc) return true;
+    return false;
+  }
+
   function styleSceneMeshes() {
     const actorSet = new Set();
+    const initBox = new THREE.Box3(), initSize = new THREE.Vector3();
     markActorTree(player, actorSet);
     markActorTree(pang, actorSet);
     markActorTree(driveCar, actorSet);
     markActorTree(police, actorSet);
     NPCS.forEach(n => markActorTree(n.g, actorSet));
     styledNpcCount = NPCS.length;
+    scene.updateMatrixWorld(true);
 
     scene.traverse(o => {
       if (!o.isMesh || actorSet.has(o)) return;
       const gType = o.geometry && o.geometry.type;
       const isFlatPlane = gType === 'PlaneGeometry' || gType === 'CircleGeometry' || gType === 'RingGeometry';
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      mats.forEach(m => {
-        if (!m || lampSeen.has(m)) return;
-        if (m.emissive && m.emissiveIntensity > 0 && m !== cloudTop && m !== cloudBot) {
-          lampSeen.add(m);
-          lampMats.push({ mat: m, base: m.emissiveIntensity });
+
+      if (o.visible && o.material !== OUT && !o.isInstancedMesh && !isFlatPlane &&
+          !o.userData?.baked && !o.userData?.prefab && !hasNoOccAncestor(o)) {
+        initBox.setFromObject(o);
+        initBox.getSize(initSize);
+        const span = Math.max(initSize.x, initSize.z);
+        if (span > 2.4 && span < 95 && initBox.max.y > 2.6 && initSize.y > 0.6) {
+          roOccluders.push(o);
         }
-      });
-      if (isFlatPlane || Array.isArray(o.material)) return;
-      const m = o.material;
-      if (!m || !m.isMeshToonMaterial || m.transparent || m.opacity < 1) return;
-      if (o.userData?.baked || o.userData?.prefab) {
-        if (!m.flatShading) { m.flatShading = true; m.needsUpdate = true; }
+      }
+
+      if (Array.isArray(o.material)) {
+        o.material = o.material.map(m => {
+          if (!m || !m.isMeshToonMaterial || m.transparent || m.opacity < 1) { collectMat(m); return m; }
+          if (m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile) { collectMat(m); return m; }
+          let fm = flatCache.get(m);
+          if (!fm) {
+            fm = m.clone();
+            fm.flatShading = true;
+            fm.needsUpdate = true;
+            flatCache.set(m, fm);
+          }
+          collectMat(fm);
+          return fm;
+        });
         return;
       }
-      if (m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile) return;
+      const m = o.material;
+      if (isFlatPlane || !m || !m.isMeshToonMaterial || m.transparent || m.opacity < 1) {
+        collectMat(m);
+        return;
+      }
+      if (o.userData?.baked || o.userData?.prefab) {
+        if (!m.flatShading) { m.flatShading = true; m.needsUpdate = true; }
+        collectMat(m);
+        return;
+      }
+      if (m.onBeforeCompile !== THREE.Material.prototype.onBeforeCompile) {
+        collectMat(m);
+        return;
+      }
       let fm = flatCache.get(m);
       if (!fm) {
         fm = m.clone();
@@ -86,6 +139,7 @@ if (LOOK_RO) {
         flatCache.set(m, fm);
       }
       o.material = fm;
+      collectMat(fm);
     });
   }
   styleSceneMeshes();
@@ -105,8 +159,9 @@ if (LOOK_RO) {
     for (let i = 0; i < PETAL_N; i++) {
       const tr = SAKURA_TREES[i % SAKURA_TREES.length];
       const a = Math.random() * Math.PI * 2, r = Math.random() * 2.8 * tr.s;
-      const x = tr.x + Math.cos(a) * r, y = 1.2 + Math.random() * 4.2 * tr.s, z = tr.z + Math.sin(a) * r;
-      arr[i * 3] = x; arr[i * 3 + 1] = y; arr[i * 3 + 2] = z;
+      arr[i * 3] = tr.x + Math.cos(a) * r;
+      arr[i * 3 + 1] = 1.2 + Math.random() * 4.2 * tr.s;
+      arr[i * 3 + 2] = tr.z + Math.sin(a) * r;
       petalData.push({ tr, ph: Math.random() * 6.28, sp: 0.45 + Math.random() * 0.35 });
     }
     const pg = new THREE.BufferGeometry();
@@ -119,7 +174,7 @@ if (LOOK_RO) {
     scene.add(petalPoints);
   }
 
-  /* ---------- 3. 左鍵點擊地面導航光圈與轉向 ---------- */
+  /* ---------- 3. 點擊地面自動繞障導航（支援電腦左鍵與手機觸控輕點） ---------- */
   state.roTarget = null;
   const ringTex = canvasTex(128, 128, g => {
     g.strokeStyle = 'rgba(96, 212, 255, 0.95)';
@@ -142,6 +197,8 @@ if (LOOK_RO) {
   const clickNdc = new THREE.Vector2();
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const hitPt = new THREE.Vector3();
+  const probePt = { x: 0, z: 0 };
+  const STEER_ANGLES = [0, 0.48, -0.48, 0.92, -0.92, 1.34, -1.34];
   let stallTimer = 0;
   let lastDistCheck = 0;
 
@@ -149,6 +206,7 @@ if (LOOK_RO) {
     const cx = Math.max(MAP_BOUNDS.x0 + 4, Math.min(MAP_BOUNDS.x1 - 4, tx));
     const cz = Math.max(MAP_BOUNDS.z1 + 4, Math.min(MAP_BOUNDS.z0 - 4, tz));
     state.roTarget = { x: cx, z: cz };
+    state.roSitting = false;
     stallTimer = 0;
     lastDistCheck = Math.hypot(cx - pos.x, cz - pos.z);
   }
@@ -159,7 +217,7 @@ if (LOOK_RO) {
     clickRay.setFromCamera(clickNdc, camera);
     groundPlane.constant = -groundH(pos.x, pos.z);
     if (clickRay.ray.intersectPlane(groundPlane, hitPt)) {
-      if (Math.hypot(hitPt.x - pos.x, hitPt.z - pos.z) < 85) setMoveTarget(hitPt.x, hitPt.z);
+      if (Math.hypot(hitPt.x - pos.x, hitPt.z - pos.z) < 90) setMoveTarget(hitPt.x, hitPt.z);
     }
   };
 
@@ -169,16 +227,84 @@ if (LOOK_RO) {
     const dx = t.x - pos.x, dz = t.z - pos.z, d = Math.hypot(dx, dz);
     if (d < 0.38) { state.roTarget = null; return { vx: 0, vz: 0 }; }
     stallTimer += dt;
-    if (stallTimer > 0.42) {
+    if (stallTimer > 0.75) {
       if (lastDistCheck - d < 0.08) { state.roTarget = null; return { vx: 0, vz: 0 }; }
       lastDistCheck = d;
       stallTimer = 0;
     }
+    const baseAng = Math.atan2(dx, dz);
+    const step = Math.min(0.72, d);
+    let chosenAng = baseAng;
+    for (let i = 0; i < STEER_ANGLES.length; i++) {
+      const a = baseAng + STEER_ANGLES[i];
+      const wx = pos.x + Math.sin(a) * step, wz = pos.z + Math.cos(a) * step;
+      probePt.x = wx; probePt.z = wz;
+      resolve(probePt);
+      if (Math.hypot(probePt.x - wx, probePt.z - wz) < 0.045) {
+        chosenAng = a;
+        break;
+      }
+    }
     const s = spd * Math.min(1, d / 0.9);
-    return { vx: (dx / d) * s, vz: (dz / d) * s };
+    return { vx: Math.sin(chosenAng) * s, vz: Math.cos(chosenAng) * s };
   };
 
-  /* ---------- 4. 鞋底潮濕度與潮濕腳印貼花 ---------- */
+  /* ---------- 4. 戶外高樓與斜屋頂遮擋自動半透明退讓（不急縮微縮鏡頭） ---------- */
+  const occRay = new THREE.Raycaster();
+  const occOrigin = new THREE.Vector3();
+  const occInward = new THREE.Vector3();
+  const fadedBuildings = new Map();
+
+  function makeFadeClone(m) {
+    const c = m.clone();
+    c.transparent = true;
+    c.depthWrite = false;
+    c.opacity = 1;
+    return c;
+  }
+
+  late.roFadeOccluder = (dt, camT, camDir, dWant) => {
+    const span = Math.max(1, dWant - 0.9);
+    occOrigin.copy(camT).addScaledVector(camDir, dWant);
+    occInward.copy(camDir).negate();
+    occRay.set(occOrigin, occInward);
+    occRay.far = span;
+    const targets = roOccluders.length ? roOccluders : state.OCC;
+    const hits = occRay.intersectObjects(targets, false);
+    const hitSet = new Set();
+    for (let i = 0; i < hits.length; i++) {
+      const o = hits[i].object;
+      if (!o.isMesh || hits[i].distance > span) continue;
+      hitSet.add(o);
+      if (!fadedBuildings.has(o)) {
+        const orig = o.material;
+        const clone = Array.isArray(orig) ? orig.map(makeFadeClone) : makeFadeClone(orig);
+        o.material = clone;
+        fadedBuildings.set(o, { orig, clone, alpha: 1 });
+      }
+    }
+    const k = 1 - Math.exp(-dt * 9);
+    for (const [o, rec] of fadedBuildings) {
+      const want = hitSet.has(o) ? 0.22 : 1;
+      rec.alpha += (want - rec.alpha) * k;
+      if (want === 1 && rec.alpha > 0.98) {
+        o.material = rec.orig;
+        if (Array.isArray(rec.clone)) rec.clone.forEach(m => m.dispose());
+        else rec.clone.dispose();
+        fadedBuildings.delete(o);
+      } else if (Array.isArray(rec.clone)) {
+        rec.clone.forEach(m => {
+          m.opacity = rec.alpha;
+          if (m.emissiveMap) m.emissiveIntensity = cur.winGlow;
+        });
+      } else {
+        rec.clone.opacity = rec.alpha;
+        if (rec.clone.emissiveMap) rec.clone.emissiveIntensity = cur.winGlow;
+      }
+    }
+  };
+
+  /* ---------- 5. 潮濕腳印貼花（自然環境互動，不顯示雜訊進度條） ---------- */
   state.shoeWet = 0;
   const footTex = canvasTex(64, 64, g => {
     g.fillStyle = 'rgba(22, 42, 74, 0.82)';
@@ -209,10 +335,8 @@ if (LOOK_RO) {
     if (state.swimming) return true;
     if (indoor()) return false;
     if ((skyU.gloom?.value || 0) > 0.25 && !state.holdUmbrella) return true;
-    const df = Math.hypot(pos.x, pos.z - FZ);
-    if (df < 6.55) return true;
-    const dr = riverDist(pos.x, pos.z);
-    if (dr < 4.75 && pos.y < 0.36) return true;
+    if (Math.hypot(pos.x, pos.z - FZ) < 6.55) return true;
+    if (riverDist(pos.x, pos.z) < 4.75 && pos.y < 0.36) return true;
     return false;
   }
 
@@ -229,134 +353,221 @@ if (LOOK_RO) {
     m.visible = true;
   }
 
-  /* ---------- 5. 日間／黃昏／夜晚平滑光影氛圍 ---------- */
-  const PHASES = {
-    day: {
-      sunDir: new THREE.Vector3(0.68, 0.64, 0.36).normalize(),
-      sunCol: new THREE.Color('#fff2d6'), sunInt: 1.28,
-      hemiSky: new THREE.Color('#9ac8ff'), hemiGnd: new THREE.Color('#9aa884'), hemiInt: 0.44,
-      top: new THREE.Color('#266ee6'), hor: new THREE.Color('#bfe4ff'), warm: new THREE.Color('#ffe8bd'),
-      fog: new THREE.Color('#c8e4fa'), cTop: new THREE.Color('#ffffff'), cBot: new THREE.Color('#dbe4f2'),
-      stars: 0, dusk: 0, night: 0, lampMul: 0.65,
-    },
-    dusk: {
-      sunDir: new THREE.Vector3(0.78, 0.36, 0.48).normalize(),
-      sunCol: new THREE.Color('#ff9452'), sunInt: 1.18,
-      hemiSky: new THREE.Color('#f09d7c'), hemiGnd: new THREE.Color('#584468'), hemiInt: 0.42,
-      top: new THREE.Color('#34326e'), hor: new THREE.Color('#ff9866'), warm: new THREE.Color('#ffc980'),
-      fog: new THREE.Color('#e8a382'), cTop: new THREE.Color('#ffd0b2'), cBot: new THREE.Color('#b486a2'),
-      stars: 0.22, dusk: 1, night: 0, lampMul: 1.65,
-    },
-    night: {
-      sunDir: new THREE.Vector3(-0.50, 0.68, 0.53).normalize(),
-      sunCol: new THREE.Color('#6c9eff'), sunInt: 0.52,
-      hemiSky: new THREE.Color('#2d4d85'), hemiGnd: new THREE.Color('#141c34'), hemiInt: 0.28,
-      top: new THREE.Color('#09122b'), hor: new THREE.Color('#192e59'), warm: new THREE.Color('#6d9ae6'),
-      fog: new THREE.Color('#122042'), cTop: new THREE.Color('#4a5f8a'), cBot: new THREE.Color('#2b3a5c'),
-      stars: 1, dusk: 0, night: 1, lampMul: 3.4,
-    },
-  };
-  let curLampMul = PHASES.day.lampMul;
+  /* ---------- 6. RO 經典頭頂表情泡泡與坐下休息姿勢 ---------- */
+  const EMOTES = ['❤️', '🎵', '❗', '💧', '✨', '💤'];
+  const emoteTextures = EMOTES.map(sym => canvasTex(128, 128, g => {
+    g.fillStyle = 'rgba(255, 255, 255, 0.96)';
+    g.strokeStyle = '#2d4b82';
+    g.lineWidth = 6;
+    g.beginPath();
+    g.arc(64, 56, 44, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.moveTo(52, 95); g.lineTo(64, 114); g.lineTo(76, 95);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = '#2d4b82';
+    g.lineWidth = 4;
+    g.beginPath(); g.moveTo(52, 96); g.lineTo(64, 114); g.lineTo(76, 96); g.stroke();
+    g.font = '62px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(sym, 64, 58);
+  }));
+  const emoteMat = new THREE.SpriteMaterial({ map: emoteTextures[0], transparent: true, depthWrite: false });
+  const emoteSprite = new THREE.Sprite(emoteMat);
+  emoteSprite.position.set(0, 2.38, 0);
+  emoteSprite.scale.setScalar(0);
+  emoteSprite.visible = false;
+  emoteSprite.userData.noOcc = true;
+  player.add(emoteSprite);
+  let emoteTimer = 0, emoteAge = 0;
 
-  /* ---------- 6. 普隆德拉風左上資訊卡與右上方形導航小地圖 ---------- */
+  late.roEmote = idx => {
+    const tex = emoteTextures[idx % emoteTextures.length];
+    if (!tex) return;
+    emoteMat.map = tex;
+    emoteMat.needsUpdate = true;
+    emoteTimer = 3.6;
+    emoteAge = 0;
+    emoteSprite.visible = true;
+  };
+
+  state.roSitting = false;
+  late.roToggleSit = () => {
+    if (state.driving || state.swimming || state.isEagle || !state.grounded) return;
+    state.roTarget = null;
+    state.roSitting = !state.roSitting;
+    if (state.roSitting) late.roEmote(1);
+  };
+
+  late.roPose = () => {
+    rig.position.y = -0.24;
+    rig.rotation.x = -0.06;
+    H.hipL.rotation.x = -1.32;
+    H.hipR.rotation.x = -1.32;
+    H.shL.rotation.set(-0.35, 0, 0.14);
+    H.shR.rotation.set(-0.35, 0, -0.14);
+  };
+
+  /* ---------- 7. 依現實世界時間（24 小時制）自動平滑切換天色與建築暖黃窗光 ---------- */
+  const fixedHourParam = (() => {
+    const q = new URLSearchParams(location.search).get('roHour');
+    const n = q !== null ? Number(q) : NaN;
+    return Number.isFinite(n) ? ((n % 24) + 24) % 24 : null;
+  })();
+
+  const KEYFRAMES = [
+    { h: 0.0, sun: [-0.48, 0.68, 0.55], sCol: '#6c9eff', sInt: 0.50, hSky: '#2a4a82', hGnd: '#141c34', hInt: 0.28, top: '#081129', hor: '#182d57', warm: '#6d9ae6', fog: '#122042', cT: '#4a5f8a', cB: '#2b3a5c', stars: 1.0, dusk: 0.0, night: 1.0, lamp: 3.4, win: 0.88 },
+    { h: 5.0, sun: [-0.62, 0.42, 0.48], sCol: '#7ca6ff', sInt: 0.55, hSky: '#35548c', hGnd: '#1c243c', hInt: 0.30, top: '#0d1938', hor: '#273f6e', warm: '#8aa8e6', fog: '#1b2d52', cT: '#5b6f99', cB: '#364669', stars: 0.82, dusk: 0.15, night: 0.85, lamp: 2.8, win: 0.78 },
+    { h: 6.2, sun: [-0.76, 0.38, 0.42], sCol: '#ffb87a', sInt: 1.08, hSky: '#eba88c', hGnd: '#6b5c6e', hInt: 0.40, top: '#2c4c8c', hor: '#ffb38a', warm: '#ffd89c', fog: '#e6b89c', cT: '#ffe0c8', cB: '#b896ad', stars: 0.05, dusk: 0.75, night: 0.10, lamp: 1.25, win: 0.22 },
+    { h: 8.5, sun: [-0.52, 0.66, 0.42], sCol: '#fff3db', sInt: 1.26, hSky: '#9ac8ff', hGnd: '#9aa884', hInt: 0.44, top: '#266ee6', hor: '#bfe4ff', warm: '#ffe8bd', fog: '#c8e4fa', cT: '#ffffff', cB: '#dbe4f2', stars: 0.0, dusk: 0.0, night: 0.0, lamp: 0.60, win: 0.0 },
+    { h: 13.5, sun: [0.68, 0.64, 0.36], sCol: '#fff2d6', sInt: 1.28, hSky: '#9ac8ff', hGnd: '#9aa884', hInt: 0.44, top: '#266ee6', hor: '#bfe4ff', warm: '#ffe8bd', fog: '#c8e4fa', cT: '#ffffff', cB: '#dbe4f2', stars: 0.0, dusk: 0.0, night: 0.0, lamp: 0.60, win: 0.0 },
+    { h: 16.6, sun: [0.74, 0.50, 0.42], sCol: '#ffe2b8', sInt: 1.22, hSky: '#b5ccf5', hGnd: '#8c8c78', hInt: 0.43, top: '#2b63cf', hor: '#d8e3f8', warm: '#ffd89e', fog: '#d4dfef', cT: '#fff6eb', cB: '#cfd6e6', stars: 0.0, dusk: 0.22, night: 0.0, lamp: 0.85, win: 0.12 },
+    { h: 17.8, sun: [0.80, 0.34, 0.48], sCol: '#ff9452', sInt: 1.16, hSky: '#f09d7c', hGnd: '#584468', hInt: 0.41, top: '#34326e', hor: '#ff9866', warm: '#ffc980', fog: '#e8a382', cT: '#ffd0b2', cB: '#b486a2', stars: 0.25, dusk: 1.0, night: 0.08, lamp: 2.2, win: 0.72 },
+    { h: 19.0, sun: [-0.46, 0.66, 0.54], sCol: '#6c9eff', sInt: 0.52, hSky: '#2d4d85', hGnd: '#141c34', hInt: 0.28, top: '#09122b', hor: '#192e59', warm: '#6d9ae6', fog: '#122042', cT: '#4a5f8a', cB: '#2b3a5c', stars: 1.0, dusk: 0.0, night: 1.0, lamp: 3.4, win: 0.88 },
+    { h: 24.0, sun: [-0.48, 0.68, 0.55], sCol: '#6c9eff', sInt: 0.50, hSky: '#2a4a82', hGnd: '#141c34', hInt: 0.28, top: '#081129', hor: '#182d57', warm: '#6d9ae6', fog: '#122042', cT: '#4a5f8a', cB: '#2b3a5c', stars: 1.0, dusk: 0.0, night: 1.0, lamp: 3.4, win: 0.88 },
+  ].map(k => ({
+    ...k,
+    sunV: new THREE.Vector3(...k.sun).normalize(),
+    sColC: new THREE.Color(k.sCol), hSkyC: new THREE.Color(k.hSky), hGndC: new THREE.Color(k.hGnd),
+    topC: new THREE.Color(k.top), horC: new THREE.Color(k.hor), warmC: new THREE.Color(k.warm),
+    fogC: new THREE.Color(k.fog), cTC: new THREE.Color(k.cT), cBC: new THREE.Color(k.cB),
+  }));
+
+  const WIN_DAY = new THREE.Color('#5c7686');
+  const WIN_LIT = new THREE.Color('#ffd07c');
+  const GLOOM_FOG = new THREE.Color('#8f9aa5'), GLOOM_CLOUD = new THREE.Color('#7d8792');
+
+  function getRealHour() {
+    if (fixedHourParam !== null) return fixedHourParam;
+    const now = new Date();
+    return now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  }
+
+  function evalTimeState(h, out) {
+    let a = KEYFRAMES[0], b = KEYFRAMES[KEYFRAMES.length - 1];
+    for (let i = 0; i < KEYFRAMES.length - 1; i++) {
+      if (h >= KEYFRAMES[i].h && h <= KEYFRAMES[i + 1].h) { a = KEYFRAMES[i]; b = KEYFRAMES[i + 1]; break; }
+    }
+    const span = Math.max(0.001, b.h - a.h);
+    let u = (h - a.h) / span;
+    u = u * u * (3 - 2 * u);
+    out.sunDir.copy(a.sunV).lerp(b.sunV, u).normalize();
+    out.sunCol.copy(a.sColC).lerp(b.sColC, u);
+    out.sunInt = a.sInt + (b.sInt - a.sInt) * u;
+    out.hemiSky.copy(a.hSkyC).lerp(b.hSkyC, u);
+    out.hemiGnd.copy(a.hGndC).lerp(b.hGndC, u);
+    out.hemiInt = a.hInt + (b.hInt - a.hInt) * u;
+    out.top.copy(a.topC).lerp(b.topC, u);
+    out.hor.copy(a.horC).lerp(b.horC, u);
+    out.warm.copy(a.warmC).lerp(b.warmC, u);
+    out.fog.copy(a.fogC).lerp(b.fogC, u);
+    out.cTop.copy(a.cTC).lerp(b.cTC, u);
+    out.cBot.copy(a.cBC).lerp(b.cBC, u);
+    out.stars = a.stars + (b.stars - a.stars) * u;
+    out.dusk = a.dusk + (b.dusk - a.dusk) * u;
+    out.night = a.night + (b.night - a.night) * u;
+    out.lampMul = a.lamp + (b.lamp - a.lamp) * u;
+    out.winGlow = a.win + (b.win - a.win) * u;
+  }
+
+  const cur = {
+    sunDir: new THREE.Vector3(), sunCol: new THREE.Color(), sunInt: 1.28,
+    hemiSky: new THREE.Color(), hemiGnd: new THREE.Color(), hemiInt: 0.44,
+    top: new THREE.Color(), hor: new THREE.Color(), warm: new THREE.Color(),
+    fog: new THREE.Color(), cTop: new THREE.Color(), cBot: new THREE.Color(),
+    stars: 0, dusk: 0, night: 0, lampMul: 0.6, winGlow: 0,
+  };
+  evalTimeState(getRealHour(), cur);
+
+  /* ---------- 8. 極簡介面：移除左上大資訊卡，保留輕巧地點膠囊、表情、明信片拍照與奇遇圖鑑 ---------- */
   const hud = $('hud');
   const leftCol = hud.querySelector('.col');
   const rightCol = hud.querySelector('.col.r');
   const locEl = $('locname');
-  const oldLocChip = locEl.closest('.chip');
+  const locChip = locEl.closest('.chip');
   const miniEl = $('mini');
-  const sndBtn = $('snd');
 
-  renderer.domElement.addEventListener('pointerdown', () => {
-    if (roCard.classList.contains('open')) {
-      roCard.classList.remove('open');
-      cardToggleBtn.setAttribute('aria-expanded', 'false');
-      cardToggleBtn.textContent = '▾';
-    }
-    if (document.body.classList.contains('ro-menu-open')) {
+  if (locChip) {
+    locChip.id = 'ro-loc-pill';
+    const ico = locChip.querySelector('.ico');
+    if (ico) ico.textContent = '✦';
+  }
+
+  // 左上極簡工具鈕（跟在音樂鈕後面，且不拆動 #snd 位置，相容山上與達賢時間鈕）
+  const emoteBtn = document.createElement('button');
+  emoteBtn.type = 'button';
+  emoteBtn.id = 'ro-emote-btn';
+  emoteBtn.className = 'chip ro-icon-chip';
+  emoteBtn.setAttribute('aria-label', '角色表情與坐下');
+  emoteBtn.textContent = '😊';
+
+  const photoBtn = document.createElement('button');
+  photoBtn.type = 'button';
+  photoBtn.id = 'ro-photo-btn';
+  photoBtn.className = 'chip ro-icon-chip';
+  photoBtn.setAttribute('aria-label', '拍攝紀念明信片');
+  photoBtn.textContent = '📷';
+
+  const emoteBar = document.createElement('div');
+  emoteBar.id = 'ro-emote-bar';
+  emoteBar.hidden = true;
+  EMOTES.forEach((sym, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = sym;
+    b.title = `表情 ${i + 1}`;
+    b.addEventListener('click', () => { late.roEmote(i); emoteBar.hidden = true; });
+    emoteBar.appendChild(b);
+  });
+  const sitBtn = document.createElement('button');
+  sitBtn.type = 'button';
+  sitBtn.className = 'ro-sit-pill';
+  sitBtn.textContent = '🪑 坐下';
+  sitBtn.addEventListener('click', () => { late.roToggleSit(); emoteBar.hidden = true; });
+  emoteBar.appendChild(sitBtn);
+
+  leftCol.append(emoteBtn, photoBtn, emoteBar);
+
+  emoteBtn.addEventListener('click', () => {
+    emoteBar.hidden = !emoteBar.hidden;
+    if (!emoteBar.hidden && document.body.classList.contains('ro-menu-open')) {
       document.body.classList.remove('ro-menu-open');
       menuBtn.setAttribute('aria-expanded', 'false');
       menuBtn.textContent = '☰ 選單';
     }
   });
 
-  // 左上卡片（桌面完整展開；手機預設收合為極簡地點膠囊，點一下展開控制項）
-  const roCard = document.createElement('div');
-  roCard.id = 'ro-card';
-  roCard.innerHTML = `
-    <div class="ro-head" id="ro-head-bar">
-      <div class="ro-badge" aria-hidden="true">✦</div>
-      <div class="ro-titles">
-        <div class="ro-main-title">政大校園 · Prontera</div>
-        <div class="ro-sub-slot"></div>
-      </div>
-      <div class="ro-tools-inline"></div>
-      <button type="button" class="ro-card-toggle" id="ro-card-toggle" aria-expanded="false" aria-label="展開或收合環境面板">▾</button>
-    </div>
-    <div class="ro-drawer">
-      <div class="ro-meta">
-        <span id="ro-role">初心者</span>
-        <span class="ro-coord" id="ro-coord">0, 0</span>
-      </div>
-      <div class="ro-wet-wrap">
-        <div class="ro-wet-row">
-          <span>💧 鞋底潮濕度</span>
-          <span id="ro-wet-pct">0%</span>
-        </div>
-        <div class="ro-wet-track"><div class="ro-wet-fill" id="ro-wet-bar"></div></div>
-      </div>
-      <div class="ro-seg" role="group" aria-label="時段切換">
-        <button type="button" class="ro-btn on" data-phase="day">☀️ 日間</button>
-        <button type="button" class="ro-btn" data-phase="dusk">🌅 黃昏</button>
-        <button type="button" class="ro-btn" data-phase="night">🌙 夜晚</button>
-      </div>
-      <div class="ro-sub-seg">
-        <button type="button" class="ro-btn" id="ro-pix-btn">🎮 復古像素：關</button>
-        <button type="button" class="ro-btn" id="ro-reset-btn">🧭 重置視角</button>
-      </div>
-    </div>
-  `;
-  roCard.querySelector('.ro-sub-slot').appendChild(locEl);
-  roCard.querySelector('.ro-tools-inline').appendChild(sndBtn);
-  if (oldLocChip) oldLocChip.remove();
-  leftCol.prepend(roCard);
-
-  // 右上方形小地圖外框卡片 ＋ 手機極簡選單收合鈕
+  // 右上方形雷達小地圖 ＋ 手機選單鈕 ＋ 奇遇圖鑑鈕
   const mapCard = document.createElement('div');
   mapCard.id = 'ro-map-card';
   mapCard.innerHTML = `<div class="ro-map-head"><span>nccu100</span><span class="ro-map-sub">可點擊導航</span></div>`;
   mapCard.appendChild(miniEl);
+
   const menuBtn = document.createElement('button');
   menuBtn.type = 'button';
   menuBtn.id = 'ro-menu-btn';
   menuBtn.className = 'chip ro-menu-btn';
   menuBtn.setAttribute('aria-expanded', 'false');
   menuBtn.textContent = '☰ 選單';
-  rightCol.prepend(mapCard, menuBtn);
 
-  const cardToggleBtn = $('ro-card-toggle');
-  function toggleRoCard(force) {
-    const next = typeof force === 'boolean' ? force : !roCard.classList.contains('open');
-    roCard.classList.toggle('open', next);
-    cardToggleBtn.setAttribute('aria-expanded', String(next));
-    cardToggleBtn.textContent = next ? '▴' : '▾';
-    if (next && document.body.classList.contains('ro-menu-open')) {
-      document.body.classList.remove('ro-menu-open');
-      menuBtn.setAttribute('aria-expanded', 'false');
-      menuBtn.textContent = '☰ 選單';
-    }
-  }
-  $('ro-head-bar').addEventListener('click', e => {
-    if (innerWidth > 760 || e.target.closest('#snd') || e.target.closest('.ro-tools-inline button')) return;
-    toggleRoCard();
-  });
+  const codexBtn = document.createElement('button');
+  codexBtn.type = 'button';
+  codexBtn.id = 'ro-codex-open';
+  codexBtn.className = 'chip';
+  codexBtn.textContent = '🏆 奇遇圖鑑';
+
+  rightCol.prepend(mapCard, menuBtn);
+  rightCol.appendChild(codexBtn);
 
   menuBtn.addEventListener('click', () => {
     const next = !document.body.classList.contains('ro-menu-open');
     document.body.classList.toggle('ro-menu-open', next);
     menuBtn.setAttribute('aria-expanded', String(next));
     menuBtn.textContent = next ? '✕ 收合' : '☰ 選單';
-    if (next && roCard.classList.contains('open')) toggleRoCard(false);
+    if (next) emoteBar.hidden = true;
   });
 
   rightCol.addEventListener('click', e => {
@@ -368,52 +579,145 @@ if (LOOK_RO) {
     }
   });
 
-  // 底部操作列說明更新為普隆德拉雙操作提示
-  const keysEl = $('keys');
-  if (keysEl) {
-    keysEl.innerHTML = `
-      <span><kbd>左鍵</kbd>移動</span>
-      <span><kbd>右鍵拖曳</kbd>旋轉視角</span>
-      <span><kbd>滾輪</kbd>縮放</span>
-      <span><kbd>WASD</kbd>／<kbd>E</kbd>互動</span>
-      <span class="ro-tip-water">💧 走近噴水池或溪畔再上岸，地面會留下潮濕腳印！</span>
-    `;
-  }
-
-  // 按鈕互動綁定
-  const phaseBtns = [...roCard.querySelectorAll('[data-phase]')];
-  phaseBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      RO_CFG.phase = btn.dataset.phase;
-      phaseBtns.forEach(b => b.classList.toggle('on', b === btn));
-    });
-  });
-
-  const pixBtn = $('ro-pix-btn');
-  pixBtn.addEventListener('click', () => {
-    RO_CFG.pixel = !RO_CFG.pixel;
-    pixBtn.classList.toggle('on', RO_CFG.pixel);
-    pixBtn.textContent = RO_CFG.pixel ? '🎮 復古像素：開' : '🎮 復古像素：關';
-  });
-
-  $('ro-reset-btn').addEventListener('click', () => {
-    state.yaw = RO_CFG.yaw;
-    if (!indoor()) {
-      state.pitch = RO_CFG.pitch;
-      state.dist = RO_CFG.dist;
+  renderer.domElement.addEventListener('pointerdown', () => {
+    emoteBar.hidden = true;
+    if (document.body.classList.contains('ro-menu-open')) {
+      document.body.classList.remove('ro-menu-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.textContent = '☰ 選單';
     }
   });
 
-  // 右上方形小地圖繪製與點擊導航（保留原 miniMapCache 底圖快取，不更動其計數）
+  /* ---------- 9. 一鍵紀念明信片拍照對話框與校園奇遇圖鑑對話框 ---------- */
+  const roModal = document.createElement('dialog');
+  roModal.id = 'ro-modal';
+  document.body.appendChild(roModal);
+
+  function closeRoModal() {
+    if (roModal.open) roModal.close();
+    state.bzBoothBrowsing = false;
+  }
+  roModal.addEventListener('close', () => { state.bzBoothBrowsing = false; });
+  roModal.addEventListener('click', e => { if (e.target === roModal) closeRoModal(); });
+
+  let pendingPhotoCapture = false;
+
+  photoBtn.addEventListener('click', () => {
+    if (!state.started || state.busy || state.bzBoothBrowsing) return;
+    emoteBar.hidden = true;
+    resetHeldInput();
+    vel.set(0, 0, 0);
+    pendingPhotoCapture = true;
+  });
+
+  late.roAfterRender = () => {
+    if (!pendingPhotoCapture) return;
+    pendingPhotoCapture = false;
+    const src = renderer.domElement;
+    const cw = Math.min(1280, src.width), ch = Math.round(cw * (src.height / Math.max(1, src.width)));
+    const out = document.createElement('canvas');
+    out.width = cw + 48;
+    out.height = ch + 104;
+    const g = out.getContext('2d');
+    g.fillStyle = '#f8fbff';
+    g.fillRect(0, 0, out.width, out.height);
+    g.drawImage(src, 24, 24, cw, ch);
+    g.strokeStyle = '#d4e2f7';
+    g.lineWidth = 2;
+    g.strokeRect(24, 24, cw, ch);
+    g.fillStyle = '#1e3152';
+    g.font = `900 ${Math.max(18, Math.round(cw * 0.024))}px "Noto Sans TC",sans-serif`;
+    g.fillText(`✦ 政大校園 · ${state.zone || '漫步中'}`, 28, ch + 68);
+    const d = new Date();
+    const stamp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    g.fillStyle = '#6880a8';
+    g.font = `700 ${Math.max(14, Math.round(cw * 0.018))}px ui-monospace,monospace`;
+    g.textAlign = 'right';
+    g.fillText(`NCCU 100 · ${stamp}`, out.width - 28, ch + 68);
+    const dataUrl = out.toDataURL('image/png');
+    state.bzBoothBrowsing = true;
+    roModal.innerHTML = `
+      <div class="ro-modal-head">
+        <h2>📷 校園紀念明信片</h2>
+        <button type="button" class="ro-modal-close">關閉</button>
+      </div>
+      <img class="ro-photo-img" src="${dataUrl}" alt="政大校園紀念明信片" />
+      <p class="ro-modal-tip">電腦可點下方按鈕下載；手機（含 LINE 瀏覽器）可直接長按圖片儲存到相簿！</p>
+      <div class="ro-modal-actions">
+        <a class="ro-primary-btn" href="${dataUrl}" download="nccu100-postcard.png">下載明信片 PNG</a>
+      </div>
+    `;
+    roModal.querySelector('.ro-modal-close').addEventListener('click', closeRoModal);
+    roModal.showModal();
+    toast('📸 已拍下校園明信片！');
+  };
+
+  const CLUES = [
+    { icon: '💎', title: '三顆百年故事水晶', check: () => `${crystals.filter(c => c.got).length} / ${crystals.length} 已收集`, hint: '散落在山下校園廣場、步道與河畔，靠近右上小地圖的金色星點即可發現。' },
+    { icon: '🦅', title: '政大雄鷹翱翔天際', check: () => (state.isEagle ? '已變身 ✓' : '待解鎖'), hint: '集齊三顆故事水晶後找校長聊聊，或前往體育館挑戰投籃支線。' },
+    { icon: '🐎', title: '老校長騎馬與精神堡壘', check: () => (state.flags?.has('letterDone') || state.letterDone ? '已完成 ✓' : '待探索'), hint: '在校園裡尋找騎著駿馬的老校長，挑戰校史問答拿任務信函。' },
+    { icon: '☔', title: '石獅子祈雨與借傘奇遇', check: () => ((skyU.gloom?.value || 0) > 0.2 ? '降雨中 🌧️' : '晴朗'), hint: '去摸摸校門或四維堂附近的石獅子，說不定會發生天氣異變！' },
+    { icon: '🚓', title: '駐警隊巡邏車兜風', check: () => (state.driving ? '駕駛中' : '可試駕'), hint: '在校園車道旁找到駐警隊巡邏車，即可上車暢遊全校。' },
+    { icon: '🍵', title: '包種茶節市集集章', check: () => (state.flags?.has('bz26_active') ? '活動進行中 ✓' : '找四維堂前邀請人'), hint: '與四維堂前邀請人對話即可開啟 37 系帳篷市集、小遊戲與學院護照。' },
+  ];
+
+  codexBtn.addEventListener('click', () => {
+    if (!state.started || state.busy || state.bzBoothBrowsing) return;
+    resetHeldInput();
+    vel.set(0, 0, 0);
+    state.bzBoothBrowsing = true;
+    const achvHtml = Object.entries(ACHIEVEMENTS).map(([id, a]) => {
+      const unlocked = Boolean(state['achv_' + id] || state.flags?.has('achv_' + id));
+      return `<div class="ro-codex-card ${unlocked ? 'is-done' : ''}">
+        <div class="ro-codex-ico">${unlocked ? a.icon : '🔒'}</div>
+        <div class="ro-codex-info">
+          <div class="ro-codex-title">${a.title} <span>${unlocked ? '已解鎖 ✓' : '隱藏成就'}</span></div>
+          <div class="ro-codex-desc">${unlocked ? a.desc : '在校園中觸發特定奇遇即可解鎖這枚傳說徽章！'}</div>
+        </div>
+      </div>`;
+    }).join('');
+    const clueHtml = CLUES.map(c => `<div class="ro-codex-card">
+      <div class="ro-codex-ico">${c.icon}</div>
+      <div class="ro-codex-info">
+        <div class="ro-codex-title">${c.title} <span>${c.check()}</span></div>
+        <div class="ro-codex-desc">${c.hint}</div>
+      </div>
+    </div>`).join('');
+    roModal.innerHTML = `
+      <div class="ro-modal-head">
+        <h2>🏆 政大奇遇與成就圖鑑</h2>
+        <button type="button" class="ro-modal-close">關閉</button>
+      </div>
+      <h3 class="ro-codex-sec">傳說徽章</h3>
+      <div class="ro-codex-list">${achvHtml}</div>
+      <h3 class="ro-codex-sec">校園探索線索</h3>
+      <div class="ro-codex-list">${clueHtml}</div>
+    `;
+    roModal.querySelector('.ro-modal-close').addEventListener('click', closeRoModal);
+    roModal.showModal();
+  });
+
+  // 底部操作列說明（僅桌面顯示）
+  const keysEl = $('keys');
+  if (keysEl) {
+    keysEl.innerHTML = `
+      <span><kbd>左鍵</kbd>點地導航</span>
+      <span><kbd>右鍵拖曳</kbd>轉視角</span>
+      <span><kbd>滾輪</kbd>縮放</span>
+      <span><kbd>WASD</kbd>／<kbd>E</kbd>互動</span>
+      <span><kbd>1-6</kbd>表情</span>
+      <span><kbd>X</kbd>坐下</span>
+    `;
+  }
+
+  /* ---------- 10. 右上方形雷達小地圖（含點擊導航、水晶星點與附近互動點） ---------- */
   const MINI_SPAN = 48;
   miniEl.addEventListener('click', e => {
     if (!state.started || !dlg.hidden || state.busy || state.driving || indoor()) return;
     const rect = miniEl.getBoundingClientRect();
     const u = (e.clientX - rect.left) / Math.max(1, rect.width);
     const v = (e.clientY - rect.top) / Math.max(1, rect.height);
-    const wx = pos.x - (u * 2 - 1) * MINI_SPAN;
-    const wz = pos.z - (v * 2 - 1) * MINI_SPAN;
-    setMoveTarget(wx, wz);
+    setMoveTarget(pos.x - (u * 2 - 1) * MINI_SPAN, pos.z - (v * 2 - 1) * MINI_SPAN);
   });
 
   late.drawRoMini = (mg, W) => {
@@ -424,7 +728,6 @@ if (LOOK_RO) {
     mg.fillStyle = '#85cf62';
     mg.fillRect(0, 0, W, W);
 
-    // 格線草紋
     mg.fillStyle = 'rgba(112, 188, 78, 0.35)';
     const stepG = 12 * sc;
     const ox = ((pos.x % 12) + 12) % 12 * sc, oz = ((pos.z % 12) + 12) % 12 * sc;
@@ -438,7 +741,6 @@ if (LOOK_RO) {
       mg.strokeStyle = col; mg.lineWidth = w * sc; mg.lineCap = 'round'; mg.lineJoin = 'round';
       mg.beginPath(); pts.forEach(([x, z], i) => (i ? mg.lineTo(px(x), py(z)) : mg.moveTo(px(x), py(z)))); mg.stroke();
     };
-    // 道路與廣場鋪面
     road([[-160, 25], [170, 25]], 13, '#dcd8cf');
     road([[-90, bdZ(-90)], [0, bdZ(0)], [94, bdZ(94)]], 7, '#e8e4db');
     road([[SIWEI.x0, swZ(SIWEI.x0)], [SIWEI.x1, swZ(SIWEI.x1)]], 10, '#e5dfd4');
@@ -447,7 +749,6 @@ if (LOOK_RO) {
     road([[-88, 15], [-88, -176]], 7, '#e2ded5');
     road([[23.5, -60], [23.5, -172]], 7, '#e2ded5');
 
-    // 中央噴水池廣場圓盤、醉夢溪水系與三座橋樑
     mg.fillStyle = '#eeece5';
     mg.beginPath(); mg.arc(px(0), py(FZ), 10.8 * sc, 0, Math.PI * 2); mg.fill();
     road(RIV, 7.5, '#3eb5e0');
@@ -466,7 +767,6 @@ if (LOOK_RO) {
     mg.fillStyle = '#f2c957';
     mg.beginPath(); mg.arc(px(0), py(FZ), 1.6 * sc, 0, Math.PI * 2); mg.fill();
 
-    // 建築屋頂色塊（藍瓦、紅瓦、暖白交錯呈現普隆德拉城鎮地圖感）
     const roofPalette = ['#5b7ec9', '#c96252', '#6c8fd4', '#cf745c', '#d8d2c5'];
     world.mapShapes.forEach((m, i) => {
       if (!m.w || !m.d) return;
@@ -479,7 +779,6 @@ if (LOOK_RO) {
       mg.strokeRect(rx, ry, rw, rh);
     });
 
-    // 城鎮綠樹與粉櫻樹點綴
     const sakuraKey = new Set(SAKURA_TREES.map(t => `${t.x.toFixed(1)},${t.z.toFixed(1)}`));
     for (let i = 0; i < FOLIAGE.length; i++) {
       const f = FOLIAGE[i];
@@ -490,7 +789,26 @@ if (LOOK_RO) {
       mg.beginPath(); mg.arc(tx, tz, (isPink ? 2.5 : 2.1) * sc, 0, Math.PI * 2); mg.fill();
     }
 
-    // 點擊導航目標點
+    // 探索雷達：附近可互動奇遇點（淡藍圓點）與未收集故事水晶（閃爍金星）
+    for (let i = 0; i < spots.length; i++) {
+      const s = spots[i];
+      if (s.room || s.x === undefined || !s.ok?.()) continue;
+      const sx = px(s.x), sz = py(s.z);
+      if (sx < 4 || sx > W - 4 || sz < 4 || sz > W - 4) continue;
+      mg.fillStyle = 'rgba(37, 99, 235, 0.72)';
+      mg.beginPath(); mg.arc(sx, sz, 2.6, 0, Math.PI * 2); mg.fill();
+    }
+    for (let i = 0; i < crystals.length; i++) {
+      const c = crystals[i];
+      if (c.got) continue;
+      const cx = px(c.g.position.x), cz = py(c.g.position.z);
+      if (cx < 6 || cx > W - 6 || cz < 6 || cz > W - 6) continue;
+      mg.fillStyle = '#fbbf24';
+      mg.strokeStyle = '#78350f';
+      mg.lineWidth = 1.5;
+      mg.beginPath(); mg.arc(cx, cz, 4.6 + Math.sin(state.time * 5 + i) * 1.1, 0, Math.PI * 2); mg.fill(); mg.stroke();
+    }
+
     if (state.roTarget) {
       const tx = px(state.roTarget.x), tz = py(state.roTarget.z);
       mg.strokeStyle = '#2684ff'; mg.lineWidth = 3;
@@ -499,7 +817,6 @@ if (LOOK_RO) {
       mg.beginPath(); mg.arc(tx, tz, 3.5, 0, Math.PI * 2); mg.fill();
     }
 
-    // 視角扇形與玩家紅點指標
     mg.save();
     mg.translate(W / 2, W / 2);
     mg.save();
@@ -521,54 +838,55 @@ if (LOOK_RO) {
     mg.restore();
   };
 
-  /* ---------- 7. 每幀更新（時段插值、潮濕腳印、花瓣、座標欄） ---------- */
-  const coordEl = $('ro-coord');
-  const roleEl = $('ro-role');
-  const wetPctEl = $('ro-wet-pct');
-  const wetBarEl = $('ro-wet-bar');
-  let lastCoordText = '', lastWetPct = -1, lastRole = '';
-
-  const cur = {
-    sunDir: PHASES.day.sunDir.clone(),
-    sunCol: PHASES.day.sunCol.clone(), sunInt: PHASES.day.sunInt,
-    hemiSky: PHASES.day.hemiSky.clone(), hemiGnd: PHASES.day.hemiGnd.clone(), hemiInt: PHASES.day.hemiInt,
-    top: PHASES.day.top.clone(), hor: PHASES.day.hor.clone(), warm: PHASES.day.warm.clone(),
-    fog: PHASES.day.fog.clone(), cTop: PHASES.day.cTop.clone(), cBot: PHASES.day.cBot.clone(),
-    stars: 0, dusk: 0, night: 0, lampMul: PHASES.day.lampMul,
+  /* ---------- 11. 每幀更新（現實時間光影、建築窗光、遠距剔除、潮濕腳印、表情泡泡） ---------- */
+  const targetTimeState = {
+    sunDir: new THREE.Vector3(), sunCol: new THREE.Color(), sunInt: 1.28,
+    hemiSky: new THREE.Color(), hemiGnd: new THREE.Color(), hemiInt: 0.44,
+    top: new THREE.Color(), hor: new THREE.Color(), warm: new THREE.Color(),
+    fog: new THREE.Color(), cTop: new THREE.Color(), cBot: new THREE.Color(),
+    stars: 0, dusk: 0, night: 0, lampMul: 0.6, winGlow: 0,
   };
-  const GLOOM_FOG = new THREE.Color('#8f9aa5'), GLOOM_CLOUD = new THREE.Color('#7d8792');
-
   let wasBrowsing = false;
+  let clockSampleTimer = 0;
+  let cullTimer = 0;
+  let nearSakura = true;
+  evalTimeState(getRealHour(), targetTimeState);
+
   late.roTick = dt => {
     const browsing = !!state.bzBoothBrowsing;
     if (NPCS.length !== styledNpcCount || (wasBrowsing && !browsing)) {
-      const actorSet = new Set();
-      markActorTree(player, actorSet);
-      NPCS.forEach(n => markActorTree(n.g, actorSet));
+      markActorTree(player, null);
+      NPCS.forEach(n => markActorTree(n.g, null));
       styledNpcCount = NPCS.length;
     }
     wasBrowsing = browsing;
 
-    // 時段平滑過渡（獨立維護狀態並相容下雨天 gloom 壓暗）
-    const P = PHASES[RO_CFG.phase] || PHASES.day;
-    const lk = 1 - Math.exp(-dt * 6.5);
+    // 每 2 秒依現實世界時鐘重新取樣目標光影，每幀平滑過渡
+    clockSampleTimer -= dt;
+    if (clockSampleTimer <= 0) {
+      clockSampleTimer = 2.0;
+      evalTimeState(getRealHour(), targetTimeState);
+    }
+
+    const lk = 1 - Math.exp(-dt * 3.5);
     const gl = skyU.gloom ? skyU.gloom.value : 0;
-    cur.sunDir.lerp(P.sunDir, lk).normalize();
-    cur.sunCol.lerp(P.sunCol, lk);
-    cur.sunInt += (P.sunInt - cur.sunInt) * lk;
-    cur.hemiSky.lerp(P.hemiSky, lk);
-    cur.hemiGnd.lerp(P.hemiGnd, lk);
-    cur.hemiInt += (P.hemiInt - cur.hemiInt) * lk;
-    cur.top.lerp(P.top, lk);
-    cur.hor.lerp(P.hor, lk);
-    cur.warm.lerp(P.warm, lk);
-    cur.stars += (P.stars - cur.stars) * lk;
-    cur.fog.lerp(P.fog, lk);
-    cur.cTop.lerp(P.cTop, lk);
-    cur.cBot.lerp(P.cBot, lk);
-    cur.dusk += (P.dusk - cur.dusk) * lk;
-    cur.night += (P.night - cur.night) * lk;
-    cur.lampMul += (P.lampMul - cur.lampMul) * lk;
+    cur.sunDir.lerp(targetTimeState.sunDir, lk).normalize();
+    cur.sunCol.lerp(targetTimeState.sunCol, lk);
+    cur.sunInt += (targetTimeState.sunInt - cur.sunInt) * lk;
+    cur.hemiSky.lerp(targetTimeState.hemiSky, lk);
+    cur.hemiGnd.lerp(targetTimeState.hemiGnd, lk);
+    cur.hemiInt += (targetTimeState.hemiInt - cur.hemiInt) * lk;
+    cur.top.lerp(targetTimeState.top, lk);
+    cur.hor.lerp(targetTimeState.hor, lk);
+    cur.warm.lerp(targetTimeState.warm, lk);
+    cur.stars += (targetTimeState.stars - cur.stars) * lk;
+    cur.fog.lerp(targetTimeState.fog, lk);
+    cur.cTop.lerp(targetTimeState.cTop, lk);
+    cur.cBot.lerp(targetTimeState.cBot, lk);
+    cur.dusk += (targetTimeState.dusk - cur.dusk) * lk;
+    cur.night += (targetTimeState.night - cur.night) * lk;
+    cur.lampMul += (targetTimeState.lampMul - cur.lampMul) * lk;
+    cur.winGlow += (targetTimeState.winGlow - cur.winGlow) * lk;
 
     SUN.copy(cur.sunDir);
     if (!indoor()) {
@@ -578,7 +896,15 @@ if (LOOK_RO) {
       hemi.groundColor.copy(cur.hemiGnd);
       hemi.intensity = cur.hemiInt * (1 - 0.35 * gl);
       if (scene.fog) scene.fog.color.copy(cur.fog).lerp(GLOOM_FOG, gl);
+    } else if (fadedBuildings.size) {
+      for (const [o, rec] of fadedBuildings) {
+        o.material = rec.orig;
+        if (Array.isArray(rec.clone)) rec.clone.forEach(m => m.dispose());
+        else rec.clone.dispose();
+      }
+      fadedBuildings.clear();
     }
+
     skyU.uTop.value.copy(cur.top);
     skyU.uHor.value.copy(cur.hor);
     skyU.uWarm.value.copy(cur.warm);
@@ -588,11 +914,34 @@ if (LOOK_RO) {
     waterU.dusk.value = cur.dusk;
     waterU.night.value = cur.night;
     for (const it of lampMats) it.mat.emissiveIntensity = it.base * cur.lampMul;
+    for (const wm of winMats) wm.emissiveIntensity = cur.winGlow;
+    winMat.color.copy(WIN_DAY).lerp(WIN_LIT, Math.min(1, cur.winGlow * 1.1));
+
+    // 遠距粒子省電判斷（距離所有櫻花樹超過 75m 時暫停花瓣頂點更新）
+    cullTimer -= dt;
+    if (cullTimer <= 0 && SAKURA_TREES.length) {
+      cullTimer = 0.5;
+      nearSakura = SAKURA_TREES.some(t => Math.hypot(t.x - pos.x, t.z - pos.z) < 75);
+    }
+
+    // 頭頂表情泡泡彈跳動畫
+    if (emoteTimer > 0) {
+      emoteTimer -= dt;
+      emoteAge += dt;
+      if (emoteTimer <= 0) {
+        emoteSprite.visible = false;
+      } else {
+        const pop = emoteAge < 0.22 ? Math.sin((emoteAge / 0.22) * (Math.PI * 0.65)) * 1.12 : 1 + Math.sin(emoteAge * 5) * 0.04;
+        const fadeOut = Math.min(1, emoteTimer * 3.5);
+        emoteSprite.scale.setScalar(0.86 * pop * fadeOut);
+        emoteSprite.position.y = (state.roSitting ? 2.12 : 2.38) + Math.sin(emoteAge * 4) * 0.04;
+      }
+    }
 
     // 飄落櫻花瓣更新
     if (petalPoints) {
-      petalPoints.visible = !indoor();
-      if (!indoor()) {
+      petalPoints.visible = !indoor() && nearSakura;
+      if (petalPoints.visible) {
         const pa = petalPoints.geometry.attributes.position;
         for (let i = 0; i < PETAL_N; i++) {
           const d = petalData[i];
@@ -644,18 +993,5 @@ if (LOOK_RO) {
       if (m.userData.life <= 0) { m.visible = false; continue; }
       m.material.opacity = 0.66 * m.userData.life;
     }
-
-    // 介面數值同步（只在變化時寫入 DOM）
-    const cx = Math.round(pos.x + 50), cz = Math.round(-pos.z + 20);
-    const coordStr = `${cx}, ${cz}`;
-    if (coordStr !== lastCoordText) { lastCoordText = coordStr; coordEl.textContent = coordStr; }
-    const wetPct = Math.round(state.shoeWet * 100);
-    if (wetPct !== lastWetPct) {
-      lastWetPct = wetPct;
-      wetPctEl.textContent = `${wetPct}%`;
-      wetBarEl.style.width = `${wetPct}%`;
-    }
-    const roleStr = state.isEagle ? '政大雄鷹' : (state.driving ? '巡邏駕駛' : '初心者');
-    if (roleStr !== lastRole) { lastRole = roleStr; roleEl.textContent = roleStr; }
   };
 }

@@ -45,10 +45,14 @@ export function greenRoofUHall(side) {
   const s = side;
   const ROOF=new THREE.MeshToonMaterial({color:LOOK_RO?'#4e7a52':'#5e8058',gradientMap:GRAD,side:THREE.DoubleSide});
   const wallTex=canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#e5e1d6'; g.fillRect(0,0,w,h); g.fillStyle='#5f7584'; g.fillRect(18,34,92,50); g.fillStyle='#d2cdc0'; g.fillRect(14,84,100,8); g.fillStyle='#cfcabd'; g.fillRect(0,0,w,5); });
+  const wallEm=LOOK_RO?canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#000000'; g.fillRect(0,0,w,h); g.fillStyle='#ffcf78'; g.fillRect(20,36,88,46); },[1,1]):null;
   function wing(cx,cz,L,W,alongZ){
-    const t=wallTex.clone(); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(Math.round(L/3.2),2); t.needsUpdate=true;
+    const rx=Math.round(L/3.2);
+    const t=wallTex.clone(); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(rx,2); t.needsUpdate=true;
     const sx=alongZ?W:L, sz=alongZ?L:W;
-    block(cx,3.25,cz,sx,6.5,sz,new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}),0.05);
+    const wMat=new THREE.MeshToonMaterial(Object.assign({map:t,gradientMap:GRAD},wallEm?{emissive:'#ffcf78',emissiveMap:wallEm,emissiveIntensity:0}:{}));
+    if(wallEm) wMat.userData.roWin=true;
+    block(cx,3.25,cz,sx,6.5,sz,wMat,0.05);
     block(cx,0.3,cz,sx+0.06,0.6,sz+0.06,'#8f8a80');
     const r=mk(hipRoof(L+1.8,W+1.8,2.6),ROOF,cx,6.5,cz,{out:0.06}); if(alongZ) r.rotation.y=Math.PI/2;
     block(cx,9.12,cz,alongZ?0.3:L-W,0.22,alongZ?L-W:0.3,'#46623f');
@@ -102,7 +106,7 @@ export function faceBox(x0, x1, y0, y1, z0, z1, base, faces, out) {
   return m;
 }
 
-const _wallTex = {}, _wallMat = {};
+const _wallTex = {}, _wallEm = {}, _wallMat = {};
 /**
  * 窗牆材質：一格貼圖 = 一個開間 × 一層樓，用 rx（開間數）、ry（樓層數）重複。
  * style：'grid' 方窗、'band' 水平帶窗、'strip' 細長直窗。
@@ -125,8 +129,26 @@ export function windowWall({ style = 'grid', wall = '#ecebe6', glass = '#9fb3bd'
     else if (style === 'strip') { win(22, 20, 24, 86, 1); win(82, 20, 24, 86, 1); }
     else win(20, 30, 88, 64, 2);
   }, [1, 1]);   // 傳 repeat 才會設定 RepeatWrapping，複製後改 repeat 才會重複
+  if (LOOK_RO && !_wallEm[style]) _wallEm[style] = canvasTex(128, 128, (g, w, h) => {
+    g.fillStyle = '#000000'; g.fillRect(0, 0, w, h);
+    const pane = (x, y, ww, hh, mull, warmA, warmB) => {
+      for (let k = 0; k < mull; k++) {
+        const px = x + (ww * k) / mull + 2, pw = ww / mull - 4;
+        g.fillStyle = k % 2 ? warmB : warmA;
+        g.fillRect(px, y + 2, pw, hh - 4);
+      }
+    };
+    if (style === 'band') pane(0, 34, w, 54, 4, '#ffd27d', '#eab45e');
+    else if (style === 'strip') { pane(22, 20, 24, 86, 1, '#ffd482', '#ffd482'); pane(82, 20, 24, 86, 1, '#e8b058', '#e8b058'); }
+    else pane(20, 30, 88, 64, 2, '#ffd482', '#efc06b');
+  }, [1, 1]);
   const t = _wallTex[key].clone(); t.repeat.set(rx, ry); t.needsUpdate = true;
-  return (_wallMat[matKey] = new THREE.MeshToonMaterial({ map: t, gradientMap: GRAD }));
+  const mat = new THREE.MeshToonMaterial(Object.assign(
+    { map: t, gradientMap: GRAD },
+    LOOK_RO ? { emissive: '#ffcf78', emissiveMap: _wallEm[style], emissiveIntensity: 0 } : {},
+  ));
+  if (LOOK_RO) mat.userData.roWin = true;
+  return (_wallMat[matKey] = mat);
 }
 
 /**
