@@ -538,12 +538,16 @@ if (LOOK_RO) {
   };
   const GLOOM_FOG = new THREE.Color('#8f9aa5'), GLOOM_CLOUD = new THREE.Color('#7d8792');
 
+  let wasBrowsing = false;
   late.roTick = dt => {
-    if (NPCS.length !== styledNpcCount) {
+    const browsing = !!state.bzBoothBrowsing;
+    if (NPCS.length !== styledNpcCount || (wasBrowsing && !browsing)) {
       const actorSet = new Set();
+      markActorTree(player, actorSet);
       NPCS.forEach(n => markActorTree(n.g, actorSet));
       styledNpcCount = NPCS.length;
     }
+    wasBrowsing = browsing;
 
     // 時段平滑過渡（獨立維護狀態並相容下雨天 gloom 壓暗）
     const P = PHASES[RO_CFG.phase] || PHASES.day;

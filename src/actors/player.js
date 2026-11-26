@@ -8,6 +8,7 @@ import { deactivateArticulatedArms } from './articulated-arms.js';
 import { deactivateWardrobe, refreshWardrobeForm } from './wardrobe-factory.js';
 import { registerTrialPlayer } from './actor-rig-identity.js';
 import { characterRegistry } from './character-registry.js';
+import { NEW_PLAYER_ENABLED, installStdHumanoid } from './std-humanoid/index.js';
 import { registerPlayerCharacter } from './character-part-sources.js';
 import { state } from '../core/state.js';
 import { scene } from '../core/engine.js';
@@ -190,5 +191,8 @@ function becomeEagle(){
 registerTrialPlayer(player,rig,H,hc,limbParts,()=>!state.isEagle,{hairTop:HAIR.filter(node=>node!==back),backpack:PACK});
 
 registerPlayerCharacter({model,appearance:{hair:HAIR,body:EARS,top:PACK.slice(0,2),accessory:PACK.slice(2)},form:()=>state.isEagle?'eagle':state.outfit,supported:()=>!state.isEagle&&state.outfit==='normal'});
+
+// 新主角預覽：網址加 ?newplayer 才啟用（見 std-humanoid/README.md）；游泳裝與雄鷹沒有新造型，切回舊模型
+if(NEW_PLAYER_ENABLED&&typeof document!=='undefined') installStdHumanoid({rig,joints:H,active:()=>!state.isEagle&&state.outfit!=='swim',airborne:()=>!state.grounded});
 
 export { hc as headCenter, limbParts, H, HC, animateHero, becomeEagle, outlineU, part, player, rig, setOutfit, shadowBlob };

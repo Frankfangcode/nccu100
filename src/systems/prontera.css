@@ -452,7 +452,8 @@ body.look-ro #keys .ro-tip-water {
     gap: 6px;
   }
 
-  body.look-ro #ro-menu-btn {
+  body.look-ro #ro-menu-btn,
+  body.look-ro #game-wardrobe-open {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -475,7 +476,7 @@ body.look-ro #keys .ro-tip-water {
     color: #ffffff;
   }
 
-  body.look-ro:not(.ro-menu-open) #hud .col.r > *:not(#ro-map-card):not(#ro-menu-btn) {
+  body.look-ro:not(.ro-menu-open) #hud .col.r > *:not(#ro-map-card):not(#game-wardrobe-open):not(#ro-menu-btn) {
     display: none !important;
   }
 
@@ -523,4 +524,56 @@ body.look-ro #keys .ro-tip-water {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
+}
+
+/* 換衣間（wenzhotw/nccu100 v2.11）套用普隆德拉藍白視覺主題 */
+body.look-ro #game-wardrobe-panel {
+  background: linear-gradient(180deg, #f7faff 0%, #ebf3ff 100%);
+  border: 1.5px solid rgba(170, 198, 240, 0.95);
+  color: #1e3152;
+  box-shadow: 0 16px 44px rgba(20, 42, 82, 0.28);
+}
+
+body.look-ro #game-wardrobe-panel .wardrobe-stage {
+  background: transparent;
+}
+
+@media (max-width: 759px) {
+  body.look-ro #game-wardrobe-panel .wardrobe-stage {
+    background: rgba(244, 249, 255, 0.96);
+  }
+}
+
+body.look-ro #game-wardrobe-panel button {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(176, 202, 240, 0.85);
+  color: #263f6b;
+}
+
+body.look-ro #game-wardrobe-panel .wardrobe-tab.is-on {
+  background: linear-gradient(180deg, #4788f4, #2f6cd6);
+  border-color: #295ec2;
+  color: #ffffff;
+}
+
+body.look-ro #game-wardrobe-panel .wardrobe-save {
+  background: linear-gradient(180deg, #4788f4, #2f6cd6);
+  border-color: #295ec2;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(47, 108, 214, 0.3);
+}
+
+body.look-ro #game-wardrobe-panel .wardrobe-preview,
+body.look-ro #game-wardrobe-panel .wardrobe-item img {
+  background: #dfecfc;
+}
+
+body.look-ro #game-wardrobe-panel .wardrobe-item {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1.5px rgba(182, 206, 242, 0.8);
+}
+
+body.look-ro #game-wardrobe-panel .wardrobe-item.is-on {
+  background: #edf5ff;
+  box-shadow: inset 0 0 0 2.5px #3b7ddd;
 }
