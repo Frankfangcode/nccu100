@@ -33,27 +33,38 @@ import { buildOccluders, camDir, camRay } from '../systems/camera-occlusion.js';
 import {frameRoomCamera,roomOrbitDirection,roomCameraAtHeight} from '../systems/room-view.js';
 import { updateFoliage } from '../systems/foliage-fade.js';
 import { cameraFov, drawMini, heroJuice, placePrompt, puff, updatePuffs } from '../systems/feel.js';
+import { LOOK_RO } from '../render/look.js';
 
 /* ---------- 標題畫面環繞鏡頭 ---------- */
-function titleCamera(t){ const a=t*0.07+0.6; camera.position.set(Math.sin(a)*58,22+Math.sin(t*0.13)*3,-38+Math.cos(a)*58); camera.lookAt(0,7,-48); }
+function titleCamera(t){
+  if(LOOK_RO){
+    const a=t*0.05+0.64;
+    camera.position.set(Math.sin(a)*38,29+Math.sin(t*0.15)*1.4,-32+Math.cos(a)*38);
+    camera.lookAt(0,1.2,-32);
+    return;
+  }
+  const a=t*0.07+0.6; camera.position.set(Math.sin(a)*58,22+Math.sin(t*0.13)*3,-38+Math.cos(a)*58); camera.lookAt(0,7,-48);
+}
 state.time=0;
 const clock=new THREE.Clock(), frameTiming=createFrameTiming();
 const act=$('act'), actText=$('actText'), act2=$('act2'), act2Text=$('act2Text');
 function update(dt){
   state.time+=dt; grassU.value=state.time; waterU.t.value=state.time;
-  const mapOpen=!$('mapw').hidden; if(mapOpen){ keys.KeyW=keys.KeyA=keys.KeyS=keys.KeyD=false; }
+  const mapOpen=!$('mapw').hidden; if(mapOpen){ keys.KeyW=keys.KeyA=keys.KeyS=keys.KeyD=false; state.roTarget=null; }
   // A booth poster is a reading modal: no drift, falling, or held-stick movement.
-  if(state.bzBoothBrowsing){ vel.set(0,0,0); } else if(state.driving){ updateDrive(dt); } else {
+  if(state.bzBoothBrowsing){ vel.set(0,0,0); state.roTarget=null; } else if(state.driving){ state.roTarget=null; updateDrive(dt); } else {
   let ix=0, iy=0, run=false;
   if(state.started&&dlg.hidden&&!state.busy){
     ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+state.stickV.x;
     iy=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+state.stickV.y;
     const m=Math.hypot(ix,iy); if(m>1){ix/=m;iy/=m;}
+    if(m>0.05) state.roTarget=null;
     run=keys.ShiftLeft||keys.ShiftRight||Math.hypot(state.stickV.x,state.stickV.y)>0.92;
-  }
+  } else if(state.roTarget) state.roTarget=null;
   const spd=(run?8.2:4.6)*(state.swimming?0.55:1);   // 在水裡游得比較慢
   const fx=-Math.sin(state.yaw), fz=-Math.cos(state.yaw), rx=Math.cos(state.yaw), rz=-Math.sin(state.yaw);
-  const tvx=(fx*iy+rx*ix)*spd, tvz=(fz*iy+rz*ix)*spd;
+  let tvx=(fx*iy+rx*ix)*spd, tvz=(fz*iy+rz*ix)*spd;
+  if(state.roCfg&&state.roTarget&&Math.hypot(ix,iy)<=0.05&&late.roSteer){ const st=late.roSteer(dt,spd); tvx=st.vx; tvz=st.vz; }
   const k=1-Math.exp(-dt*12); vel.x+=(tvx-vel.x)*k; vel.z+=(tvz-vel.z)*k;
   pos.x+=vel.x*dt; pos.z+=vel.z*dt;
   if(!(state.isEagle&&!state.grounded)) resolve(pos);   // 雄鷹飛在空中時不擋建築，可以飛過去
@@ -120,6 +131,7 @@ function update(dt){
   da.needsUpdate=true;
   clouds.forEach((c,i)=>{ c.position.x+=dt*(1.0+i%3*0.4); if(c.position.x>340) c.position.x=-340; });
 
+  late.roTick?.(dt);
   if(!state.started){ titleCamera(state.time); sky.position.copy(camera.position); sun.position.set(SUN.x*70,SUN.y*70,-40+SUN.z*70); sun.target.position.set(0,0,-40); return; }
   if(state.driving&&Math.abs(state.carSpeed)>1&&state.camPtr===null) state.yaw=lerpA(state.yaw,state.carYaw+(state.carSpeed>0?Math.PI:0),1-Math.exp(-dt*2.5));
   const tf=(!dlg.hidden&&state.talkFocus)?state.talkFocus:null;

@@ -16,6 +16,7 @@ import { drawCachedMap } from './items.js';
 import { MAP_BOUNDS } from '../world/layout.js';
 import * as ROOMS from '../core/rooms.js';
 import { enterCar, exitCar } from './police-drive.js';
+import { LOOK_RO, RO_CFG } from '../render/look.js';
 
 /* ---------- 手感：塵土粒子、落地壓縮、跑步鏡頭 ---------- */
 const puffTex=canvasTex(64,64,(g)=>{ const r=g.createRadialGradient(32,32,2,32,32,30); r.addColorStop(0,'rgba(255,252,244,1)'); r.addColorStop(0.6,'rgba(250,244,230,.85)'); r.addColorStop(1,'rgba(250,244,230,0)'); g.fillStyle=r; g.beginPath(); g.arc(32,32,30,0,7); g.fill(); });
@@ -37,9 +38,10 @@ function heroJuice(dt,sp,run){
     player.scale.set(1+squash*0.16-st*0.5,1-squash*0.2+st,1+squash*0.16-st*0.5);
   }
 }
-let fovNow=55;
+let fovNow=LOOK_RO?RO_CFG.fov:55;
 function cameraFov(dt,sp,run){
-  const want=state.driving?57+Math.min(10,Math.abs(state.carSpeed)*0.5):(run&&sp>5?60:55);
+  const base=(LOOK_RO&&!indoor()&&!state.driving)?(run&&sp>5?RO_CFG.fov+2.2:RO_CFG.fov):(run&&sp>5?60:55);
+  const want=state.driving?57+Math.min(10,Math.abs(state.carSpeed)*0.5):base;
   fovNow+=(want-fovNow)*(1-Math.exp(-dt*4));
   if(Math.abs(camera.fov-fovNow)>0.02){ camera.fov=fovNow; camera.updateProjectionMatrix(); }
 }
@@ -67,10 +69,18 @@ const {x0:MX0,x1:MX1,z0:MZ0,z1:MZ1}=MAP_BOUNDS;
 function drawMini(dt){
   miniT+=dt; if(miniT<0.08) return; miniT=0;
   const W=minic.width, kx=miniBase.width/(MX1-MX0), kz=miniBase.height/(MZ0-MZ1);
-  mg.clearRect(0,0,W,W); mg.save(); mg.beginPath(); mg.arc(W/2,W/2,W/2,0,7); mg.clip();
-  mg.fillStyle='#f3e6c6'; mg.fillRect(0,0,W,W);
-  if(indoor()){ mg.fillStyle='#4a3520'; mg.font='900 34px "Noto Sans TC",sans-serif'; mg.textAlign='center'; mg.fillText((ROOMS.current&&ROOMS.current.def&&ROOMS.current.def.name)||'室內',W/2,W/2-4); mg.font='700 22px "Noto Sans TC",sans-serif'; mg.fillText((ROOMS.current&&ROOMS.current.def&&ROOMS.current.def.miniSub)||'室內',W/2,W/2+30); mg.restore(); return; }
+  mg.clearRect(0,0,W,W); mg.save();
+  if(!LOOK_RO){ mg.beginPath(); mg.arc(W/2,W/2,W/2,0,7); mg.clip(); }
+  mg.fillStyle=LOOK_RO?'#eaf2fc':'#f3e6c6'; mg.fillRect(0,0,W,W);
+  if(indoor()){
+    mg.fillStyle=LOOK_RO?'#243a63':'#4a3520'; mg.font='900 32px "Noto Sans TC",sans-serif'; mg.textAlign='center';
+    mg.fillText((ROOMS.current&&ROOMS.current.def&&ROOMS.current.def.name)||'室內',W/2,W/2-4);
+    mg.font='700 20px "Noto Sans TC",sans-serif'; mg.fillStyle=LOOK_RO?'#5a739c':'#4a3520';
+    mg.fillText((ROOMS.current&&ROOMS.current.def&&ROOMS.current.def.miniSub)||'室內空間',W/2,W/2+28);
+    mg.restore(); return;
+  }
   drawCachedMap(miniBase);
+  if(LOOK_RO&&late.drawRoMini){ late.drawRoMini(mg,W); mg.restore(); return; }
   // 地圖是西在左（x 越大越左邊），所以裁切位置用 MX1 - x；箭頭和視角扇形的轉向也要反過來
   const R=36, cx=(MX1-pos.x)*kx, cy=(MZ0-pos.z)*kz;
   mg.drawImage(miniBase,cx-R*kx,cy-R*kz,2*R*kx,2*R*kz,0,0,W,W);

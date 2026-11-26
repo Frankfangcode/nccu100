@@ -69,6 +69,7 @@ import './ui/install-hint.js'; // 手機開始畫面：「加到主畫面，全�
 import './systems/police-drive.js';
 import './systems/camera-occlusion.js';
 import './systems/feel.js';
+import './systems/prontera.js';
 import './core/loop.js';
 import './core/debug.js';
 import './render/warmup.js'; // 開始畫面時先編譯材質、上傳貼圖，進遊戲後轉頭比較不會頓（放最後，等所有東西都蓋好）

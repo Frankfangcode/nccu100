@@ -3,9 +3,11 @@
  */
 import * as THREE from 'three';
 import { $ } from './dom.js';
+import { state } from './state.js';
 import { installContextRecovery } from './context-recovery.js';
-import { LOOK2 } from '../render/look.js';
+import { LOOK2, LOOK_RO, RO_CFG } from '../render/look.js';
 
+if (LOOK_RO) state.roCfg = RO_CFG;
 THREE.ColorManagement.legacyMode = false;
 /* ---------- renderer / scene ---------- */
 /* 手機（觸控螢幕）：陰影用較省的算法；支援 WebGL2 時後製自己做 MSAA，畫面本身不用再開一次抗鋸齒（省記憶體與填充率） */
@@ -20,8 +22,8 @@ renderer.shadowMap.type = MOBILE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 $('stage').appendChild(renderer.domElement);
 const contextRecovery = installContextRecovery(renderer.domElement);
 const scene = new THREE.Scene();
-scene.fog = LOOK2 ? new THREE.Fog('#bfe2fb',90,520) : new THREE.Fog('#cfe8f7',140,560);
-const camera = new THREE.PerspectiveCamera(55,innerWidth/innerHeight,0.25,1200);
+scene.fog = LOOK_RO ? new THREE.Fog('#c8e4fa',130,580) : (LOOK2 ? new THREE.Fog('#bfe2fb',90,520) : new THREE.Fog('#cfe8f7',140,560));
+const camera = new THREE.PerspectiveCamera(LOOK_RO ? RO_CFG.fov : 55,innerWidth/innerHeight,0.25,1200);
 document.body.classList.add('title');
 
 export { contextRecovery, MOBILE, camera, renderer, scene };

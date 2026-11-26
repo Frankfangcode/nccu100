@@ -6,9 +6,9 @@
 import * as THREE from 'three';
 import { scene } from '../../core/engine.js';
 import { colliders } from '../../core/collision.js';
-import { LOOK2 } from '../../render/look.js';
+import { LOOK2, LOOK_RO } from '../../render/look.js';
 
-const Y = 0.046, NEAR = 0.7, FAR = 2.6, A0 = 0.46, A1 = 0.17;
+const Y = 0.046, NEAR = LOOK_RO ? 0.65 : 0.7, FAR = LOOK_RO ? 2.2 : 2.6, A0 = LOOK_RO ? 0.34 : 0.46, A1 = LOOK_RO ? 0.12 : 0.17;
 const COL = [0.16, 0.19, 0.38];
 
 function ringOf(c) {
@@ -45,4 +45,4 @@ function build() {
   m.name = 'look2-contact'; m.userData.noOcc = true; m.renderOrder = 1; m.frustumCulled = false;
   scene.add(m);
 }
-if (LOOK2) build();
+if (LOOK2 || LOOK_RO) build();

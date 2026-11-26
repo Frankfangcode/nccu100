@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { scene } from '../core/engine.js';
 import { BOX, GRAD, basic, block, canvasTex, mk, outline, plane, toon } from '../render/kit.js';
 import { boxC } from '../core/collision.js';
-import { LOOK2 } from '../render/look.js';
+import { LOOK2, LOOK_RO } from '../render/look.js';
 
 /** 屋頂淺灰色 */
 export const ROOFTOP = toon('#c4c7c0');
@@ -43,7 +43,7 @@ export const toW = (T, lx, lz) => [T.x + lx * Math.cos(T.th) + lz * Math.sin(T.t
  */
 export function greenRoofUHall(side) {
   const s = side;
-  const ROOF=new THREE.MeshToonMaterial({color:'#5e8058',gradientMap:GRAD,side:THREE.DoubleSide});
+  const ROOF=new THREE.MeshToonMaterial({color:LOOK_RO?'#4e7a52':'#5e8058',gradientMap:GRAD,side:THREE.DoubleSide});
   const wallTex=canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#e5e1d6'; g.fillRect(0,0,w,h); g.fillStyle='#5f7584'; g.fillRect(18,34,92,50); g.fillStyle='#d2cdc0'; g.fillRect(14,84,100,8); g.fillStyle='#cfcabd'; g.fillRect(0,0,w,5); });
   function wing(cx,cz,L,W,alongZ){
     const t=wallTex.clone(); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(Math.round(L/3.2),2); t.needsUpdate=true;
@@ -53,7 +53,7 @@ export function greenRoofUHall(side) {
     const r=mk(hipRoof(L+1.8,W+1.8,2.6),ROOF,cx,6.5,cz,{out:0.06}); if(alongZ) r.rotation.y=Math.PI/2;
     block(cx,9.12,cz,alongZ?0.3:L-W,0.22,alongZ?L-W:0.3,'#46623f');
     boxC(cx-sx/2,cx+sx/2,cz-sz/2,cz+sz/2);
-    if(LOOK2) facadeDepth(cx,cz,L,W,alongZ);
+    if(LOOK2||LOOK_RO) facadeDepth(cx,cz,L,W,alongZ);
   }
   /* look v2：長向立面加上台灣校舍常見的層次（柱列、窗上遮陽板、窗台、窗框直櫺、屋簷飾帶），靠太陽投影做出深度。
      都是沒有名字的純色小方塊，場景蓋完會被靜態烘焙合併。 */

@@ -7,8 +7,28 @@ import { BOX, GRAD, SPH, basic, block, canvasTex, flat, mk, plane, toon } from '
 import { circC } from '../core/collision.js';
 import { LOTS } from './layout.js';
 import { asPrefab } from './prefabs/index.js';
+import { LOOK_RO } from '../render/look.js';
 
-function stoneMat(rx,ry){ const t=canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#b9b8b2'; g.fillRect(0,0,w,h); for(let i=0;i<400;i++){ g.fillStyle=['#a9a8a2','#c6c5bf','#b1b0aa'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); } g.strokeStyle='#9d9c96'; g.lineWidth=1.5; for(let y=0;y<h;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/16)%2?0:16;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+16); g.stroke(); } } },[rx,ry]); return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); }
+function stoneMat(rx,ry){
+  const t=LOOK_RO
+    ? canvasTex(128,128,(g,w,h)=>{
+        g.fillStyle='#d5d2ca'; g.fillRect(0,0,w,h);
+        for(let y=0;y<h;y+=32){
+          const off=(y/32)%2?16:0;
+          for(let x=-16;x<w;x+=32){
+            const bx=x+off;
+            g.fillStyle=((x+y)&32)?'#dad7cf':'#cfccc3'; g.fillRect(bx+1,y+1,30,30);
+            g.fillStyle='rgba(255,255,255,.36)'; g.fillRect(bx+2,y+2,28,2); g.fillRect(bx+2,y+2,2,28);
+            g.fillStyle='rgba(120,116,108,.22)'; g.fillRect(bx+2,y+29,28,2);
+          }
+        }
+        g.strokeStyle='#9e9a91'; g.lineWidth=2;
+        for(let y=0;y<=h;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+        for(let y=0;y<h;y+=32){ const off=(y/32)%2?16:0; for(let x=off;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+32); g.stroke(); } }
+      },[rx,ry])
+    : canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#b9b8b2'; g.fillRect(0,0,w,h); for(let i=0;i<400;i++){ g.fillStyle=['#a9a8a2','#c6c5bf','#b1b0aa'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); } g.strokeStyle='#9d9c96'; g.lineWidth=1.5; for(let y=0;y<h;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/16)%2?0:16;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+16); g.stroke(); } } },[rx,ry]);
+  return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD});
+}
 function bannerTex(bg,fg,t1,t2){ return canvasTex(128,256,(g,w,h)=>{ g.fillStyle=bg; g.fillRect(0,0,w,h);
   g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.arc(w*0.3,h*0.85,34,0,7); g.fill();
   g.fillStyle='#ffffff'; g.beginPath(); g.arc(w/2,h*0.5,30,0,7); g.fill(); g.fillStyle='#5b3c8f'; for(let k=0;k<5;k++){ const a=k/5*Math.PI*2-Math.PI/2; g.beginPath(); g.arc(w/2+Math.cos(a)*12,h*0.5+Math.sin(a)*12,10,0,7); g.fill(); }

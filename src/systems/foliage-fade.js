@@ -6,6 +6,7 @@
  */
 import * as THREE from 'three';
 import { FOLIAGE } from '../world/vegetation.js';
+import { LOOK_RO } from '../render/look.js';
 
 const FADED = 0.18;   // 淡掉時的不透明度
 const SPEED = 7;      // 淡入淡出速度
@@ -52,7 +53,10 @@ export function updateFoliage(dt, camera, target) {
       // 視線在這棵樹位置的高度，落在樹冠高度範圍內才算擋到
       const y = camP.y + (target.y - camP.y) * t;
       const inside = Math.hypot(camP.x - f.x, camP.z - f.z) < f.r + 0.8 && camP.y > f.y0 - 0.8 && camP.y < f.y1 + 0.8;
-      if (inside || (d < f.r + 0.4 && t < 0.97 && y > f.y0 - 1.2 && y < f.y1 + 0.6)) want = FADED;
+      const hitRay = LOOK_RO
+        ? (d < f.r * 0.56 && t > 0.35 && t < 0.97 && y > f.y0 - 0.5 && y < f.y1 + 0.3)
+        : (d < f.r + 0.4 && t < 0.97 && y > f.y0 - 1.2 && y < f.y1 + 0.6);
+      if (inside || hitRay) want = FADED;
     }
     f.alpha = f.alpha === undefined ? 1 : f.alpha;
     if (Math.abs(f.alpha - want) < 0.005 && (want === 1 ? !f.faded : true)) { if (want === 1 && f.faded) setAlpha(f, 1); continue; }

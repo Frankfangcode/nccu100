@@ -7,16 +7,49 @@ import { basic, block, hText, plane } from '../../render/kit.js';
 import { circC } from '../../core/collision.js';
 import { WV, waterU } from '../../render/water.js';
 import { registerHeight, registerZone } from '../registry.js';
+import { LOOK_RO } from '../../render/look.js';
 
 /* ---------- 醉夢溪（地圖上的指南溪），在四維堂與圖書館後方 ---------- */
 const RIV=[[-250,-126],[-185,-136],[-115,-143],[-70,-152],[-20,-164],[20,-178],[45,-200],[60,-230]];
-const rivMat=new THREE.ShaderMaterial({uniforms:waterU,vertexShader:WV,
-  fragmentShader:'uniform float t;varying vec3 vW;void main(){float f=sin((vW.x*0.6+vW.z*0.8)*0.9+t*2.2+sin(vW.x*1.3+t)*1.2);float g=sin(vW.z*0.35-t*1.3+vW.x*0.5);vec3 c=mix(vec3(0.20,0.56,0.70),vec3(0.46,0.81,0.86),0.5+0.25*g);c=mix(c,vec3(0.96,0.99,1.0),smoothstep(0.88,0.97,f)*0.85);gl_FragColor=vec4(c,1.0);}'});
+const rivMat=new THREE.ShaderMaterial({uniforms:waterU,vertexShader:WV,fragmentShader:'uniform float t;varying vec3 vW;void main(){float f=sin((vW.x*0.6+vW.z*0.8)*0.9+t*2.2+sin(vW.x*1.3+t)*1.2);float g=sin(vW.z*0.35-t*1.3+vW.x*0.5);vec3 c=mix(vec3(0.20,0.56,0.70),vec3(0.46,0.81,0.86),0.5+0.25*g);c=mix(c,vec3(0.96,0.99,1.0),smoothstep(0.88,0.97,f)*0.85);gl_FragColor=vec4(c,1.0);}'});
+if(LOOK_RO){
+  rivMat.fragmentShader=`uniform float t,dusk,night;varying vec3 vW;varying vec2 vUv;
+    vec2 h2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}
+    float vor(vec2 x,float tm){
+      vec2 n=floor(x),f=fract(x);float md=8.0;
+      for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
+        vec2 g=vec2(float(i),float(j)),o=h2(n+g);
+        o=0.5+0.42*sin(tm+6.2831*o);
+        vec2 r=g+o-f;md=min(md,dot(r,r));
+      }
+      return sqrt(md);
+    }
+    void main(){
+      float edge=abs(vUv.x-0.5)*2.0;
+      vec2 flow=vec2(-t*0.38,t*0.12);
+      float v1=vor(vW.xz*0.62+flow,t*1.35);
+      float v2=vor(vW.xz*0.95-flow*0.7+vec2(4.2,1.7),t*1.7);
+      float peb=vor(vW.xz*1.45,0.0);
+      vec3 deep=vec3(0.11,0.48,0.68), mid=vec3(0.20,0.66,0.84), shal=vec3(0.38,0.81,0.92);
+      vec3 c=mix(deep,mid,smoothstep(0.0,0.68,edge));
+      c=mix(c,shal,smoothstep(0.55,0.95,edge));
+      c*=0.91+0.12*smoothstep(0.22,0.65,peb);
+      float web=smoothstep(0.42,0.78,v1)*0.65+smoothstep(0.48,0.82,v2)*0.55;
+      c=mix(c,vec3(0.76,0.96,1.0),clamp(web,0.0,0.78)*0.62);
+      c+=vec3(0.85,0.98,1.0)*smoothstep(0.74,0.88,v1*0.6+v2*0.5)*0.28;
+      float foamWave=0.055*sin(vW.x*1.9+vW.z*1.7+t*2.8)+0.03*cos(vW.x*3.3-t*2.1);
+      float bank=smoothstep(0.74,0.95,edge+foamWave);
+      c=mix(c,vec3(0.95,0.99,1.0),bank*0.85);
+      c=mix(c,c*vec3(1.15,0.86,0.74),dusk*0.56);
+      c=mix(c,c*vec3(0.42,0.58,0.90)+vec3(0.04,0.10,0.21),night*0.78);
+      gl_FragColor=vec4(c,1.0);
+    }`;
+}
 for(let i=0;i<RIV.length-1;i++){
   const [x0,z0]=RIV[i],[x1,z1]=RIV[i+1], dx=x1-x0, dz=z1-z0, len=Math.hypot(dx,dz);
   const g=new THREE.Group(); g.position.set((x0+x1)/2,0,(z0+z1)/2); g.rotation.y=Math.atan2(dx,dz); scene.add(g);
   const w=new THREE.Mesh(new THREE.PlaneGeometry(6,len+3),rivMat); w.rotation.x=-Math.PI/2; w.position.y=0.03; g.add(w);
-  [-1,1].forEach(s=>{ block(s*3.25,0.22,0,0.5,0.44,len+3,'#a8a091',0.02,g); block(s*3.25,0.47,0,0.7,0.08,len+3,'#c6bdac',0,g); });
+  [-1,1].forEach(s=>{ block(s*3.25,0.22,0,0.5,0.44,len+3,LOOK_RO?'#adb5c2':'#a8a091',0.02,g); block(s*3.25,0.47,0,0.7,0.08,len+3,LOOK_RO?'#cfd6e0':'#c6bdac',0,g); });
 }
 /* ---------- 橋 ---------- */
 // 小紅橋（原有的人行橋），沿溪道路就在它北端

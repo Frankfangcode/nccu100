@@ -14,6 +14,7 @@ import { bubble } from '../actors/pangolin.js';
 import { crystals } from '../systems/stories.js';
 import { dlg, openDialog, toast } from '../ui/dialog.js';
 import { DIALOGS, fill, pickDialog } from '../content/index.js';
+import { LOOK_RO, RO_CFG } from '../render/look.js';
 
 /* ---------- gameplay ---------- */
 const pos=new THREE.Vector3(-2,0,21), vel=new THREE.Vector3();
@@ -29,14 +30,16 @@ const roomDef=id=>(rooms[id]&&rooms[id].def)||null;
 const groundH=(x,z,room=state.room)=>{ if(!room) return heightAt(x,z); const d=roomDef(room), h=d&&d.heightAt?d.heightAt(x,z):null; return h??0; };
 carry(player); carry(shadowBlob);
 /** 走進房間：換場景、把主角放到房間的出生點 */
-function enterRoom(id){ const d=roomDef(id); transition(()=>{
+function enterRoom(id){ state.roTarget=null; const d=roomDef(id); transition(()=>{
   roomDef(state.room)?.onExit?.(); switchTo(id); state.room=id; late.onSceneChange&&late.onSceneChange();
   const s=d.spawn; pos.set(s.x,s.y??0,s.z); pos.y=s.y??groundH(s.x,s.z); state.yaw=s.yaw??0; state.pitch=s.pitch??0.22; player.rotation.y=s.face??Math.PI;
   d.onEnter&&d.onEnter(); },d.ride&&d.ride.up); }
 /** 走出房間：回到戶外門口 */
-function exitRoom(){ const d=roomDef(state.room); transition(()=>{
+function exitRoom(){ state.roTarget=null; const d=roomDef(state.room); transition(()=>{
   const target=exitDestination(d); d?.onExit?.(); switchTo(target.room); state.room=target.room; late.onSceneChange&&late.onSceneChange();
-  const s=target.spawn; pos.set(s.x,s.y??0,s.z); pos.y=s.y??groundH(s.x,s.z); state.yaw=s.yaw??0; state.pitch=s.pitch??0.3; player.rotation.y=s.face??0; roomDef(target.room)?.onEnter?.(); },d&&d.ride&&d.ride.down); }
+  const s=target.spawn, outRoom=!target.room; pos.set(s.x,s.y??0,s.z); pos.y=s.y??groundH(s.x,s.z);
+  state.yaw=(LOOK_RO&&outRoom&&!s.yaw)?RO_CFG.yaw:(s.yaw??0); state.pitch=(LOOK_RO&&outRoom)?RO_CFG.pitch:(s.pitch??0.3);
+  player.rotation.y=s.face??0; roomDef(target.room)?.onEnter?.(); },d&&d.ride&&d.ride.down); }
 function jump(){ if(state.grounded&&dlg.hidden&&!state.busy&&!state.driving&&!state.swimming){ AU.sfx('jump'); state.vy=6.6; state.grounded=false; } }
 /**
  * 換場景的圓形轉場。ride 是搭車時的說明文字（例如搭公車上山）：
