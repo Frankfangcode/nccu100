@@ -7,13 +7,31 @@ import { GRAD, canvasTex, flat, mk, toon } from '../../render/kit.js';
 import { circC, colliders } from '../../core/collision.js';
 import { SIWEI, bdZ, swZ } from '../layout.js';
 import { stoneMat } from '../props.js';
+import { LOOK_RO } from '../../render/look.js';
 
 /* ---------- 四維道：四維堂、圖書館、行政大樓前的東西向紅磚帶 ---------- */
-const diaTex=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c26a55'; g.fillRect(0,0,w,h);
-  g.strokeStyle='#a85744'; g.lineWidth=1.5; for(let y=0;y<h;y+=8){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/8)%2?0:8;x<=w;x+=16){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+8); g.stroke(); } }
-  for(let i=0;i<500;i++){ g.fillStyle='rgba(120,50,30,.15)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
-  g.strokeStyle='#5d5f63'; g.lineWidth=16; g.lineCap='square';
-  [[0,0,w,h],[w,0,0,h],[-w,0,w,2*h],[0,-h,2*w,h],[2*w,0,0,2*h],[w,-h,-w,h]].forEach(([x0,y0,x1,y1])=>{ g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); }); },[40,4]);
+const diaTex=LOOK_RO
+  ? canvasTex(256,256,(g,w,h)=>{
+      g.fillStyle='#cc7760'; g.fillRect(0,0,w,h);
+      for(let y=0;y<h;y+=16){
+        const off=(y/16)%2?16:0;
+        for(let x=-16;x<w;x+=32){
+          g.fillStyle=((x+y)&16)?'#d48069':'#c36e57';
+          g.fillRect(x+off+1,y+1,30,14);
+        }
+      }
+      g.strokeStyle='#a85b46'; g.lineWidth=1.5;
+      for(let y=0;y<=h;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
+      for(let y=0;y<h;y+=16){ const off=(y/16)%2?16:0; for(let x=off;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+16); g.stroke(); } }
+      g.strokeStyle='#636872'; g.lineWidth=16; g.lineCap='square';
+      [[0,0,w,h],[w,0,0,h],[-w,0,w,2*h],[0,-h,2*w,h],[2*w,0,0,2*h],[w,-h,-w,h]].forEach(([x0,y0,x1,y1])=>{ g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); });
+    },[40,4])
+  : canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c26a55'; g.fillRect(0,0,w,h);
+      g.strokeStyle='#a85744'; g.lineWidth=1.5; for(let y=0;y<h;y+=8){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/8)%2?0:8;x<=w;x+=16){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+8); g.stroke(); } }
+      for(let i=0;i<500;i++){ g.fillStyle='rgba(120,50,30,.15)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+      g.strokeStyle='#5d5f63'; g.lineWidth=16; g.lineCap='square';
+      [[0,0,w,h],[w,0,0,h],[-w,0,w,2*h],[0,-h,2*w,h],[2*w,0,0,2*h],[w,-h,-w,h]].forEach(([x0,y0,x1,y1])=>{ g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); }); },[40,4]);
+if(LOOK_RO) diaTex.anisotropy=12;
 /** 沿著四維道方向（swZ）鋪一段平面：x 從 x0 到 x1，寬 w */
 function alongSw(x0,x1,w,mat,y,edge){
   const xc=(x0+x1)/2, len=(x1-x0)*Math.hypot(1,0.18), g=new THREE.Group(); g.position.set(xc,0,swZ(xc)); g.rotation.y=-Math.atan(0.18); scene.add(g);
@@ -21,7 +39,7 @@ function alongSw(x0,x1,w,mat,y,edge){
   if(edge) [-w/2-0.1,w/2+0.1].forEach(dz=>{ const e=new THREE.Mesh(new THREE.PlaneGeometry(len,0.35),toon(edge)); e.rotation.x=-Math.PI/2; e.position.set(0,y+0.002,dz); g.add(e); });
 }
 // 紅磚段：行政大樓西側到環山一道（照片上實際的四維道範圍）
-{ const t=diaTex.clone(); t.repeat.set((SIWEI.x1-SIWEI.x0)/9,1.1); t.needsUpdate=true;
+{ const t=diaTex.clone(); if(LOOK_RO) t.anisotropy=12; t.repeat.set((SIWEI.x1-SIWEI.x0)/9,1.1); t.needsUpdate=true;
   alongSw(SIWEI.x0,SIWEI.x1,10,new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}),0.016,'#9c5446'); }
 // 紅磚段以外：一般灰色步道，往西接到最西側道路、往東接到指南路轉彎
 alongSw(SIWEI.x1,176,4.6,stoneMat(30,1),0.015,'#9d9c96');

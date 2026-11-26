@@ -9,7 +9,7 @@ import { LOOK2, LOOK_RO, RO_CFG } from './look.js';
 /* ---------- 畫面後製：MSAA、柔光 Bloom、色彩分級、暗角 ---------- */
 const POST=(()=>{
   if(!renderer.capabilities.isWebGL2) return null;
-  const mkRT=(ms)=>{ const rt=new THREE.WebGLRenderTarget(4,4,{samples:ms||0,depthBuffer:!!ms}); rt.texture.encoding=THREE.sRGBEncoding; rt.texture.minFilter=rt.texture.magFilter=THREE.LinearFilter; rt.texture.generateMipmaps=false; return rt; };
+  const mkRT=(ms)=>{ const rt=new THREE.WebGLRenderTarget(4,4,{samples:ms||0,depthBuffer:!!ms,stencilBuffer:!!ms}); rt.texture.encoding=THREE.sRGBEncoding; rt.texture.minFilter=rt.texture.magFilter=THREE.LinearFilter; rt.texture.generateMipmaps=false; return rt; };
   const main=mkRT(4), a=mkRT(0), b=mkRT(0), c=mkRT(0), d=mkRT(0), e=mkRT(0), f=mkRT(0);   // e、f：移軸景深用
   const oc=new THREE.OrthographicCamera(-1,1,1,-1,0,1), quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)), qs=new THREE.Scene(); qs.add(quad); quad.frustumCulled=false;
   const VS='varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}';
@@ -30,7 +30,7 @@ const POST=(()=>{
         uv=(floor(vUv*grid)+0.5)/grid;
       }
       vec3 c=texture2D(tS,uv).rgb;
-      if(look>1.5&&indoor<0.5&&uPix<0.5){ float k=smoothstep(0.30,0.53,abs(uv.y-0.48)); c=mix(c,texture2D(tD,uv).rgb,k*0.48); }
+      if(look>1.5&&indoor<0.5&&uPix<0.5){ float k=smoothstep(0.39,0.52,abs(uv.y-0.50)); c=mix(c,texture2D(tD,uv).rgb,k*0.22); }
       else if(look>0.5&&look<1.5&&indoor<0.5){ float k=smoothstep(0.20,0.50,abs(uv.y-0.47)); c=mix(c,texture2D(tD,uv).rgb,k*0.9); }
       vec3 bl=texture2D(tB1,uv).rgb*0.6+texture2D(tB2,uv).rgb*0.8;
       c+=bl*bloom;

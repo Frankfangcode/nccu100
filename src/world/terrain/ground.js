@@ -37,7 +37,7 @@ const lawnTex=LOOK_RO
       const blob=(c,n,r0,r1)=>{ g.fillStyle=c; for(let i=0;i<n;i++){ const x=Math.random()*w, y=Math.random()*h, r=r0+Math.random()*(r1-r0);
         for(const ox of [-w,0,w]) for(const oy of [-h,0,h]){ g.beginPath(); g.ellipse(x+ox,y+oy,r,r*0.7,Math.random()*3,0,7); g.fill(); } } };
       blob('#7dbb52',9,22,44); blob('#90cc62',8,18,36); blob('#9ad56a',26,2,4); blob('#74b34c',26,2,4); },[1,1]):null);
-const lawn=(w,d)=>{ if(!LOOK2&&!LOOK_RO) return '#86c35a'; const t=lawnTex.clone(); const sc=LOOK_RO?5.8:22; t.repeat.set(w/sc,d/sc); t.needsUpdate=true; return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); };
+const lawn=(w,d)=>{ if(!LOOK2&&!LOOK_RO) return '#86c35a'; const t=lawnTex.clone(); if(LOOK_RO) t.anisotropy=12; const sc=LOOK_RO?5.8:22; t.repeat.set(w/sc,d/sc); t.needsUpdate=true; return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); };
 flat(1400,1400,lawn(1400,1400),0,-0.06,-200);
 flat(79.6,96,lawn(79.6,96),-5.2,0,-36);
 flat(60,96,lawn(60,96),71.7,0,-36);
@@ -54,7 +54,7 @@ const brickTex=LOOK_RO
       for(let i=0;i<500;i++){ g.fillStyle=['#b9644f','#d48a74','#bd6d5a'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); }
       g.strokeStyle='#a95a48'; g.lineWidth=2;
       for(let y=0;y<h;y+=32){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/32)%2?0:32;x<=w;x+=64){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+32); g.stroke(); } } },[5,44]);
-const brickMat=(rx,ry)=>{ const t=brickTex.clone(); t.repeat.set(rx,ry); t.needsUpdate=true; return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); };
+const brickMat=(rx,ry)=>{ const t=brickTex.clone(); if(LOOK_RO) t.anisotropy=12; t.repeat.set(rx,ry); t.needsUpdate=true; return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD}); };
 flat(GUIDE.avenue.width,GUIDE.avenue.length,stoneMat(6,37),GUIDE.avenue.x,0.019,GUIDE.avenue.z); // 校門到四維堂的大道（灰色石磚）
 flat(0.3,74,'#8f8e88',-6.1,0.02,-39);
 flat(0.3,74,'#8f8e88',6.1,0.02,-39);

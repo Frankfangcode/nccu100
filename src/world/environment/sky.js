@@ -45,15 +45,15 @@ scene.add(hemi);
 const sun=LOOK_RO?new THREE.DirectionalLight('#fff2d6',1.28):(LOOK2?new THREE.DirectionalLight('#ffe8bd',1.62):new THREE.DirectionalLight('#fff1d4',1.7));
 sun.castShadow=true;
 sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);   // 手機用 1024，省 12 MB 顯示記憶體
-const sc=sun.shadow.camera, sr=LOOK_RO?54:34;
+const sc=sun.shadow.camera, sr=LOOK_RO?46:34;
 sc.left=-sr;
 sc.right=sr;
 sc.top=sr;
 sc.bottom=-sr;
 sc.near=1;
 sc.far=190;
-sun.shadow.bias=LOOK_RO?-0.00045:-0.0006;
-sun.shadow.normalBias=LOOK_RO?0.03:0.04;
+sun.shadow.bias=LOOK_RO?-0.00085:-0.0006;
+sun.shadow.normalBias=LOOK_RO?0.055:0.04;
 scene.add(sun);
 scene.add(sun.target);
 const CLOUD_G=gradTex([205,232,255]);

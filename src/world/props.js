@@ -27,6 +27,7 @@ function stoneMat(rx,ry){
         for(let y=0;y<h;y+=32){ const off=(y/32)%2?16:0; for(let x=off;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+32); g.stroke(); } }
       },[rx,ry])
     : canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#b9b8b2'; g.fillRect(0,0,w,h); for(let i=0;i<400;i++){ g.fillStyle=['#a9a8a2','#c6c5bf','#b1b0aa'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); } g.strokeStyle='#9d9c96'; g.lineWidth=1.5; for(let y=0;y<h;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/16)%2?0:16;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+16); g.stroke(); } } },[rx,ry]);
+  if(LOOK_RO) t.anisotropy=12;
   return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD});
 }
 function bannerTex(bg,fg,t1,t2){ return canvasTex(128,256,(g,w,h)=>{ g.fillStyle=bg; g.fillRect(0,0,w,h);
