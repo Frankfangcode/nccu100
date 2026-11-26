@@ -4,7 +4,7 @@
  * 工作台頁面與 Node 單元測試不啟用，確保既有測試與角色工作台不受影響。
  */
 const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
-const inGame = typeof document !== 'undefined' && !!document.getElementById('stage');
+const inGame = typeof HTMLElement !== 'undefined' && typeof document !== 'undefined' && !!document.getElementById('stage');
 const mode = q ? q.get('look') : '1';
 export const LOOK2 = inGame && mode === '2';
 export const LOOK_RO = inGame && mode !== '1' && mode !== '2';

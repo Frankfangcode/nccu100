@@ -11,19 +11,19 @@ import { inPhotoDistrict } from './photo-district.js';
 import { LOOK2, LOOK_RO } from '../render/look.js';
 
 /* ---------- 樹、椰子、路燈 ---------- */
-const TRUNK=new THREE.CylinderGeometry(0.2,0.3,2.6,7);
-/* look v2：樹冠改用較圓滑的球；LOOK_RO：保留低多邊形二十面體（SPH），搭配粉櫻與翠綠雙色系 */
+const TRUNK=new THREE.CylinderGeometry(0.2,0.3,2.6,8);
+const TREE_RING=new THREE.CylinderGeometry(0.46,0.56,0.07,14);
+/* look v2：樹冠改用較圓滑的球；LOOK_RO：政策島低多邊形二十面體樹冠（鼠尾草開心果綠＋暖杏粉點綴） */
 const CROWN=LOOK2?new THREE.IcosahedronGeometry(1,2):SPH;
-const greens=LOOK_RO?['#2f8037','#439c43','#58b550']:(LOOK2?['#3f9a4b','#56b651','#7ccf5c']:['#4c9a47','#5cb150','#6bc35b']);
-const sakuras=['#cf6c95','#df85ab','#eba0c0'];
+const greens=LOOK_RO?['#7ea05e','#93b472','#a9c687']:(LOOK2?['#3f9a4b','#56b651','#7ccf5c']:['#4c9a47','#5cb150','#6bc35b']);
+const sakuras=LOOK_RO?['#dda196','#e7b3a8','#efc5bc']:['#cf6c95','#df85ab','#eba0c0'];
 const LOBE2=[0,1,1,2];
 const SAKURA_TREES=[];
 function isSakuraAt(x,z){
   if(!LOOK_RO) return false;
-  // 噴水池廣場對角兩棵與溪畔／步道定點櫻花樹（純依既有座標決定，不新增或搬移任何樹）
   if((Math.abs(x+10.5)<0.5&&Math.abs(z+24.5)<0.5)||(Math.abs(x-10.5)<0.5&&Math.abs(z+39.5)<0.5)) return true;
   const h=Math.abs(Math.sin(x*12.9898+z*78.233)*43758.5453);
-  return (h-Math.floor(h))<0.24;
+  return (h-Math.floor(h))<0.12;
 }
 /**
  * 會擋鏡頭的樹冠清單：{ x, z, r 樹冠半徑, y0 樹冠底, y1 樹冠頂, parts 會變透明的網格 }
@@ -39,7 +39,8 @@ function tree(x,z,s){
   if(pink) SAKURA_TREES.push({x,z,s});
   const pf=asPrefab(()=>{
     const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=Math.random()*6; scene.add(g);
-    const tr=mk(TRUNK,toon(LOOK_RO?(pink?'#4a332a':'#593f2e'):'#7a5a43'),0,1.3,0,{parent:g,out:0.05}); tr.scale.setScalar(s); tr.position.y=1.3*s;
+    const tr=mk(TRUNK,toon(LOOK_RO?'#7d502d':'#7a5a43'),0,1.3,0,{parent:g,out:0.05}); tr.scale.setScalar(s); tr.position.y=1.3*s;
+    if(LOOK_RO){ const rb=mk(TREE_RING,toon('#a6805c'),0,0.035*s,0,{parent:g}); rb.scale.setScalar(s); }
     [[0,3.6,0,1.8],[1.1,3.1,0.3,1.25],[-0.9,3.3,-0.4,1.3],[0.2,4.6,-0.2,1.15]].forEach((b,i)=>{
       const m=mk(CROWN,toon(pal[(LOOK2||LOOK_RO)?LOBE2[i]:(i+Math.floor(Math.abs(x)))%3]),b[0]*s,b[1]*s,b[2]*s,{parent:g,out:LOOK2?0.05:0.1}); m.scale.setScalar(b[3]*s); parts.push(m);
     });
@@ -62,12 +63,12 @@ function palm(x,z,h,fan){
     const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
     // 樹幹高度取到 0.5 公尺共用形狀，才能合批
     const hh=Math.round(h*2)/2;
-    mk(palmTrunk(fan,hh),toon(fan?'#8f7c66':'#cfc7b8'),0,hh/2,0,{parent:g,out:0.04});
-    if(!fan) mk(PALM_NECK,toon('#7ea84c'),0,h+0.7,0,{parent:g,out:0.03});
+    mk(palmTrunk(fan,hh),toon(fan?(LOOK_RO?'#9b866e':'#8f7c66'):(LOOK_RO?'#d6cec0':'#cfc7b8')),0,hh/2,0,{parent:g,out:0.04});
+    if(!fan) mk(PALM_NECK,toon(LOOK_RO?'#8dae66':'#7ea84c'),0,h+0.7,0,{parent:g,out:0.03});
     crown=new THREE.Group(); crown.position.y=fan?h:h+1.4; g.add(crown);
     const n=fan?13:9, off=Math.random()*6;
     for(let i=0;i<n;i++){ const p=new THREE.Group(); p.rotation.order='YXZ'; p.rotation.y=off+i/n*Math.PI*2; p.rotation.x=fan?(-0.5+Math.random()*0.9):(-0.15+Math.random()*0.8); crown.add(p);
-      const f=mk(FROND,toon(i%2?'#4f9a3e':'#5fae46'),0,0,0,{parent:p});
+      const f=mk(FROND,toon(i%2?(LOOK_RO?'#7fa15f':'#4f9a3e'):(LOOK_RO?'#93b472':'#5fae46')),0,0,0,{parent:p});
       if(fan) f.scale.set(2.6,0.2,0.5+Math.random()*0.15); else f.scale.set(1.7,0.22,1+Math.random()*0.25); }
   },{fade:()=>crown.children.map(p=>p.children[0]),sway:()=>crown});
   const top=crown.position.y;
@@ -89,11 +90,11 @@ function banyan(x,z,s){
   s=s||1; const parts=[];
   const pf=asPrefab(()=>{
   const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=Math.random()*6; scene.add(g);
-  const trunkMat=toon('#8a7a62');
+  const trunkMat=toon(LOOK_RO?'#8c6b4f':'#8a7a62');
   mk(new THREE.CylinderGeometry(0.55,0.85,4.2,9),trunkMat,0,2.1*s,0,{parent:g,out:0.05}).scale.setScalar(s);
   [[1.2,0.4],[-1,0.6],[0.3,-1.2]].forEach(([dx,dz])=>{ const b=mk(new THREE.CylinderGeometry(0.22,0.35,3.2,7),trunkMat,dx*0.9*s,3.6*s,dz*0.9*s,{parent:g,out:0.04}); b.rotation.set(dz*0.45,0,-dx*0.45); b.scale.setScalar(s); });
   [[0,5.2,0,3.4,0.6],[2.6,4.8,0.6,2.4,0.55],[-2.5,4.9,-0.4,2.5,0.55],[0.6,5,2.4,2.3,0.55],[-0.4,5.1,-2.5,2.3,0.55],[0,6.1,0,2.4,0.6]].forEach(([dx,y,dz,r,sy],i)=>{
-    const m=mk(SPH,toon(['#6f8f4e','#7a9a55','#668548'][i%3]),dx*s,y*s,dz*s,{parent:g,out:0.1}); m.scale.set(r*s,r*sy*s,r*s); parts.push(m); });
+    const m=mk(SPH,toon((LOOK_RO?['#80a160','#92b371','#749556']:['#6f8f4e','#7a9a55','#668548'])[i%3]),dx*s,y*s,dz*s,{parent:g,out:0.1}); m.scale.set(r*s,r*sy*s,r*s); parts.push(m); });
   for(let i=0;i<14;i++){ const a=Math.random()*Math.PI*2, d=(1+Math.random()*3)*s, h=(1.6+Math.random()*2.2)*s;
     const r=mk(ROOT,toon('#8f8068'),Math.cos(a)*d,4.3*s-h/2,Math.sin(a)*d,{parent:g}); r.scale.y=h; }
   },{fade:()=>parts});

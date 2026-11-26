@@ -33,16 +33,16 @@ function rampTex2(){
     d[i*4+3]=255; }
   const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t;
 }
-/* 普隆德拉低多邊形折面光影：連續斜率色階搭配 flatShading 面法線，讓二十面體樹冠與屋頂每一片三角形都呈現清晰獨立的亮暗切面，且不爆白 */
+/* 政策島（Heart Island）溫潤黏土與建築模型光影：低反差暖灰米暗面、奶油白受光面，搭配圓潤表面柔霧微高光 */
 function rampTexRO(){
   const N=256, d=new Uint8Array(N*4);
-  const c0=[0.16,0.23,0.40], c1=[0.50,0.54,0.65], c2=[0.89,0.87,0.82];
+  const c0=[0.54,0.55,0.52], c1=[0.77,0.77,0.74], c2=[0.95,0.95,0.93];
   for(let i=0;i<N;i++){
     const x=i/(N-1);
     for(let k=0;k<3;k++){
       let v;
-      if(x<0.48){ const u=x/0.48, s=u*(0.65+0.35*u); v=c0[k]+(c1[k]-c0[k])*s; }
-      else { const u=(x-0.48)/0.52, s=u*(1.25-0.25*u); v=c1[k]+(c2[k]-c1[k])*s; }
+      if(x<0.48){ const u=x/0.48, s=u*(0.7+0.3*u); v=c0[k]+(c1[k]-c0[k])*s; }
+      else { const u=(x-0.48)/0.52, s=u*(1.15-0.15*u); v=c1[k]+(c2[k]-c1[k])*s; }
       d[i*4+k]=Math.max(0,Math.min(255,Math.round(v*255)));
     }
     d[i*4+3]=255;
@@ -52,9 +52,10 @@ function rampTexRO(){
 const GRAD=LOOK_RO?rampTexRO():(LOOK2?rampTex2():rampTex());
 /* 所有卡通材質加上邊緣光（rim light），讓角色與建築輪廓更立體 */
 THREE.ShaderLib.toon.fragmentShader=THREE.ShaderLib.toon.fragmentShader.replace('#include <output_fragment>',
-  LOOK_RO?`{ float rimD=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);
-     float rimA=smoothstep(0.72,0.94,rimD)*0.09*clamp(normal.y*0.4+0.5,0.0,1.0);
-     outgoingLight+=diffuseColor.rgb*vec3(1.0,0.97,0.92)*rimA; }
+  LOOK_RO?`{ vec3 vN=normalize(normal); vec3 vV=normalize(vViewPosition);
+     vec3 hDir=normalize(vV+vec3(0.32,0.86,0.38));
+     float claySpec=pow(max(dot(vN,hDir),0.0),20.0)*0.055;
+     outgoingLight+=vec3(1.0,0.99,0.96)*claySpec; }
    #include <output_fragment>`:
   LOOK2?`{ float rimD=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);
      float rimA=pow(rimD,2.2)*0.55*clamp(normal.y*0.4+0.75,0.0,1.0);

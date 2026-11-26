@@ -13,9 +13,12 @@ import { registerPlayerCharacter } from './character-part-sources.js';
 import { state } from '../core/state.js';
 import { scene } from '../core/engine.js';
 import { BOX, OUT, SPH, basic, canvasTex, mk, outline, toon } from '../render/kit.js';
+import { LOOK_RO } from '../render/look.js';
 
 /* ---------- player：Q版小男生 ---------- */
-const HC={skin:'#ffe1cc',hair:'#4a3226',hair2:'#5d4030',shirt:'#5aa7e0',shorts:'#2f3e66',shoe:'#f6f5f1',sole:'#d9534a',bag:'#f2b33d',bag2:'#cf8f25',gold:'#e3b75a',white:'#ffffff'};
+const HC=LOOK_RO
+  ? {skin:'#eabfa0',hair:'#433025',hair2:'#523c2f',shirt:'#6b7eb5',shorts:'#3d434e',shoe:'#f2efe8',sole:'#d47353',bag:'#dec048',bag2:'#c4a535',gold:'#e3b75a',white:'#f7f5ef'}
+  : {skin:'#ffe1cc',hair:'#4a3226',hair2:'#5d4030',shirt:'#5aa7e0',shorts:'#2f3e66',shoe:'#f6f5f1',sole:'#d9534a',bag:'#f2b33d',bag2:'#cf8f25',gold:'#e3b75a',white:'#ffffff'};
 const DS={side:THREE.DoubleSide};
 function part(geo,mat,x,y,z,parent,out){ return mk(geo,typeof mat==='string'?toon(mat):mat,x,y,z,{parent,out}); }
 function outlineU(m,k){ const o=new THREE.Mesh(m.geometry,OUT); o.scale.setScalar(k); m.add(o); return o; }
@@ -25,10 +28,14 @@ const model=createHumanoid(playerHumanoidProfile(HC),{parent:scene,part,outlineU
 // 換泳衣時要藏起來的東西（領口、胸前白線、書包）
 PACK.push(ring(0.1,0.018,HC.white,0.68,rig,0.9));
 PACK.push(part(BOX,HC.white,0,0.5,0.148,rig)); PACK[1].scale.set(0.15,0.028,0.01);
-const bag=part(BOX,HC.bag,0,0.53,-0.2,rig); PACK.push(bag);
-bag.scale.set(0.27,0.3,0.14);
+const bagGeo=LOOK_RO?new THREE.CapsuleGeometry(0.125,0.08,8,16):BOX;
+const bag=part(bagGeo,HC.bag,0,0.53,-0.2,rig); PACK.push(bag);
+if(LOOK_RO) bag.scale.set(1.08,1.0,0.62); else bag.scale.set(0.27,0.3,0.14);
 outline(bag,0).scale.set(1.12,1.1,1.2);
-PACK.push(part(BOX,HC.bag2,0,0.45,-0.28,rig)); PACK[3].scale.set(0.2,0.12,0.04);
+const pktGeo=LOOK_RO?new THREE.CapsuleGeometry(0.055,0.08,6,12):BOX;
+const pkt=part(pktGeo,HC.bag2,0,0.45,LOOK_RO?-0.275:-0.28,rig);
+if(LOOK_RO){ pkt.rotation.z=Math.PI/2; pkt.scale.set(1,1,0.45); } else pkt.scale.set(0.2,0.12,0.04);
+PACK.push(pkt);
 [-1,1].forEach(s=>{ const st=part(BOX,HC.bag2,s*0.1,0.56,0,rig); st.scale.set(0.035,0.28,0.31); PACK.push(st); });
 }});
 const {root:player,body:rig,joints:H,limbParts,headCenter:hc}=model;
@@ -40,6 +47,23 @@ function drawFace(g,closed){
   g.clearRect(0,0,256,256);
   g.save(); g.translate(128,0); g.scale(0.78,1); g.translate(-128,0);
   g.lineCap='round';
+  if(LOOK_RO){
+    [88,168].forEach(cx=>{
+      const cy=114;
+      if(closed){
+        g.strokeStyle='#2b221e'; g.lineWidth=6;
+        g.beginPath(); g.moveTo(cx-10,cy+2); g.quadraticCurveTo(cx,cy+9,cx+10,cy+2); g.stroke();
+      } else {
+        g.fillStyle='#2b221e'; g.beginPath(); g.ellipse(cx,cy,8.5,10.5,0,0,7); g.fill();
+        g.fillStyle='rgba(255,255,255,0.65)'; g.beginPath(); g.arc(cx-2.5,cy-3.5,2.4,0,7); g.fill();
+      }
+    });
+    g.fillStyle='rgba(226,128,104,0.28)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,144,14,7.5,0,0,7); g.fill(); });
+    g.strokeStyle='#8c5246'; g.lineWidth=4.5;
+    g.beginPath(); g.moveTo(117,164); g.quadraticCurveTo(128,173,139,164); g.stroke();
+    g.restore();
+    return;
+  }
   [82,174].forEach(cx=>{
     const cy=108;
     if(closed){ g.strokeStyle='#2a1f2b'; g.lineWidth=5; g.beginPath(); g.moveTo(cx-12,cy+2); g.quadraticCurveTo(cx,cy+9,cx+12,cy+2); g.stroke(); }
@@ -61,31 +85,44 @@ const faceMat=basic({map:faceOpen,transparent:true,polygonOffset:true,polygonOff
 const face=new THREE.Mesh(new THREE.SphereGeometry(0.3015,32,20,Math.PI/2-0.8,1.6,Math.PI*0.38,Math.PI*0.42),faceMat);
 face.scale.set(...HS);
 hc.add(face);
-/* 短刺刺的頭髮 */
+/* 頭髮：LOOK_RO 採用政策島圓潤厚實黏土鮑伯帽型與柔和圓瀏海；原版維持刺刺頭 */
 const hairM=toon(HC.hair,DS), hairM2=toon(HC.hair2,DS);
-const cap=part(new THREE.SphereGeometry(0.315,32,16,0,Math.PI*2,0,Math.PI*0.42),hairM,0,0.01,-0.005,hc);
+const cap=part(new THREE.SphereGeometry(LOOK_RO?0.322:0.315,32,LOOK_RO?18:16,0,Math.PI*2,0,Math.PI*(LOOK_RO?0.46:0.42)),hairM,0,LOOK_RO?0.012:0.01,-0.005,hc);
 cap.scale.set(...HS);
 outlineU(cap,1.04);
-const back=part(new THREE.SphereGeometry(0.318,32,18,Math.PI/2+1.1,Math.PI*2-2.2,0,Math.PI*0.72),hairM,0,0,-0.01,hc);
+const back=part(new THREE.SphereGeometry(LOOK_RO?0.324:0.318,32,18,Math.PI/2+(LOOK_RO?1.05:1.1),Math.PI*2-(LOOK_RO?2.1:2.2),0,Math.PI*(LOOK_RO?0.70:0.72)),hairM,0,0,-0.01,hc);
 back.scale.set(...HS);
 outlineU(back,1.04);
-const SPIKE=new THREE.ConeGeometry(0.075,0.15,5);
-SPIKE.translate(0,0.075,0);
-const up=new THREE.Vector3(0,1,0);
 const HAIR=[cap,back];
-[[0.55,Math.PI],[1.0,Math.PI*0.75],[1.0,Math.PI*1.25],[1.5,Math.PI*0.62],[1.5,Math.PI*1.38],[1.75,Math.PI],[0.7,0.5],[0.7,-0.5],[0.25,0.1]].forEach(([t,p],i)=>{
-  const n=new THREE.Vector3(Math.sin(t)*Math.sin(p),Math.cos(t),Math.sin(t)*Math.cos(p));
-  const m=part(SPIKE,i%2?hairM2:hairM,n.x*0.28*HS[0],n.y*0.28*HS[1],n.z*0.28*HS[2],hc,0.012);
-  m.quaternion.setFromUnitVectors(up,n); HAIR.push(m);
-});
-const BANG=new THREE.ConeGeometry(0.07,1,5);
-BANG.rotateX(Math.PI);
-BANG.translate(0,-0.5,0);
-[[-0.75,0.13],[-0.4,0.11],[-0.05,0.12],[0.3,0.1],[0.65,0.13]].forEach(([a,len],i)=>{
-  const g=new THREE.Group(); g.position.set(Math.sin(a)*0.27,0.12,Math.cos(a)*0.27); g.rotation.y=a; hc.add(g);
-  const m=part(BANG,i%2?hairM2:hairM,0,0,0,g,0.012); m.scale.set(1,len,0.5); m.rotation.x=-0.35; HAIR.push(g);
-});
-const shadowBlob=new THREE.Mesh(new THREE.CircleGeometry(0.3,20),basic({color:'#000',transparent:true,opacity:0.18,depthWrite:false}));
+if(LOOK_RO){
+  const PUFF=new THREE.SphereGeometry(0.105,18,14);
+  [[0,0.23,0.04,1.25,0.72,1.15],[-0.16,0.16,0.11,1.0,0.8,1.0],[0.16,0.16,0.11,1.0,0.8,1.0],[-0.21,0.04,-0.08,0.95,1.05,1.05],[0.21,0.04,-0.08,0.95,1.05,1.05],[0,0.06,-0.22,1.2,1.0,0.9]].forEach(([x,y,z,sx,sy,sz],i)=>{
+    const m=part(PUFF,i%2?hairM2:hairM,x*HS[0],y*HS[1],z*HS[2],hc);
+    m.scale.set(sx,sy,sz); HAIR.push(m);
+  });
+  const FRINGE=new THREE.CapsuleGeometry(0.056,0.075,8,14);
+  [[-0.58,0.95],[-0.20,1.02],[0.18,1.0],[0.56,0.92]].forEach(([a,sc],i)=>{
+    const g=new THREE.Group(); g.position.set(Math.sin(a)*0.268,0.145,Math.cos(a)*0.268); g.rotation.y=a; hc.add(g);
+    const m=part(FRINGE,i%2?hairM2:hairM,0,-0.03,0,g); m.scale.set(1.05,sc,0.68); m.rotation.set(-0.26,0,a*0.18); HAIR.push(g);
+  });
+} else {
+  const SPIKE=new THREE.ConeGeometry(0.075,0.15,5);
+  SPIKE.translate(0,0.075,0);
+  const up=new THREE.Vector3(0,1,0);
+  [[0.55,Math.PI],[1.0,Math.PI*0.75],[1.0,Math.PI*1.25],[1.5,Math.PI*0.62],[1.5,Math.PI*1.38],[1.75,Math.PI],[0.7,0.5],[0.7,-0.5],[0.25,0.1]].forEach(([t,p],i)=>{
+    const n=new THREE.Vector3(Math.sin(t)*Math.sin(p),Math.cos(t),Math.sin(t)*Math.cos(p));
+    const m=part(SPIKE,i%2?hairM2:hairM,n.x*0.28*HS[0],n.y*0.28*HS[1],n.z*0.28*HS[2],hc,0.012);
+    m.quaternion.setFromUnitVectors(up,n); HAIR.push(m);
+  });
+  const BANG=new THREE.ConeGeometry(0.07,1,5);
+  BANG.rotateX(Math.PI);
+  BANG.translate(0,-0.5,0);
+  [[-0.75,0.13],[-0.4,0.11],[-0.05,0.12],[0.3,0.1],[0.65,0.13]].forEach(([a,len],i)=>{
+    const g=new THREE.Group(); g.position.set(Math.sin(a)*0.27,0.12,Math.cos(a)*0.27); g.rotation.y=a; hc.add(g);
+    const m=part(BANG,i%2?hairM2:hairM,0,0,0,g,0.012); m.scale.set(1,len,0.5); m.rotation.x=-0.35; HAIR.push(g);
+  });
+}
+const shadowBlob=new THREE.Mesh(new THREE.CircleGeometry(0.3,20),basic({color:LOOK_RO?'#2f2b24':'#000',transparent:true,opacity:LOOK_RO?0.15:0.18,depthWrite:false}));
 shadowBlob.rotation.x=-Math.PI/2;
 scene.add(shadowBlob);
 let blinkT=2.5;

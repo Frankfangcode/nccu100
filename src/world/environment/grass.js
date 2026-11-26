@@ -7,23 +7,30 @@ import { GRAD } from '../../render/kit.js';
 import { bdZ, inLot, swZ } from '../layout.js';
 import { FZ } from '../terrain/fountain.js';
 import { world } from '../registry.js';
+import { LOOK_RO } from '../../render/look.js';
 
 /* ---------- grass ---------- */
 const grassU={value:0};
-const bladeGeo=new THREE.PlaneGeometry(0.1,0.5,1,3);
-bladeGeo.translate(0,0.25,0);
-{ const n=bladeGeo.attributes.normal; for(let i=0;i<n.count;i++) n.setXYZ(i,0,1,0); }
-const grassMat=new THREE.MeshToonMaterial({color:'#ffffff',gradientMap:GRAD,side:THREE.DoubleSide});
-grassMat.onBeforeCompile=sh=>{
-  sh.uniforms.uTime=grassU;
-  sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;varying float vH;')
-   .replace('#include <begin_vertex>','#include <begin_vertex>\nfloat hh=position.y/0.5;vH=hh;\n#ifdef USE_INSTANCING\nvec3 ip=instanceMatrix[3].xyz;\n#else\nvec3 ip=vec3(0.0);\n#endif\nfloat ww=sin(uTime*1.7+ip.x*0.35+ip.z*0.22)*0.16+sin(uTime*3.3+ip.x*1.3)*0.04;transformed.x+=ww*hh*hh;transformed.z+=ww*0.5*hh*hh;');
-  sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vH;')
-   .replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=mix(0.62,1.18,vH);');
-};
-const GN=7000, grass=new THREE.InstancedMesh(bladeGeo,grassMat,GN);
+const bladeGeo=LOOK_RO?new THREE.CylinderGeometry(0.18,0.20,0.04,10):new THREE.PlaneGeometry(0.1,0.5,1,3);
+if(LOOK_RO) bladeGeo.translate(0,0.02,0);
+else {
+  bladeGeo.translate(0,0.25,0);
+  const n=bladeGeo.attributes.normal; for(let i=0;i<n.count;i++) n.setXYZ(i,0,1,0);
+}
+const grassMat=new THREE.MeshToonMaterial({color:'#ffffff',gradientMap:GRAD,side:LOOK_RO?THREE.FrontSide:THREE.DoubleSide});
+if(!LOOK_RO){
+  grassMat.onBeforeCompile=sh=>{
+    sh.uniforms.uTime=grassU;
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float uTime;varying float vH;')
+     .replace('#include <begin_vertex>','#include <begin_vertex>\nfloat hh=position.y/0.5;vH=hh;\n#ifdef USE_INSTANCING\nvec3 ip=instanceMatrix[3].xyz;\n#else\nvec3 ip=vec3(0.0);\n#endif\nfloat ww=sin(uTime*1.7+ip.x*0.35+ip.z*0.22)*0.16+sin(uTime*3.3+ip.x*1.3)*0.04;transformed.x+=ww*hh*hh;transformed.z+=ww*0.5*hh*hh;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vH;')
+     .replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=mix(0.62,1.18,vH);');
+  };
+}
+const GN=LOOK_RO?360:7000, grass=new THREE.InstancedMesh(bladeGeo,grassMat,GN);
 grass.receiveShadow=true;
-const dm=new THREE.Object3D(), gc=new THREE.Color(), gTones=['#6fb84f','#82c95a','#94d462','#5fa847'];
+const dm=new THREE.Object3D(), gc=new THREE.Color();
+const gTones=LOOK_RO?['#a3b986','#95ae78','#b5c89b','#dcdad0']:['#6fb84f','#82c95a','#94d462','#5fa847'];
 // 建築可自行登記除草範圍；未登記的建築與地形維持原有取樣規則。
 const grassExclusions=world.buildings.filter(b=>typeof b.excludeGrassAt==='function');
 let gi=0;
@@ -40,7 +47,8 @@ while(gi<GN){
   if(Math.hypot(x,z-FZ)<9.8||(Math.abs(z-FZ)<2.4&&Math.abs(x)<24)) continue;
   { const ax=Math.abs(x); if((ax>24.8&&ax<31.2&&z>-50.2&&z<-13.8)||(ax>11.8&&ax<31.2&&((z>-19.2&&z<-13.8)||(z>-50.2&&z<-44.8)))) continue; }
   dm.position.set(x,0,z); dm.rotation.set(0,Math.random()*Math.PI,0);
-  dm.scale.set(1,0.7+Math.random()*0.8,1); dm.updateMatrix();
+  const s=LOOK_RO?(0.85+Math.random()*1.15):1;
+  dm.scale.set(s,LOOK_RO?(0.8+Math.random()*0.6):(0.7+Math.random()*0.8),s); dm.updateMatrix();
   grass.setMatrixAt(gi,dm.matrix); grass.setColorAt(gi,gc.set(gTones[gi%4])); gi++;
 }
 scene.add(grass);

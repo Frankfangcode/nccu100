@@ -35,20 +35,20 @@ const POST=(()=>{
       vec3 bl=texture2D(tB1,uv).rgb*0.6+texture2D(tB2,uv).rgb*0.8;
       c+=bl*bloom;
       float l=dot(c,vec3(0.2126,0.7152,0.0722));
-      c=mix(vec3(l),c,look>1.5?1.16:1.14);
-      vec3 cool=look>1.5?vec3(0.92,0.97,1.07):vec3(0.90,0.96,1.08);
-      vec3 warm=look>1.5?vec3(1.04,1.00,0.94):vec3(1.05,1.0,0.92);
+      c=mix(vec3(l),c,look>1.5?1.04:1.14);
+      vec3 cool=look>1.5?vec3(0.98,0.98,0.96):vec3(0.90,0.96,1.08);
+      vec3 warm=look>1.5?vec3(1.02,1.01,0.98):vec3(1.05,1.0,0.92);
       c*=mix(cool,warm,smoothstep(0.03,0.55,l));
-      c=c/(1.0+c*0.16)*1.04;
-      c=pow(c,vec3(look>1.5?1.04:1.06));
+      c=c/(1.0+c*0.14)*1.03;
+      c=pow(c,vec3(look>1.5?1.01:1.06));
       if(look>0.5&&look<1.5){ float l2=dot(c,vec3(0.2126,0.7152,0.0722)); c=mix(vec3(l2),c,1.10); c=mix(c,c*c*(3.0-2.0*c),0.22); c*=1.03; }
       if(uPix>0.5){
         float d=bayer2(floor(vUv*vec2(max(64.0,floor(230.0*uRes.x/max(1.0,uRes.y))),230.0)))-0.5;
         c=clamp(floor(c*28.0+d*0.65+0.5)/28.0,0.0,1.0);
       }
       vec2 q=vUv-0.5; q.x*=1.25;
-      float vig=look>1.5?mix(0.20,0.38,indoor):mix(0.32,0.45,indoor);
-      c*=1.0-smoothstep(0.28,0.96,length(q))*vig;
+      float vig=look>1.5?mix(0.11,0.32,indoor):mix(0.32,0.45,indoor);
+      c*=1.0-smoothstep(0.32,0.98,length(q))*vig;
       gl_FragColor=vec4(max(c,0.0),1.0);
       #include <encodings_fragment>
     }`});
@@ -76,7 +76,7 @@ const POST=(()=>{
       comp.uniforms.tD.value=e.texture;
     }
     comp.uniforms.uPix.value=pix;
-    comp.uniforms.tB1.value=a.texture; comp.uniforms.tB2.value=c.texture; comp.uniforms.bloom.value=bloomOn?(ind?0.28:(LOOK_RO?0.26:0.42)):0; comp.uniforms.time.value=t; comp.uniforms.indoor.value=ind?1:0;
+    comp.uniforms.tB1.value=a.texture; comp.uniforms.tB2.value=c.texture; comp.uniforms.bloom.value=bloomOn?(ind?0.24:(LOOK_RO?0.13:0.42)):0; comp.uniforms.time.value=t; comp.uniforms.indoor.value=ind?1:0;
     quad.material=comp; renderer.setRenderTarget(null); renderer.render(qs,oc);
   }
   size();

@@ -1,4 +1,4 @@
-/* 普隆德拉微縮城鎮風（LOOK_RO）極簡介面樣式：輕透毛玻璃地點列、表情泡泡選單、明信片／奇遇圖鑑、右上雷達小地圖 */
+/* 政策島（Heart Island）溫潤建築模型與公仔風極簡介面：奶油紙質膠囊列、橘紅重點徽章、右上模型地圖與換衣間主題 */
 body.look-ro #hud {
   padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px) 0 calc(env(safe-area-inset-left, 0px) + 14px);
   align-items: flex-start;
@@ -11,7 +11,7 @@ body.title.look-ro #keys {
   pointer-events: none !important;
 }
 
-/* 左上：極簡橫列（地點膠囊 ＋ 音樂 ＋ 表情 ＋ 拍照），移除原本占空間的大面板 */
+/* 左上：極簡橫列（地點膠囊 ＋ 音樂 ＋ 表情 ＋ 拍照） */
 body.look-ro #hud > .col:not(.r) {
   position: relative;
   flex-direction: row;
@@ -22,15 +22,15 @@ body.look-ro #hud > .col:not(.r) {
 }
 
 body.look-ro #ro-loc-pill {
-  padding: 6px 12px 6px 8px;
+  padding: 6px 13px 6px 8px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 800;
-  gap: 6px;
-  background: rgba(246, 250, 255, 0.90);
-  border: 1.2px solid rgba(176, 202, 240, 0.92);
-  color: #1f3358;
-  box-shadow: 0 4px 14px rgba(20, 42, 82, 0.14);
+  gap: 7px;
+  background: rgba(252, 250, 245, 0.94);
+  border: 1.5px solid rgba(214, 206, 192, 0.95);
+  color: #2b2825;
+  box-shadow: 0 4px 14px rgba(45, 38, 28, 0.12);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -39,8 +39,8 @@ body.look-ro #ro-loc-pill .ico {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  font-size: 11px;
-  background: linear-gradient(145deg, #4b8df8, #2f6bd6);
+  font-size: 10px;
+  background: #df7645;
   color: #ffffff;
 }
 
@@ -54,9 +54,10 @@ body.look-ro .ro-icon-chip {
   display: inline-grid;
   place-items: center;
   font-size: 15px;
-  background: rgba(246, 250, 255, 0.90);
-  border: 1.2px solid rgba(176, 202, 240, 0.92);
-  box-shadow: 0 4px 14px rgba(20, 42, 82, 0.14);
+  background: rgba(252, 250, 245, 0.94);
+  border: 1.5px solid rgba(214, 206, 192, 0.95);
+  color: #2b2825;
+  box-shadow: 0 4px 14px rgba(45, 38, 28, 0.12);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   cursor: pointer;
@@ -67,12 +68,12 @@ body.look-ro #snd .ico {
   height: 24px;
   border-radius: 999px;
   font-size: 12px;
-  background: #3b7ddd;
+  background: #8eae6c;
   color: #ffffff;
 }
 
 body.look-ro #snd.off .ico {
-  background: #9aa9c4;
+  background: #b2ada2;
 }
 
 /* 表情與坐下快選浮動條 */
@@ -87,40 +88,40 @@ body.look-ro #snd.off .ico {
   padding: 5px 8px;
   width: fit-content;
   border-radius: 999px;
-  background: rgba(246, 250, 255, 0.94);
-  border: 1.2px solid rgba(176, 202, 240, 0.95);
-  box-shadow: 0 8px 22px rgba(20, 42, 82, 0.18);
+  background: rgba(252, 250, 245, 0.96);
+  border: 1.5px solid rgba(223, 118, 69, 0.55);
+  box-shadow: 0 8px 22px rgba(45, 38, 28, 0.16);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 #ro-emote-bar button {
   border: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: #ffffff;
   border-radius: 999px;
   min-width: 30px;
   height: 30px;
   padding: 0 6px;
   font-size: 16px;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(25, 45, 85, 0.08);
+  box-shadow: 0 2px 5px rgba(45, 38, 28, 0.08);
 }
 
 #ro-emote-bar button.ro-sit-pill {
   font-size: 12px;
   font-weight: 800;
-  color: #233b66;
+  color: #2b2825;
   padding: 0 10px;
 }
 
-/* 右上：普隆德拉方形雷達小地圖與功能列 */
+/* 右上：政策島建築模型小地圖與功能列 */
 #ro-map-card {
   pointer-events: auto;
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.94) 0%, rgba(235, 243, 255, 0.92) 100%);
-  border: 1.5px solid rgba(176, 202, 240, 0.92);
-  border-radius: 14px;
+  background: rgba(252, 250, 245, 0.95);
+  border: 1.5px solid rgba(214, 206, 192, 0.95);
+  border-radius: 15px;
   padding: 7px 8px 8px;
-  box-shadow: 0 8px 24px rgba(25, 50, 95, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 24px rgba(45, 38, 28, 0.14);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
@@ -133,23 +134,24 @@ body.look-ro #snd.off .ico {
   align-items: center;
   justify-content: space-between;
   padding: 0 2px;
-  font-size: 11px;
-  font-weight: 800;
-  color: #36507a;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #3f3a34;
 }
 
 .ro-map-head .ro-map-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  color: #6c84ab;
+  color: #8c8478;
 }
 
 body.look-ro #mini {
   width: 150px;
   height: 150px;
-  border-radius: 9px;
-  box-shadow: inset 0 0 0 1.5px rgba(154, 182, 224, 0.85);
-  background: #86cf63;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1.5px rgba(196, 188, 172, 0.9);
+  background: #cad6b4;
   cursor: crosshair;
   pointer-events: auto;
 }
@@ -159,22 +161,22 @@ body.look-ro #mini .n {
   right: 6px;
   top: 4px;
   transform: none;
-  background: rgba(255, 255, 255, 0.86);
-  color: #2c4670;
+  background: rgba(252, 250, 245, 0.9);
+  color: #3f3a34;
   padding: 1px 5px;
   border-radius: 5px;
   font-size: 10px;
 }
 
 body.look-ro .chip {
-  background: rgba(246, 250, 255, 0.92);
-  border: 1px solid rgba(176, 202, 240, 0.9);
-  color: #1f3152;
-  box-shadow: 0 5px 16px rgba(25, 50, 95, 0.13);
+  background: rgba(252, 250, 245, 0.94);
+  border: 1.5px solid rgba(214, 206, 192, 0.95);
+  color: #2b2825;
+  box-shadow: 0 4px 14px rgba(45, 38, 28, 0.12);
 }
 
 body.look-ro .ico {
-  background: #356ec9;
+  background: #df7645;
   color: #ffffff;
 }
 
@@ -186,25 +188,29 @@ body.look-ro #ro-codex-open {
   cursor: pointer;
 }
 
+/* 政策島橘紅外框浮動互動徽章 */
 body.look-ro #prompt button {
-  background: rgba(247, 251, 255, 0.96);
-  border: 1.5px solid rgba(162, 194, 240, 0.95);
-  color: #1e3152;
-  box-shadow: 0 6px 18px rgba(25, 50, 95, 0.2);
+  background: #fcfaf5;
+  border: 2.2px solid #df7645;
+  color: #2b2825;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(45, 38, 28, 0.18);
 }
 
 body.look-ro #prompt kbd {
-  background: #356ec9;
+  background: #df7645;
+  color: #ffffff;
+  border-radius: 999px;
 }
 
 body.look-ro #dlg {
-  background: linear-gradient(180deg, rgba(250, 252, 255, 0.97), rgba(238, 245, 255, 0.97));
-  border: 2px solid rgba(166, 196, 238, 0.95);
-  color: #1e3152;
+  background: #fcfaf5;
+  border: 2px solid #df7645;
+  color: #2b2825;
 }
 
 body.look-ro #dname {
-  background: linear-gradient(180deg, #4b8df8, #2f6cd6);
+  background: #df7645;
   color: #ffffff;
 }
 
@@ -213,25 +219,25 @@ body.look-ro #keys {
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  background: rgba(20, 27, 41, 0.78);
+  background: rgba(38, 35, 32, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #dbe6f7;
+  color: #f4f0e8;
   border-radius: 999px;
   padding: 6px 16px;
   gap: 8px 13px;
   font-size: 12px;
-  box-shadow: 0 6px 20px rgba(10, 18, 34, 0.26);
+  box-shadow: 0 6px 20px rgba(24, 20, 16, 0.22);
   max-width: min(94vw, 760px);
   white-space: nowrap;
   justify-content: center;
 }
 
 body.look-ro #keys kbd {
-  background: rgba(77, 150, 255, 0.24);
-  border: 1px solid rgba(122, 180, 255, 0.45);
-  color: #8cc4ff;
+  background: rgba(223, 118, 69, 0.28);
+  border: 1px solid rgba(235, 150, 108, 0.55);
+  color: #ffd3ba;
   border-radius: 5px;
 }
 
@@ -262,8 +268,8 @@ body.look-ro #keys kbd {
     padding: 3px;
     border-radius: 12px;
     gap: 0;
-    background: rgba(246, 250, 255, 0.88);
-    box-shadow: 0 4px 14px rgba(20, 40, 80, 0.15);
+    background: rgba(252, 250, 245, 0.92);
+    box-shadow: 0 4px 14px rgba(45, 38, 28, 0.14);
   }
 
   .ro-map-head {
@@ -304,18 +310,18 @@ body.look-ro #keys kbd {
     border-radius: 999px;
     font-size: 12px;
     font-weight: 800;
-    background: rgba(246, 250, 255, 0.88);
-    border: 1.2px solid rgba(176, 202, 240, 0.9);
-    color: #22385e;
-    box-shadow: 0 4px 12px rgba(20, 40, 80, 0.13);
+    background: rgba(252, 250, 245, 0.92);
+    border: 1.5px solid rgba(214, 206, 192, 0.95);
+    color: #2b2825;
+    box-shadow: 0 4px 12px rgba(45, 38, 28, 0.12);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
 
   body.look-ro.ro-menu-open #ro-menu-btn {
-    background: linear-gradient(180deg, #4788f4, #2f6cd6);
-    border-color: #295ec2;
-    color: #ffffff;
+    background: #2b2825;
+    border-color: #2b2825;
+    color: #fcfaf5;
   }
 
   body.look-ro:not(.ro-menu-open) #hud .col.r > *:not(#ro-map-card):not(#game-wardrobe-open):not(#ro-menu-btn) {
@@ -326,7 +332,7 @@ body.look-ro #keys kbd {
     font-size: 12px !important;
     padding: 6px 12px !important;
     border-radius: 999px !important;
-    box-shadow: 0 4px 12px rgba(20, 40, 80, 0.14) !important;
+    box-shadow: 0 4px 12px rgba(45, 38, 28, 0.14) !important;
   }
 
   body.look-ro .bz-shortcut {
@@ -338,9 +344,9 @@ body.look-ro #keys kbd {
     height: 100px;
     left: calc(env(safe-area-inset-left, 0px) + 18px);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
-    background: rgba(240, 247, 255, 0.24);
-    border: 1.5px solid rgba(255, 255, 255, 0.52);
-    box-shadow: 0 4px 16px rgba(15, 30, 60, 0.14);
+    background: rgba(252, 250, 245, 0.28);
+    border: 1.5px solid rgba(252, 250, 245, 0.65);
+    box-shadow: 0 4px 16px rgba(35, 30, 22, 0.14);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
   }
@@ -349,8 +355,8 @@ body.look-ro #keys kbd {
     width: 42px;
     height: 42px;
     margin: -21px 0 0 -21px;
-    background: rgba(255, 255, 255, 0.86);
-    box-shadow: 0 3px 10px rgba(25, 45, 85, 0.22);
+    background: rgba(252, 250, 245, 0.92);
+    box-shadow: 0 3px 10px rgba(45, 38, 28, 0.22);
   }
 
   body.look-ro #jump {
@@ -359,10 +365,10 @@ body.look-ro #keys kbd {
     right: calc(env(safe-area-inset-right, 0px) + 20px);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
     font-size: 16px;
-    background: rgba(246, 250, 255, 0.76);
-    border: 1.5px solid rgba(182, 206, 242, 0.82);
-    color: #243b63;
-    box-shadow: 0 4px 14px rgba(15, 30, 60, 0.16);
+    background: rgba(252, 250, 245, 0.86);
+    border: 1.5px solid rgba(214, 206, 192, 0.9);
+    color: #2b2825;
+    box-shadow: 0 4px 14px rgba(35, 30, 22, 0.15);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
@@ -373,17 +379,17 @@ body.look-ro #keys kbd {
   width: min(520px, calc(100vw - 28px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  border: 1.5px solid rgba(170, 198, 240, 0.95);
+  border: 1.5px solid rgba(214, 206, 192, 0.95);
   border-radius: 22px;
   padding: 18px;
-  background: linear-gradient(180deg, #f8fbff 0%, #eaf2ff 100%);
-  color: #1e3152;
-  box-shadow: 0 18px 46px rgba(16, 36, 72, 0.32);
+  background: #fcfaf5;
+  color: #2b2825;
+  box-shadow: 0 18px 46px rgba(32, 26, 20, 0.28);
   box-sizing: border-box;
 }
 
 #ro-modal::backdrop {
-  background: rgba(15, 28, 52, 0.55);
+  background: rgba(32, 28, 24, 0.48);
 }
 
 .ro-modal-head {
@@ -401,9 +407,9 @@ body.look-ro #keys kbd {
 }
 
 .ro-modal-close {
-  border: 1px solid rgba(176, 202, 240, 0.9);
+  border: 1.5px solid rgba(206, 198, 184, 0.95);
   background: #ffffff;
-  color: #263f6b;
+  color: #2b2825;
   font-weight: 800;
   border-radius: 999px;
   padding: 6px 14px;
@@ -415,13 +421,13 @@ body.look-ro #keys kbd {
   height: auto;
   border-radius: 14px;
   display: block;
-  box-shadow: 0 6px 20px rgba(20, 42, 82, 0.16);
+  box-shadow: 0 6px 20px rgba(45, 38, 28, 0.14);
 }
 
 .ro-modal-tip {
   font-size: 12.5px;
   font-weight: 700;
-  color: #536c96;
+  color: #6e675d;
   margin: 10px 0 12px;
   line-height: 1.5;
 }
@@ -434,20 +440,20 @@ body.look-ro #keys kbd {
 .ro-primary-btn {
   display: inline-block;
   text-decoration: none;
-  background: linear-gradient(180deg, #4788f4, #2f6cd6);
+  background: #df7645;
   color: #ffffff;
   font-weight: 900;
   font-size: 14px;
   padding: 10px 24px;
   border-radius: 999px;
-  box-shadow: 0 4px 12px rgba(47, 108, 214, 0.32);
+  box-shadow: 0 4px 12px rgba(223, 118, 69, 0.34);
 }
 
 .ro-codex-sec {
   margin: 12px 0 8px;
   font-size: 13.5px;
   font-weight: 900;
-  color: #35548a;
+  color: #5c554c;
 }
 
 .ro-codex-list {
@@ -460,15 +466,15 @@ body.look-ro #keys kbd {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(182, 206, 242, 0.85);
+  background: #ffffff;
+  border: 1px solid rgba(218, 210, 196, 0.92);
   border-radius: 14px;
   padding: 10px 12px;
 }
 
 .ro-codex-card.is-done {
-  background: linear-gradient(90deg, rgba(235, 246, 255, 0.96), rgba(255, 252, 235, 0.96));
-  border-color: #6ea4f4;
+  background: linear-gradient(90deg, rgba(238, 245, 230, 0.96), rgba(254, 248, 232, 0.96));
+  border-color: #8eae6c;
 }
 
 .ro-codex-ico {
@@ -489,14 +495,14 @@ body.look-ro #keys kbd {
   gap: 8px;
   font-size: 13.5px;
   font-weight: 900;
-  color: #1e3152;
+  color: #2b2825;
 }
 
 .ro-codex-title span {
   font-size: 11px;
   font-weight: 800;
-  color: #3b72cc;
-  background: rgba(218, 232, 255, 0.75);
+  color: #b8582d;
+  background: rgba(223, 118, 69, 0.14);
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
@@ -506,16 +512,16 @@ body.look-ro #keys kbd {
   margin-top: 3px;
   font-size: 12px;
   font-weight: 700;
-  color: #556d94;
+  color: #6c655b;
   line-height: 1.5;
 }
 
-/* 換衣間套用普隆德拉藍白視覺主題 */
+/* 換衣間套用政策島奶油紙質與赤陶主題 */
 body.look-ro #game-wardrobe-panel {
-  background: linear-gradient(180deg, #f7faff 0%, #ebf3ff 100%);
-  border: 1.5px solid rgba(170, 198, 240, 0.95);
-  color: #1e3152;
-  box-shadow: 0 16px 44px rgba(20, 42, 82, 0.28);
+  background: #fcfaf5;
+  border: 1.5px solid rgba(214, 206, 192, 0.95);
+  color: #2b2825;
+  box-shadow: 0 16px 44px rgba(38, 32, 24, 0.24);
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-stage {
@@ -524,40 +530,40 @@ body.look-ro #game-wardrobe-panel .wardrobe-stage {
 
 @media (max-width: 759px) {
   body.look-ro #game-wardrobe-panel .wardrobe-stage {
-    background: rgba(244, 249, 255, 0.96);
+    background: rgba(252, 250, 245, 0.97);
   }
 }
 
 body.look-ro #game-wardrobe-panel button {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(176, 202, 240, 0.85);
-  color: #263f6b;
+  background: #ffffff;
+  border: 1px solid rgba(214, 206, 192, 0.9);
+  color: #2b2825;
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-tab.is-on {
-  background: linear-gradient(180deg, #4788f4, #2f6cd6);
-  border-color: #295ec2;
-  color: #ffffff;
+  background: #2b2825;
+  border-color: #2b2825;
+  color: #fcfaf5;
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-save {
-  background: linear-gradient(180deg, #4788f4, #2f6cd6);
-  border-color: #295ec2;
+  background: #df7645;
+  border-color: #df7645;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(47, 108, 214, 0.3);
+  box-shadow: 0 4px 12px rgba(223, 118, 69, 0.32);
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-preview,
 body.look-ro #game-wardrobe-panel .wardrobe-item img {
-  background: #dfecfc;
+  background: #ebe6da;
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-item {
   background: #ffffff;
-  box-shadow: inset 0 0 0 1.5px rgba(182, 206, 242, 0.8);
+  box-shadow: inset 0 0 0 1.5px rgba(218, 210, 196, 0.85);
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-item.is-on {
-  background: #edf5ff;
-  box-shadow: inset 0 0 0 2.5px #3b7ddd;
+  background: #fef5ef;
+  box-shadow: inset 0 0 0 2.5px #df7645;
 }
