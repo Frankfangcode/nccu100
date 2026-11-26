@@ -8,48 +8,42 @@ import { circC } from '../core/collision.js';
 import { LOTS } from './layout.js';
 import { asPrefab } from './prefabs/index.js';
 import { LOOK_RO } from '../render/look.js';
+import { laserWoodTileTex, woodGrainTex } from '../render/craft-tex.js';
+
+const walnutPoleMat=LOOK_RO?toon('#ffffff',{map:woodGrainTex('#6f472b','#4d2f1a',{repeat:[1,2]})}):null;
+const beechBollardMat=LOOK_RO?toon('#ffffff',{map:woodGrainTex('#e3c79f','#c19d6d',{repeat:[1,1]})}):null;
 
 function stoneMat(rx,ry){
   const t=LOOK_RO
-    ? canvasTex(128,128,(g,w,h)=>{
-        g.fillStyle='#dad8cf'; g.fillRect(0,0,w,h);
-        for(let y=0;y<h;y+=32){
-          for(let x=0;x<w;x+=32){
-            g.fillStyle=((x+y)&32)?'#dedcd3':'#d5d3ca'; g.fillRect(x+1,y+1,30,30);
-          }
-        }
-        g.strokeStyle='#b4b1a6'; g.lineWidth=2;
-        for(let k=0;k<=w;k+=32){ g.beginPath(); g.moveTo(k,0); g.lineTo(k,h); g.stroke(); g.beginPath(); g.moveTo(0,k); g.lineTo(w,k); g.stroke(); }
-      },[rx,ry])
+    ? laserWoodTileTex(rx,ry)
     : canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#b9b8b2'; g.fillRect(0,0,w,h); for(let i=0;i<400;i++){ g.fillStyle=['#a9a8a2','#c6c5bf','#b1b0aa'][i%3]; g.fillRect(Math.random()*w,Math.random()*h,3,3); } g.strokeStyle='#9d9c96'; g.lineWidth=1.5; for(let y=0;y<h;y+=16){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); for(let x=(y/16)%2?0:16;x<=w;x+=32){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,y+16); g.stroke(); } } },[rx,ry]);
-  if(LOOK_RO) t.anisotropy=12;
   return new THREE.MeshToonMaterial({map:t,gradientMap:GRAD});
 }
 function bannerTex(bg,fg,t1,t2){ return canvasTex(128,256,(g,w,h)=>{ g.fillStyle=bg; g.fillRect(0,0,w,h);
-  g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.arc(w*0.3,h*0.85,34,0,7); g.fill();
-  g.fillStyle='#ffffff'; g.beginPath(); g.arc(w/2,h*0.5,30,0,7); g.fill(); g.fillStyle=LOOK_RO?'#4e7ba8':'#5b3c8f'; for(let k=0;k<5;k++){ const a=k/5*Math.PI*2-Math.PI/2; g.beginPath(); g.arc(w/2+Math.cos(a)*12,h*0.5+Math.sin(a)*12,10,0,7); g.fill(); }
+  if(LOOK_RO){ g.strokeStyle='rgba(255,248,232,0.55)'; g.setLineDash([6,5]); g.lineWidth=2.5; g.strokeRect(6,6,w-12,h-12); g.setLineDash([]); }
+  g.fillStyle='rgba(255,255,255,.30)'; g.beginPath(); g.arc(w*0.3,h*0.85,34,0,7); g.fill();
+  g.fillStyle='#f8f3e8'; g.beginPath(); g.arc(w/2,h*0.5,30,0,7); g.fill(); g.fillStyle=LOOK_RO?'#3d628c':'#5b3c8f'; for(let k=0;k<5;k++){ const a=k/5*Math.PI*2-Math.PI/2; g.beginPath(); g.arc(w/2+Math.cos(a)*12,h*0.5+Math.sin(a)*12,10,0,7); g.fill(); }
   g.fillStyle=fg; g.textAlign='center'; g.font='700 30px "Noto Serif TC",serif'; g.fillText(t1,w/2,h*0.22); g.font='700 22px "Noto Sans TC",sans-serif'; g.fillText(t2,w/2,h*0.78); }); }
-// 校旗燈桿、短柱是工具箱的預製物件（world/prefabs）：形狀和材質共用，同款一次畫完
 let _banR=null,_banY=null;
-const BAN_POLE=new THREE.CylinderGeometry(0.08,0.1,5,8), BAN_FLAG=new THREE.PlaneGeometry(0.9,1.8);
-const BOL_BODY=new THREE.CylinderGeometry(0.13,0.14,0.85,10), BOL_CAP=new THREE.CylinderGeometry(0.15,0.15,0.05,10);
+const BAN_POLE=new THREE.CylinderGeometry(0.08,0.1,5,10), BAN_FLAG=new THREE.PlaneGeometry(0.9,1.8);
+const BOL_BODY=new THREE.CylinderGeometry(0.13,0.14,0.85,12), BOL_CAP=new THREE.CylinderGeometry(0.15,0.15,0.06,12);
 function bannerPole(x,z,ry){
   if(!_banR){
-    _banR=basic({map:bannerTex(LOOK_RO?'#d67255':'#d8433f',LOOK_RO?'#fbf7ee':'#fff3c4','政治大學','NCCU')});
-    _banY=basic({map:bannerTex(LOOK_RO?'#e4c756':'#efd54a',LOOK_RO?'#3c4a5e':'#7a4a9a','NCCU','國立政治大學')});
+    _banR=basic({map:bannerTex(LOOK_RO?'#c85f49':'#d8433f',LOOK_RO?'#fbf5e8':'#fff3c4','政治大學','NCCU')});
+    _banY=basic({map:bannerTex(LOOK_RO?'#dfb958':'#efd54a',LOOK_RO?'#352619':'#7a4a9a','NCCU','國立政治大學')});
   }
   asPrefab(()=>{
-    mk(BAN_POLE,toon(LOOK_RO?'#464a4f':'#8f949a'),x,2.5,z,{out:0.02});
+    mk(BAN_POLE,LOOK_RO?walnutPoleMat:toon('#8f949a'),x,2.5,z,{out:0.02});
     mk(SPH,toon('#fff6dc',{emissive:'#ffe6a8',emissiveIntensity:0.6}),x,5.15,z,{}).scale.setScalar(0.3);
     const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=ry||0; scene.add(g);
     [[_banR,-0.55],[_banY,0.55]].forEach(([m,dx])=>{
       const a=new THREE.Mesh(BAN_FLAG,m); a.position.set(dx,3.3,0.01); g.add(a);
       const b=new THREE.Mesh(BAN_FLAG,m); b.position.set(-dx,3.3,-0.01); b.rotation.y=Math.PI; g.add(b);
-      const r=new THREE.Mesh(BOX,toon(LOOK_RO?'#464a4f':'#8f949a')); r.scale.set(1.0,0.05,0.05); r.position.set(dx,4.25,0); g.add(r); });
+      const r=new THREE.Mesh(BOX,LOOK_RO?walnutPoleMat:toon('#8f949a')); r.scale.set(1.0,0.05,0.05); r.position.set(dx,4.25,0); g.add(r); });
   });
   circC(x,z,0.18);
 }
-function bollard(x,z){ asPrefab(()=>{ mk(BOL_BODY,toon(LOOK_RO?'#f0ede4':'#efefea'),x,0.42,z,{out:0.02}); mk(BOL_CAP,toon(LOOK_RO?'#8b9296':'#b9bcc0'),x,0.7,z,{}); }); circC(x,z,0.15); }
+function bollard(x,z){ asPrefab(()=>{ mk(BOL_BODY,LOOK_RO?beechBollardMat:toon('#efefea'),x,0.42,z,{out:0.02}); mk(BOL_CAP,LOOK_RO?walnutPoleMat:toon('#b9bcc0'),x,0.7,z,{}); }); circC(x,z,0.15); }
 function lot(name,x,z,w,d){
   LOTS.push({name,x,z,w,d});
   const dirt=canvasTex(128,128,(g,W,H)=>{ g.fillStyle='#ddd0b3'; g.fillRect(0,0,W,H); for(let i=0;i<500;i++){ g.fillStyle=['#cfc1a1','#e6dbc2','#c9b994'][i%3]; g.fillRect(Math.random()*W,Math.random()*H,3,3); } },[Math.max(1,w/6),Math.max(1,d/6)]);

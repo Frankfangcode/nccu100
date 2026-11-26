@@ -11,8 +11,9 @@ import { installCampusStudent } from './std-humanoid/index.js';
 import { state } from '../core/state.js';
 import { MOBILE, scene } from '../core/engine.js';
 import { AU } from '../systems/audio.js';
-import { BOX, SPH, basic, canvasTex, outline, toon } from '../render/kit.js';
+import { BOX, GRAD, SPH, basic, canvasTex, outline, toon } from '../render/kit.js';
 import { LOOK_RO } from '../render/look.js';
+import { woodGrainTex } from '../render/craft-tex.js';
 import { resolve } from '../core/collision.js';
 import { roomScene } from '../core/rooms.js';
 import { police } from './police-car.js';
@@ -21,12 +22,16 @@ import { outlineU, part } from './player.js';
 import { dlg, openDialog } from '../ui/dialog.js';
 import { groundH, indoor, lerpA, pos, spots } from '../core/gameplay.js';
 
-function heartCitizenHex(hex, targetHex, mixAmt = 0.34, satScale = 0.76) {
+const npcWoodSkin=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#e8c196','#c79665',{contrast:0.30}),gradientMap:GRAD}):null;
+const npcWoodHairDark=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#6d4428','#4a2b16',{contrast:0.34}),gradientMap:GRAD,side:THREE.DoubleSide}):null;
+const npcWoodHairWarm=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#96633b','#704523',{contrast:0.32}),gradientMap:GRAD,side:THREE.DoubleSide}):null;
+
+function craftClothHex(hex, targetHex, mixAmt = 0.28, satScale = 0.78) {
   if (!LOOK_RO || typeof hex !== 'string' || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
   const c = new THREE.Color(hex), t = new THREE.Color(targetHex), hsl = {};
   c.lerp(t, mixAmt);
   c.getHSL(hsl);
-  c.setHSL(hsl.h, Math.min(0.48, hsl.s * satScale), Math.max(0.18, Math.min(0.86, hsl.l)));
+  c.setHSL(hsl.h, Math.min(0.46, hsl.s * satScale), Math.max(0.20, Math.min(0.84, hsl.l)));
   return '#' + c.getHexString();
 }
 
@@ -37,24 +42,24 @@ state.holdPang=false; state.driving=false; state.carSpeed=0; state.carYaw=Math.P
 function rrect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
 function textSprite(w,h,draw,sx,sy){ const t=canvasTex(w,h,draw); const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,transparent:true})); s.scale.set(sx,sy,1); s.userData.tex=t; return s; }
 function nameTag(label,col){ return textSprite(512,112,(g,w,h)=>{ g.font='700 36px "Noto Sans TC",sans-serif'; const tw=Math.min(w-20,g.measureText(label).width+56), x=(w-tw)/2;
-  g.fillStyle=LOOK_RO?'rgba(252,250,245,.94)':'rgba(26,24,38,.8)'; rrect(g,x,12,tw,h-24,36); g.fill(); g.strokeStyle=LOOK_RO?'#df7645':col; g.lineWidth=LOOK_RO?5:4; g.stroke();
-  g.fillStyle=LOOK_RO?'#2c2825':col; g.textAlign='center'; g.textBaseline='middle'; g.fillText(label,w/2,h/2+2); },2.3,0.5); }
+  g.fillStyle=LOOK_RO?'rgba(246,238,223,.96)':'rgba(26,24,38,.8)'; rrect(g,x,12,tw,h-24,36); g.fill(); g.strokeStyle=LOOK_RO?'#8c623d':col; g.lineWidth=LOOK_RO?5:4; g.stroke();
+  g.fillStyle=LOOK_RO?'#332418':col; g.textAlign='center'; g.textBaseline='middle'; g.fillText(label,w/2,h/2+2); },2.3,0.5); }
 function speech(){ let text=''; const spr=textSprite(720,190,(g,w,h)=>{ if(!text) return; let fs=44; g.font=`900 ${fs}px "Noto Sans TC",sans-serif`; while(g.measureText(text).width>w-90&&fs>26){ fs-=2; g.font=`900 ${fs}px "Noto Sans TC",sans-serif`; }
     const tw=Math.min(w-20,g.measureText(text).width+64), x=(w-tw)/2;
-    g.fillStyle=LOOK_RO?'#fcfaf5':'#ffffff'; g.strokeStyle=LOOK_RO?'#df7645':'#2b2436'; g.lineWidth=LOOK_RO?6:5; rrect(g,x,10,tw,116,LOOK_RO?38:32); g.fill(); g.stroke();
+    g.fillStyle=LOOK_RO?'#faf5ea':'#ffffff'; g.strokeStyle=LOOK_RO?'#9c6d43':'#2b2436'; g.lineWidth=LOOK_RO?5.5:5; rrect(g,x,10,tw,116,LOOK_RO?28:32); g.fill(); g.stroke();
     g.beginPath(); g.moveTo(w/2-20,124); g.lineTo(w/2,170); g.lineTo(w/2+20,124); g.fill(); g.stroke(); g.fillRect(w/2-17,LOOK_RO?114:116,34,LOOK_RO?13:11);
-    g.fillStyle=LOOK_RO?'#2c2825':'#2b2436'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,w/2,70); },3.6,0.95);
+    g.fillStyle=LOOK_RO?'#2f2217':'#2b2436'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,w/2,70); },3.6,0.95);
   spr.say=t=>{ if(t!==text){ text=t; spr.userData.tex.redraw(); } spr.visible=!!t; }; spr.visible=false; return spr; }
 function npcFace(brow,mode){ return canvasTex(256,256,g=>{ g.save(); g.translate(128,0); g.scale(0.78,1); g.translate(-128,0); g.lineCap='round';
   if(LOOK_RO){
-    [88,168].forEach(cx=>{ const cy=114;
-      if(mode==='closed'){ g.strokeStyle='#2b221e'; g.lineWidth=5.5; g.beginPath(); g.moveTo(cx-10,cy+2); g.quadraticCurveTo(cx,cy+8,cx+10,cy+2); g.stroke(); }
-      else if(mode==='panic'){ g.fillStyle='#ffffff'; g.beginPath(); g.arc(cx,cy,13,0,7); g.fill(); g.strokeStyle='#2b221e'; g.lineWidth=4; g.stroke(); g.fillStyle='#2b221e'; g.beginPath(); g.arc(cx,cy,4.5,0,7); g.fill(); }
-      else { g.fillStyle='#2b221e'; g.beginPath(); g.ellipse(cx,cy,8,10,0,0,7); g.fill(); g.fillStyle='rgba(255,255,255,0.6)'; g.beginPath(); g.arc(cx-2.4,cy-3.2,2.2,0,7); g.fill(); }
+    [86,170].forEach(cx=>{ const cy=114;
+      if(mode==='closed'){ g.strokeStyle='#261910'; g.lineWidth=5.5; g.beginPath(); g.moveTo(cx-10,cy+2); g.quadraticCurveTo(cx,cy+8,cx+10,cy+2); g.stroke(); }
+      else if(mode==='panic'){ g.fillStyle='#ffffff'; g.beginPath(); g.arc(cx,cy,13,0,7); g.fill(); g.strokeStyle='#261910'; g.lineWidth=4; g.stroke(); g.fillStyle='#261910'; g.beginPath(); g.arc(cx,cy,4.5,0,7); g.fill(); }
+      else { g.fillStyle='#24170f'; g.beginPath(); g.ellipse(cx,cy,7.2,9.2,0,0,7); g.fill(); g.fillStyle='rgba(255,250,240,0.6)'; g.beginPath(); g.arc(cx-2.2,cy-3,2,0,7); g.fill(); }
     });
-    g.fillStyle='rgba(226,128,104,0.24)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,144,13,7,0,0,7); g.fill(); });
-    if(mode==='panic'){ g.fillStyle='#7a3a36'; g.beginPath(); g.ellipse(128,170,10,13,0,0,7); g.fill(); }
-    else { g.strokeStyle='#8c5246'; g.lineWidth=4; g.beginPath(); g.moveTo(118,164); g.quadraticCurveTo(128,172,138,164); g.stroke(); }
+    g.fillStyle='rgba(210,118,92,0.20)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,142,12,6.5,0,0,7); g.fill(); });
+    if(mode==='panic'){ g.fillStyle='#6e3528'; g.beginPath(); g.ellipse(128,168,10,13,0,0,7); g.fill(); }
+    else { g.strokeStyle='#6e422c'; g.lineWidth=4; g.beginPath(); g.moveTo(118,162); g.quadraticCurveTo(128,170,138,162); g.stroke(); }
     g.restore(); return;
   }
   [84,172].forEach(cx=>{ const cy=110;
@@ -69,9 +74,9 @@ function npcFace(brow,mode){ return canvasTex(256,256,g=>{ g.save(); g.translate
 function makePerson(o,where){
   const appearance={hair:[],headwear:[],accessory:[],body:[],protected:[]};
   const lookIn=LOOK_RO?{...o,
-    top:heartCitizenHex(o.top||'#6d7fb5','#d8d2c4',0.20,0.78),
-    pants:heartCitizenHex(o.pants||'#3d434e','#454a54',0.22,0.72),
-    skin:heartCitizenHex(o.skin||'#eabfa0','#e8be9e',0.45,0.82),
+    top:craftClothHex(o.top||'#5d7b54','#c9bfae',0.22,0.76),
+    pants:craftClothHex(o.pants||'#474b52','#625d55',0.24,0.72),
+    skin:craftClothHex(o.skin||'#e6be94','#e6be94',0.50,0.85),
   }:o;
   const top=lookIn.top||'#5a7fb0',pants=lookIn.pants||'#2f3446',skin=lookIn.skin||'#ffe1cc';
   function decorateTorso(rig){
@@ -82,7 +87,7 @@ function makePerson(o,where){
   if(o.police){ part(BOX,'#e8c547',-0.08,0.62,0.154,rig).scale.set(0.05,0.06,0.01); part(BOX,'#e8c547',0.09,0.64,0.152,rig).scale.set(0.07,0.02,0.01); part(new THREE.CylinderGeometry(0.19,0.19,0.05,18),'#1a1d26',0,0.43,0,rig).scale.z=0.88; }
   if(o.hood) part(new THREE.TorusGeometry(0.13,0.05,8,16),top,0,0.68,-0.04,rig).rotation.x=Math.PI/2.2;
   if(o.bag){
-    const bagCol=LOOK_RO?heartCitizenHex(o.bag,'#dfd5c2',0.18,0.82):o.bag;
+    const bagCol=LOOK_RO?craftClothHex(o.bag,'#d8b878',0.24,0.82):o.bag;
     const b=part(LOOK_RO?new THREE.CapsuleGeometry(0.11,0.07,8,14):BOX,bagCol,0,0.53,-0.19,rig);
     if(LOOK_RO) b.scale.set(1.06,1.0,0.58); else b.scale.set(0.24,0.28,0.12);
     outline(b,0).scale.set(1.12,1.1,1.2); appearance.accessory.push(b); }
@@ -93,16 +98,28 @@ function makePerson(o,where){
   }
   const model=createHumanoid(npcHumanoidProfile(lookIn),{parent:where||scene,part,outlineU,BOX,SPH,afterTorso:context=>{const before=new Set(context.body.children);decorateTorso(context.body);context.parts.torsoDecorations=context.body.children.filter(node=>!before.has(node));},afterArms:({joints})=>decorateArms(joints)});
   const {root:g,body:rig,joints:P,limbParts,headCenter:hc}=model;
-  const hairCol=LOOK_RO?heartCitizenHex(o.hair||'#2d231f','#382c26',0.18,0.75):(o.hair||'#2a2220');
+  if(LOOK_RO){
+    model.parts.skull.material=npcWoodSkin;
+    if(limbParts.armL.hand) limbParts.armL.hand.material=limbParts.armR.hand.material=npcWoodSkin;
+    if(o.shortSleeve) limbParts.armL.forearm.material=limbParts.armR.forearm.material=npcWoodSkin;
+    const nose=part(new THREE.SphereGeometry(0.022,10,8),npcWoodSkin,0,-0.032,0.276,hc); nose.scale.set(1,0.9,0.85); appearance.body.push(nose);
+  }
+  const hairCol=LOOK_RO?craftClothHex(o.hair||'#5c3a22','#784c2d',0.35,0.82):(o.hair||'#2a2220');
   const brow=o.brow||hairCol||'#2a2220';
   P.fA=npcFace(brow,'open'); P.fB=npcFace(brow,'closed'); P.fC=npcFace(brow,'panic');
   P.fm=basic({map:P.fA,transparent:true,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
   const f=new THREE.Mesh(new THREE.SphereGeometry(0.2815,32,20,Math.PI/2-0.8,1.6,Math.PI*0.38,Math.PI*0.42),P.fm); f.scale.set(1.05,0.97,1); hc.add(f); appearance.protected.push(f);
-  const hm=toon(hairCol,{side:THREE.DoubleSide});
-  const capH=part(new THREE.SphereGeometry(LOOK_RO?0.304:0.296,28,LOOK_RO?16:14,0,Math.PI*2,0,Math.PI*(o.hairStyle==='bowl'?(LOOK_RO?0.46:0.45):(LOOK_RO?0.42:0.38))),hm,0,0.012,-0.006,hc); capH.scale.set(1.05,0.97,1); outlineU(capH,1.04);
-  const back=part(new THREE.SphereGeometry(LOOK_RO?0.306:0.299,28,18,Math.PI/2+1.05,Math.PI*2-2.1,0,Math.PI*(o.hairStyle==='short'?(LOOK_RO?0.60:0.58):(LOOK_RO?0.68:0.66))),hm,0,0,-0.01,hc); back.scale.set(1.05,0.97,1);
+  const hm=LOOK_RO?((hairCol.charCodeAt(1)&1)?npcWoodHairWarm:npcWoodHairDark):toon(hairCol,{side:THREE.DoubleSide});
+  const capH=part(new THREE.SphereGeometry(LOOK_RO?0.300:0.296,28,LOOK_RO?18:14,0,Math.PI*2,0,Math.PI*(o.hairStyle==='bowl'?(LOOK_RO?0.46:0.45):(LOOK_RO?0.43:0.38))),hm,0,0.012,-0.006,hc); capH.scale.set(1.05,0.97,1); outlineU(capH,1.04);
+  const back=part(new THREE.SphereGeometry(LOOK_RO?0.302:0.299,28,18,Math.PI/2+1.05,Math.PI*2-2.1,0,Math.PI*(o.hairStyle==='short'?(LOOK_RO?0.60:0.58):(LOOK_RO?0.68:0.66))),hm,0,0,-0.01,hc); back.scale.set(1.05,0.97,1);
   const hairTop=[capH]; appearance.hair.push(capH,back);
-  if(o.hairStyle==='bowl'){ const fr=part(new THREE.SphereGeometry(LOOK_RO?0.306:0.302,28,LOOK_RO?12:10,Math.PI/2-0.95,1.9,Math.PI*0.28,Math.PI*(LOOK_RO?0.14:0.13)),hm,0,0.005,0,hc); fr.scale.set(1.05,0.97,1); hairTop.push(fr); appearance.hair.push(fr); }
+  if(LOOK_RO&&(o.hairStyle==='bowl'||o.hairStyle==='short')){
+    const fr=part(new THREE.SphereGeometry(0.303,28,12,Math.PI/2-0.90,1.8,Math.PI*0.27,Math.PI*0.15),hm,0,0.005,0,hc);
+    fr.scale.set(1.05,0.97,1); hairTop.push(fr); appearance.hair.push(fr);
+  } else if(o.hairStyle==='bowl'){
+    const fr=part(new THREE.SphereGeometry(0.302,28,10,Math.PI/2-0.95,1.9,Math.PI*0.28,Math.PI*0.13),hm,0,0.005,0,hc);
+    fr.scale.set(1.05,0.97,1); hairTop.push(fr); appearance.hair.push(fr);
+  }
   if(o.hairStyle==='side'){ const s1=part(LOOK_RO?new THREE.SphereGeometry(1,16,12):SPH,hm,-0.06,0.22,0.12,hc); s1.scale.set(0.24,LOOK_RO?0.09:0.08,LOOK_RO?0.17:0.16); s1.rotation.z=0.25; hairTop.push(s1); appearance.hair.push(s1); }
   if(o.hairStyle==='long'){   // 長髮：後面垂到肩膀下，兩側各一束
     const lb=part(new THREE.CapsuleGeometry(0.25,0.3,6,16),hm,0,-0.2,-0.1,hc); lb.scale.set(1.08,1,0.55); outlineU(lb,1.03); appearance.hair.push(lb);
@@ -114,17 +131,13 @@ function makePerson(o,where){
   const beforeCap=new Set(hc.children);
   if(o.cap){
     if(LOOK_RO){
-      const dome=part(new THREE.SphereGeometry(0.312,24,14,0,Math.PI*2,0,Math.PI*0.48),o.cap,0,0.04,0,hc); dome.scale.set(1.06,0.96,1.02);
-      const v=part(new THREE.CylinderGeometry(0.22,0.24,0.032,18),o.police?'#242833':o.cap,0,0.13,0.16,hc); v.scale.set(0.95,1,0.85);
+      const dome=part(new THREE.SphereGeometry(0.310,24,14,0,Math.PI*2,0,Math.PI*0.46),o.cap,0,0.04,0,hc); dome.scale.set(1.06,0.96,1.02);
+      const v=part(new THREE.CylinderGeometry(0.22,0.24,0.032,18),o.police?'#2d3340':o.cap,0,0.13,0.16,hc); v.scale.set(0.95,1,0.85);
       if(o.police) part(BOX,'#e8c547',0,0.22,0.30,hc).scale.set(0.08,0.07,0.01);
     } else {
       part(new THREE.CylinderGeometry(0.3,0.3,0.12,20),o.cap,0,0.19,0,hc,0.012); part(new THREE.CylinderGeometry(0.33,0.31,0.07,20),o.cap,0,0.28,0.01,hc);
       const v=part(BOX,'#14171f',0,0.15,0.27,hc); v.scale.set(0.32,0.03,0.18); part(BOX,'#e8c547',0,0.24,0.31,hc).scale.set(0.08,0.07,0.01);
     }
-  } else if(LOOK_RO&&!o.suit&&!o.police&&o.bag&&o.hairStyle==='short'){
-    const domeCol=top.charCodeAt(1)%2===0?'#ebd058':'#95b37a';
-    const dome=part(new THREE.SphereGeometry(0.316,24,14,0,Math.PI*2,0,Math.PI*0.44),domeCol,0,0.035,0,hc); dome.scale.set(1.06,0.95,1.03);
-    const brim=part(new THREE.CylinderGeometry(0.20,0.22,0.028,18),domeCol,0,0.135,0.15,hc); brim.scale.set(0.92,1,0.78);
   }
   appearance.headwear.push(...hc.children.filter(node=>!beforeCap.has(node)));
   g.scale.setScalar(o.scale||1.2);

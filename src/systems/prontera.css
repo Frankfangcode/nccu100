@@ -1,4 +1,4 @@
-/* 政策島（Heart Island）溫潤建築模型與公仔風極簡介面：奶油紙質膠囊列、橘紅重點徽章、右上模型地圖與換衣間主題 */
+/* 手作檜木與紙藝袖珍模型風極簡介面：淺楓木／檜木牌標籤、胡桃木細框、象牙厚卡紙面板與赤陶印章 */
 body.look-ro #hud {
   padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px) 0 calc(env(safe-area-inset-left, 0px) + 14px);
   align-items: flex-start;
@@ -11,7 +11,7 @@ body.title.look-ro #keys {
   pointer-events: none !important;
 }
 
-/* 左上：極簡橫列（地點膠囊 ＋ 音樂 ＋ 表情 ＋ 拍照） */
+/* 左上：極簡橫列（地點木牌 ＋ 音樂 ＋ 表情 ＋ 拍照） */
 body.look-ro #hud > .col:not(.r) {
   position: relative;
   flex-direction: row;
@@ -22,26 +22,24 @@ body.look-ro #hud > .col:not(.r) {
 }
 
 body.look-ro #ro-loc-pill {
-  padding: 6px 13px 6px 8px;
+  padding: 6px 14px 6px 8px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 800;
   gap: 7px;
-  background: rgba(252, 250, 245, 0.94);
-  border: 1.5px solid rgba(214, 206, 192, 0.95);
-  color: #2b2825;
-  box-shadow: 0 4px 14px rgba(45, 38, 28, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, #faf3e4 0%, #eeddc2 100%);
+  border: 1.5px solid #9e7348;
+  color: #2f2116;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.85), 0 4px 14px rgba(48, 32, 18, 0.16);
 }
 
 body.look-ro #ro-loc-pill .ico {
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  font-size: 10px;
-  background: #df7645;
-  color: #ffffff;
+  font-size: 11px;
+  background: #b85d3b;
+  color: #fffaf0;
 }
 
 body.look-ro #snd,
@@ -54,12 +52,10 @@ body.look-ro .ro-icon-chip {
   display: inline-grid;
   place-items: center;
   font-size: 15px;
-  background: rgba(252, 250, 245, 0.94);
-  border: 1.5px solid rgba(214, 206, 192, 0.95);
-  color: #2b2825;
-  box-shadow: 0 4px 14px rgba(45, 38, 28, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, #faf4e6 0%, #efe0c6 100%);
+  border: 1.5px solid #9e7348;
+  color: #2f2116;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.85), 0 4px 14px rgba(48, 32, 18, 0.15);
   cursor: pointer;
 }
 
@@ -68,12 +64,12 @@ body.look-ro #snd .ico {
   height: 24px;
   border-radius: 999px;
   font-size: 12px;
-  background: #8eae6c;
+  background: #688644;
   color: #ffffff;
 }
 
 body.look-ro #snd.off .ico {
-  background: #b2ada2;
+  background: #9c8f7e;
 }
 
 /* 表情與坐下快選浮動條 */
@@ -88,42 +84,38 @@ body.look-ro #snd.off .ico {
   padding: 5px 8px;
   width: fit-content;
   border-radius: 999px;
-  background: rgba(252, 250, 245, 0.96);
-  border: 1.5px solid rgba(223, 118, 69, 0.55);
-  box-shadow: 0 8px 22px rgba(45, 38, 28, 0.16);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #faf4e6;
+  border: 1.5px solid #9e7348;
+  box-shadow: 0 8px 22px rgba(48, 32, 18, 0.18);
 }
 
 #ro-emote-bar button {
-  border: 0;
-  background: #ffffff;
+  border: 1px solid rgba(158, 115, 72, 0.35);
+  background: #fffdf8;
   border-radius: 999px;
   min-width: 30px;
   height: 30px;
   padding: 0 6px;
   font-size: 16px;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(45, 38, 28, 0.08);
+  box-shadow: 0 2px 4px rgba(48, 32, 18, 0.08);
 }
 
 #ro-emote-bar button.ro-sit-pill {
   font-size: 12px;
   font-weight: 800;
-  color: #2b2825;
+  color: #2f2116;
   padding: 0 10px;
 }
 
-/* 右上：政策島建築模型小地圖與功能列 */
+/* 右上：袖珍模型木框小地圖與功能列 */
 #ro-map-card {
   pointer-events: auto;
-  background: rgba(252, 250, 245, 0.95);
-  border: 1.5px solid rgba(214, 206, 192, 0.95);
-  border-radius: 15px;
+  background: linear-gradient(180deg, #faf4e6 0%, #f0e3cb 100%);
+  border: 1.5px solid #9e7348;
+  border-radius: 14px;
   padding: 7px 8px 8px;
-  box-shadow: 0 8px 24px rgba(45, 38, 28, 0.14);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.85), 0 8px 24px rgba(48, 32, 18, 0.16);
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -136,22 +128,22 @@ body.look-ro #snd.off .ico {
   padding: 0 2px;
   font-size: 10.5px;
   font-weight: 900;
-  letter-spacing: 0.04em;
-  color: #3f3a34;
+  letter-spacing: 0.03em;
+  color: #3a2718;
 }
 
 .ro-map-head .ro-map-sub {
   font-size: 10px;
   font-weight: 700;
-  color: #8c8478;
+  color: #826243;
 }
 
 body.look-ro #mini {
   width: 150px;
   height: 150px;
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 1.5px rgba(196, 188, 172, 0.9);
-  background: #cad6b4;
+  border-radius: 9px;
+  box-shadow: inset 0 0 0 1.5px rgba(138, 98, 58, 0.72);
+  background: #adc08a;
   cursor: crosshair;
   pointer-events: auto;
 }
@@ -161,23 +153,24 @@ body.look-ro #mini .n {
   right: 6px;
   top: 4px;
   transform: none;
-  background: rgba(252, 250, 245, 0.9);
-  color: #3f3a34;
+  background: rgba(250, 244, 230, 0.92);
+  color: #3a2718;
+  border: 1px solid rgba(158, 115, 72, 0.45);
   padding: 1px 5px;
   border-radius: 5px;
   font-size: 10px;
 }
 
 body.look-ro .chip {
-  background: rgba(252, 250, 245, 0.94);
-  border: 1.5px solid rgba(214, 206, 192, 0.95);
-  color: #2b2825;
-  box-shadow: 0 4px 14px rgba(45, 38, 28, 0.12);
+  background: linear-gradient(180deg, #faf4e6 0%, #efe0c6 100%);
+  border: 1.5px solid #9e7348;
+  color: #2f2116;
+  box-shadow: inset 0 1px 0 rgba(255, 252, 245, 0.85), 0 4px 14px rgba(48, 32, 18, 0.14);
 }
 
 body.look-ro .ico {
-  background: #df7645;
-  color: #ffffff;
+  background: #b85d3b;
+  color: #fffaf0;
 }
 
 body.look-ro #ro-codex-open {
@@ -188,56 +181,56 @@ body.look-ro #ro-codex-open {
   cursor: pointer;
 }
 
-/* 政策島橘紅外框浮動互動徽章 */
+/* 胡桃木與赤陶印章互動徽章 */
 body.look-ro #prompt button {
-  background: #fcfaf5;
-  border: 2.2px solid #df7645;
-  color: #2b2825;
+  background: #faf4e6;
+  border: 2px solid #8c5d38;
+  color: #2f2116;
   border-radius: 999px;
-  box-shadow: 0 6px 18px rgba(45, 38, 28, 0.18);
+  box-shadow: 0 6px 18px rgba(48, 32, 18, 0.20);
 }
 
 body.look-ro #prompt kbd {
-  background: #df7645;
+  background: #b85d3b;
   color: #ffffff;
   border-radius: 999px;
 }
 
 body.look-ro #dlg {
-  background: #fcfaf5;
-  border: 2px solid #df7645;
-  color: #2b2825;
+  background: #faf4e6;
+  border: 2px solid #8c5d38;
+  color: #2f2116;
 }
 
 body.look-ro #dname {
-  background: #df7645;
-  color: #ffffff;
+  background: #8c5d38;
+  color: #fffaf0;
 }
 
-/* 桌面底部精簡操作提示列 */
+/* 桌面底部胡桃木色操作提示列 */
 body.look-ro #keys {
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  background: rgba(38, 35, 32, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(52, 36, 22, 0.88);
+  border: 1px solid rgba(214, 174, 126, 0.42);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #f4f0e8;
+  color: #f7efe0;
   border-radius: 999px;
   padding: 6px 16px;
   gap: 8px 13px;
   font-size: 12px;
-  box-shadow: 0 6px 20px rgba(24, 20, 16, 0.22);
+  box-shadow: 0 6px 20px rgba(32, 20, 10, 0.26);
   max-width: min(94vw, 760px);
   white-space: nowrap;
   justify-content: center;
 }
 
 body.look-ro #keys kbd {
-  background: rgba(223, 118, 69, 0.28);
-  border: 1px solid rgba(235, 150, 108, 0.55);
-  color: #ffd3ba;
+  background: rgba(214, 166, 110, 0.24);
+  border: 1px solid rgba(228, 186, 136, 0.55);
+  color: #ffe3ba;
   border-radius: 5px;
 }
 
@@ -310,18 +303,16 @@ body.look-ro #keys kbd {
     border-radius: 999px;
     font-size: 12px;
     font-weight: 800;
-    background: rgba(252, 250, 245, 0.92);
-    border: 1.5px solid rgba(214, 206, 192, 0.95);
-    color: #2b2825;
-    box-shadow: 0 4px 12px rgba(45, 38, 28, 0.12);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(180deg, #faf4e6 0%, #efe0c6 100%);
+    border: 1.5px solid #9e7348;
+    color: #2f2116;
+    box-shadow: 0 4px 12px rgba(48, 32, 18, 0.14);
   }
 
   body.look-ro.ro-menu-open #ro-menu-btn {
-    background: #2b2825;
-    border-color: #2b2825;
-    color: #fcfaf5;
+    background: #3a2718;
+    border-color: #3a2718;
+    color: #faf4e6;
   }
 
   body.look-ro:not(.ro-menu-open) #hud .col.r > *:not(#ro-map-card):not(#game-wardrobe-open):not(#ro-menu-btn) {
@@ -332,7 +323,7 @@ body.look-ro #keys kbd {
     font-size: 12px !important;
     padding: 6px 12px !important;
     border-radius: 999px !important;
-    box-shadow: 0 4px 12px rgba(45, 38, 28, 0.14) !important;
+    box-shadow: 0 4px 12px rgba(48, 32, 18, 0.14) !important;
   }
 
   body.look-ro .bz-shortcut {
@@ -344,9 +335,9 @@ body.look-ro #keys kbd {
     height: 100px;
     left: calc(env(safe-area-inset-left, 0px) + 18px);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
-    background: rgba(252, 250, 245, 0.28);
-    border: 1.5px solid rgba(252, 250, 245, 0.65);
-    box-shadow: 0 4px 16px rgba(35, 30, 22, 0.14);
+    background: rgba(250, 244, 230, 0.30);
+    border: 1.5px solid rgba(182, 138, 92, 0.72);
+    box-shadow: 0 4px 16px rgba(40, 26, 14, 0.16);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
   }
@@ -355,8 +346,9 @@ body.look-ro #keys kbd {
     width: 42px;
     height: 42px;
     margin: -21px 0 0 -21px;
-    background: rgba(252, 250, 245, 0.92);
-    box-shadow: 0 3px 10px rgba(45, 38, 28, 0.22);
+    background: linear-gradient(180deg, #faf4e6 0%, #e7d2b0 100%);
+    border: 1px solid #9e7348;
+    box-shadow: 0 3px 10px rgba(48, 32, 18, 0.24);
   }
 
   body.look-ro #jump {
@@ -365,12 +357,10 @@ body.look-ro #keys kbd {
     right: calc(env(safe-area-inset-right, 0px) + 20px);
     bottom: calc(env(safe-area-inset-bottom, 0px) + 26px);
     font-size: 16px;
-    background: rgba(252, 250, 245, 0.86);
-    border: 1.5px solid rgba(214, 206, 192, 0.9);
-    color: #2b2825;
-    box-shadow: 0 4px 14px rgba(35, 30, 22, 0.15);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(180deg, #faf4e6 0%, #eeddc2 100%);
+    border: 1.5px solid #9e7348;
+    color: #2f2116;
+    box-shadow: 0 4px 14px rgba(40, 26, 14, 0.16);
   }
 }
 
@@ -379,17 +369,17 @@ body.look-ro #keys kbd {
   width: min(520px, calc(100vw - 28px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  border: 1.5px solid rgba(214, 206, 192, 0.95);
-  border-radius: 22px;
+  border: 2px solid #9e7348;
+  border-radius: 20px;
   padding: 18px;
-  background: #fcfaf5;
-  color: #2b2825;
-  box-shadow: 0 18px 46px rgba(32, 26, 20, 0.28);
+  background: #faf4e6;
+  color: #2f2116;
+  box-shadow: 0 18px 46px rgba(36, 24, 14, 0.30);
   box-sizing: border-box;
 }
 
 #ro-modal::backdrop {
-  background: rgba(32, 28, 24, 0.48);
+  background: rgba(34, 24, 15, 0.50);
 }
 
 .ro-modal-head {
@@ -407,9 +397,9 @@ body.look-ro #keys kbd {
 }
 
 .ro-modal-close {
-  border: 1.5px solid rgba(206, 198, 184, 0.95);
-  background: #ffffff;
-  color: #2b2825;
+  border: 1.5px solid #9e7348;
+  background: #fffdf8;
+  color: #2f2116;
   font-weight: 800;
   border-radius: 999px;
   padding: 6px 14px;
@@ -419,15 +409,15 @@ body.look-ro #keys kbd {
 .ro-photo-img {
   width: 100%;
   height: auto;
-  border-radius: 14px;
+  border-radius: 12px;
   display: block;
-  box-shadow: 0 6px 20px rgba(45, 38, 28, 0.14);
+  box-shadow: 0 6px 20px rgba(48, 32, 18, 0.16);
 }
 
 .ro-modal-tip {
   font-size: 12.5px;
   font-weight: 700;
-  color: #6e675d;
+  color: #6b5239;
   margin: 10px 0 12px;
   line-height: 1.5;
 }
@@ -440,20 +430,20 @@ body.look-ro #keys kbd {
 .ro-primary-btn {
   display: inline-block;
   text-decoration: none;
-  background: #df7645;
-  color: #ffffff;
+  background: #b85d3b;
+  color: #fffaf0;
   font-weight: 900;
   font-size: 14px;
   padding: 10px 24px;
   border-radius: 999px;
-  box-shadow: 0 4px 12px rgba(223, 118, 69, 0.34);
+  box-shadow: 0 4px 12px rgba(184, 93, 59, 0.34);
 }
 
 .ro-codex-sec {
   margin: 12px 0 8px;
   font-size: 13.5px;
   font-weight: 900;
-  color: #5c554c;
+  color: #694c31;
 }
 
 .ro-codex-list {
@@ -466,15 +456,15 @@ body.look-ro #keys kbd {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: #ffffff;
-  border: 1px solid rgba(218, 210, 196, 0.92);
+  background: #fffdf8;
+  border: 1px solid rgba(158, 115, 72, 0.45);
   border-radius: 14px;
   padding: 10px 12px;
 }
 
 .ro-codex-card.is-done {
-  background: linear-gradient(90deg, rgba(238, 245, 230, 0.96), rgba(254, 248, 232, 0.96));
-  border-color: #8eae6c;
+  background: linear-gradient(90deg, rgba(235, 243, 222, 0.96), rgba(252, 245, 228, 0.96));
+  border-color: #6d8c49;
 }
 
 .ro-codex-ico {
@@ -495,14 +485,14 @@ body.look-ro #keys kbd {
   gap: 8px;
   font-size: 13.5px;
   font-weight: 900;
-  color: #2b2825;
+  color: #2f2116;
 }
 
 .ro-codex-title span {
   font-size: 11px;
   font-weight: 800;
-  color: #b8582d;
-  background: rgba(223, 118, 69, 0.14);
+  color: #9c4a2b;
+  background: rgba(184, 93, 59, 0.14);
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
@@ -512,16 +502,16 @@ body.look-ro #keys kbd {
   margin-top: 3px;
   font-size: 12px;
   font-weight: 700;
-  color: #6c655b;
+  color: #6b5239;
   line-height: 1.5;
 }
 
-/* 換衣間套用政策島奶油紙質與赤陶主題 */
+/* 換衣間套用檜木與象牙厚卡紙主題 */
 body.look-ro #game-wardrobe-panel {
-  background: #fcfaf5;
-  border: 1.5px solid rgba(214, 206, 192, 0.95);
-  color: #2b2825;
-  box-shadow: 0 16px 44px rgba(38, 32, 24, 0.24);
+  background: #faf4e6;
+  border: 2px solid #9e7348;
+  color: #2f2116;
+  box-shadow: 0 16px 44px rgba(42, 28, 16, 0.26);
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-stage {
@@ -530,40 +520,40 @@ body.look-ro #game-wardrobe-panel .wardrobe-stage {
 
 @media (max-width: 759px) {
   body.look-ro #game-wardrobe-panel .wardrobe-stage {
-    background: rgba(252, 250, 245, 0.97);
+    background: rgba(250, 244, 230, 0.97);
   }
 }
 
 body.look-ro #game-wardrobe-panel button {
-  background: #ffffff;
-  border: 1px solid rgba(214, 206, 192, 0.9);
-  color: #2b2825;
+  background: #fffdf8;
+  border: 1px solid rgba(158, 115, 72, 0.55);
+  color: #2f2116;
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-tab.is-on {
-  background: #2b2825;
-  border-color: #2b2825;
-  color: #fcfaf5;
+  background: #3a2718;
+  border-color: #3a2718;
+  color: #faf4e6;
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-save {
-  background: #df7645;
-  border-color: #df7645;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(223, 118, 69, 0.32);
+  background: #b85d3b;
+  border-color: #b85d3b;
+  color: #fffaf0;
+  box-shadow: 0 4px 12px rgba(184, 93, 59, 0.32);
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-preview,
 body.look-ro #game-wardrobe-panel .wardrobe-item img {
-  background: #ebe6da;
+  background: #ebe0cc;
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-item {
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1.5px rgba(218, 210, 196, 0.85);
+  background: #fffdf8;
+  box-shadow: inset 0 0 0 1.5px rgba(158, 115, 72, 0.42);
 }
 
 body.look-ro #game-wardrobe-panel .wardrobe-item.is-on {
-  background: #fef5ef;
-  box-shadow: inset 0 0 0 2.5px #df7645;
+  background: #fdf2e8;
+  box-shadow: inset 0 0 0 2.5px #b85d3b;
 }

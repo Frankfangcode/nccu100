@@ -1,16 +1,17 @@
 /**
- * 政策島（Heart Island）溫潤微縮黏土公仔與建築模型風系統（LOOK_RO）：
+ * 手作檜木與紙藝袖珍模型風系統（LOOK_RO）：
  * 保留全部既有碰撞、任務與互動機制不變，提供：
- * 1. 全校建築莫蘭迪暖米灰／赤陶／青瓷建築模型色調協調，以及圓潤無黑邊黏土公仔角色質感
- * 2. 依現實世界時間（new Date）自動平滑轉換奶油晨光／溫潤白晝／赤陶夕照／靜謐夜景與校舍暖黃窗光
- * 3. 手機雙指縮放、單指點擊地面自動繞障導航（橘紅引導光圈）、右上建築模型小地圖點擊導航
- * 4. 戶外高樓與斜屋頂遮擋自動半透明退讓（維持微縮盆景斜俯視距離不急縮鏡頭）
- * 5. 政策島圓形橘框頭頂表情徽章、原地坐下休息姿勢、一鍵紀念明信片拍照與校園奇遇圖鑑
- * 6. 樹下圓潤小苔球與粉彩鵝卵石微景觀、水岸潮濕腳印與飄落花瓣
+ * 1. 全校建築象牙厚卡紙／赤陶卡紙／青瓷紙屋頂／檜木屋簷色調協調，以及車削山毛櫸木偶角色質感
+ * 2. 依現實世界時間（new Date）自動平滑轉換攝影棚暖晨光／溫潤白晝／琥珀夕照／靜謐夜景與校舍暖黃窗光
+ * 3. 手機雙指縮放、單指點擊地面自動繞障導航（木質羅盤光圈）、右上袖珍模型小地圖點擊導航
+ * 4. 戶外高樓與斜屋頂遮擋自動半透明退讓（維持微縮模型斜俯視距離不急縮鏡頭）
+ * 5. 胡桃木框厚卡紙頭頂表情徽章、原地坐下休息姿勢、一鍵紀念明信片拍照與校園奇遇圖鑑
+ * 6. 指南溪畔等高線層疊紙板丘、車削原木小樹、羊毛氈植絨苔球與落花微景觀
  */
 import './prontera.css';
 import * as THREE from 'three';
 import { LOOK_RO } from '../render/look.js';
+import { paperFiberTex, woodGrainTex, woolFeltTex } from '../render/craft-tex.js';
 import { state } from '../core/state.js';
 import { late } from '../core/late.js';
 import { $ } from '../core/dom.js';
@@ -40,7 +41,7 @@ import ACHIEVEMENTS from '../content/achievements.json';
 if (LOOK_RO) {
   document.body.classList.add('look-ro');
 
-  /* ---------- 1. 建築模型莫蘭迪色調協調、無描邊圓潤公仔質感與夜間暖窗收集 ---------- */
+  /* ---------- 1. 建築模型卡紙／檜木色調協調、無描邊車削木偶質感與夜間暖窗收集 ---------- */
   const flatCache = new Map();
   const harmonizedMats = new WeakSet();
   const lampMats = [];
@@ -50,40 +51,41 @@ if (LOOK_RO) {
   let styledNpcCount = 0;
 
   const _tmpCol = new THREE.Color(), _hsl = {};
-  const C_OAT = new THREE.Color('#ebe5d8');
-  const C_TAUPE = new THREE.Color('#969186');
-  const C_TERRA = new THREE.Color('#d67b5c');
-  const C_SAGE = new THREE.Color('#8eae6c');
-  const C_TEAL = new THREE.Color('#6ba4b0');
-  const C_OCHRE = new THREE.Color('#e2c868');
+  const C_OAT = new THREE.Color('#efe7d6');
+  const C_TAUPE = new THREE.Color('#9a8c79');
+  const C_TERRA = new THREE.Color('#c96c4e');
+  const C_SAGE = new THREE.Color('#738f58');
+  const C_TEAL = new THREE.Color('#84a89d');
+  const C_HINOKI = new THREE.Color('#dfc194');
+  const pangWoodMat = toon('#ffffff', { map: woodGrainTex('#9c6b43', '#6e4628', { repeat: [1, 1] }) });
 
   function harmonizeArchColor(c) {
     c.getHSL(_hsl);
     const { h, s, l } = _hsl;
     if (s < 0.14) {
-      if (l < 0.42) c.lerp(C_TAUPE, 0.48);
-      else c.lerp(C_OAT, 0.30);
+      if (l < 0.42) c.lerp(C_TAUPE, 0.50);
+      else c.lerp(C_OAT, 0.36);
       return;
     }
     if (h >= 0.20 && h <= 0.44) {
-      c.lerp(C_SAGE, 0.42);
+      c.lerp(C_SAGE, 0.44);
       c.getHSL(_hsl);
-      c.setHSL(_hsl.h, Math.min(0.36, _hsl.s), Math.max(0.42, Math.min(0.76, _hsl.l)));
+      c.setHSL(_hsl.h, Math.min(0.36, _hsl.s), Math.max(0.38, Math.min(0.74, _hsl.l)));
     } else if (h < 0.08 || h > 0.93) {
-      c.lerp(C_TERRA, 0.34);
+      c.lerp(C_TERRA, 0.36);
       c.getHSL(_hsl);
-      c.setHSL(_hsl.h, Math.min(0.48, _hsl.s * 0.82), Math.max(0.40, Math.min(0.78, _hsl.l * 1.06)));
+      c.setHSL(_hsl.h, Math.min(0.48, _hsl.s * 0.84), Math.max(0.40, Math.min(0.76, _hsl.l * 1.05)));
     } else if (h >= 0.08 && h < 0.20) {
-      c.lerp(l > 0.62 ? C_OAT : C_OCHRE, 0.26);
+      c.lerp(l > 0.62 ? C_OAT : C_HINOKI, 0.32);
       c.getHSL(_hsl);
-      c.setHSL(_hsl.h, Math.min(0.46, _hsl.s * 0.80), Math.max(0.38, Math.min(0.88, _hsl.l)));
+      c.setHSL(_hsl.h, Math.min(0.45, _hsl.s * 0.82), Math.max(0.38, Math.min(0.88, _hsl.l)));
     } else if (h > 0.44 && h <= 0.68) {
-      c.lerp(C_TEAL, 0.36);
+      c.lerp(C_TEAL, 0.38);
       c.getHSL(_hsl);
-      c.setHSL(_hsl.h, Math.min(0.38, _hsl.s * 0.78), Math.max(0.42, Math.min(0.82, _hsl.l * 1.05)));
+      c.setHSL(_hsl.h, Math.min(0.36, _hsl.s * 0.76), Math.max(0.42, Math.min(0.80, _hsl.l * 1.04)));
     } else {
       c.getHSL(_hsl);
-      c.setHSL(_hsl.h, _hsl.s * 0.68, Math.max(0.40, _hsl.l));
+      c.setHSL(_hsl.h, _hsl.s * 0.66, Math.max(0.40, _hsl.l));
     }
   }
 
@@ -92,8 +94,11 @@ if (LOOK_RO) {
     root.traverse(o => {
       if (set) set.add(o);
       if (!o.isMesh) return;
-      // 政策島角色完全無黑色描邊；若載入 3D 骨骼模型（MeshStandardMaterial），調為溫潤霧面公仔質感
       if (o.material === OUT) { o.visible = false; return; }
+      if (root === pang && o.material && o.material.isMeshToonMaterial && !o.material.map) {
+        o.material = pangWoodMat;
+        return;
+      }
       const mats = Array.isArray(o.material) ? o.material : [o.material];
       for (const m of mats) {
         if (m && m.isMeshStandardMaterial) {
@@ -179,7 +184,6 @@ if (LOOK_RO) {
         }
       }
 
-      // 靜態烘焙合併網格：把頂點色同步協調成政策島溫潤莫蘭迪建築色系
       if (o.userData?.baked && o.geometry?.attributes?.color && !o.userData.roBakedStyled) {
         const ca = o.geometry.attributes.color;
         for (let i = 0; i < ca.count; i++) {
@@ -220,18 +224,21 @@ if (LOOK_RO) {
   }
   styleSceneMeshes();
 
-  /* ---------- 2. 政策島招牌微景觀：樹畔圓潤苔墊與粉彩鵝卵石三色球（純視覺無碰撞） ---------- */
+  /* ---------- 2. 袖珍模型微景觀：樹下羊毛氈苔球、木珠鵝卵石，與指南溪畔等高線紙丘＋車削木樹 ---------- */
   {
     const decorGroup = new THREE.Group();
     decorGroup.userData.noOcc = true;
-    const padGeo = new THREE.CylinderGeometry(0.42, 0.46, 0.06, 14);
-    const ballGeo = new THREE.SphereGeometry(0.11, 12, 10);
-    const bushGeo = new THREE.SphereGeometry(0.36, 14, 12);
-    const boxGeo = new THREE.BoxGeometry(0.68, 0.24, 0.68);
-    const padMat = toon('#9ab57a');
-    const bushMat = toon('#8eae6c');
-    const planterMat = toon('#c5ae91');
-    const pebbleMats = [toon('#d7c2d8'), toon('#f5f2ea'), toon('#ebd584')];
+    const padGeo = new THREE.CylinderGeometry(0.44, 0.50, 0.06, 14);
+    const ballGeo = new THREE.SphereGeometry(0.10, 12, 10);
+    const feltSliceGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.11, 16);
+    const boxGeo = new THREE.CylinderGeometry(0.42, 0.36, 0.22, 16);
+    const padMat = toon('#ffffff', { map: paperFiberTex('#8da76a', '#738d52', { repeat: [1, 1] }) });
+    const feltA = toon('#ffffff', { map: woolFeltTex('#507238', '#3c5928', { repeat: [1, 1] }) });
+    const feltB = toon('#ffffff', { map: woolFeltTex('#6a8e4d', '#537439', { repeat: [1, 1] }) });
+    const maplePotMat = toon('#ffffff', { map: woodGrainTex('#e4c89e', '#c19966', { repeat: [2, 1] }) });
+    const cedarWoodMat = toon('#ffffff', { map: woodGrainTex('#c67e4b', '#9c5b30', { repeat: [1, 2] }) });
+    const walnutWoodMat = toon('#ffffff', { map: woodGrainTex('#7a4e2e', '#56341c', { repeat: [1, 2] }) });
+    const pebbleMats = [maplePotMat, cedarWoodMat, toon('#f3ede0')];
 
     FOLIAGE.slice(0, 26).forEach((f, idx) => {
       if (f.r > 3.0) return;
@@ -245,15 +252,18 @@ if (LOOK_RO) {
       if (gy > 0.08) return;
 
       if (idx % 3 === 0) {
-        const pl = new THREE.Mesh(boxGeo, planterMat);
-        pl.position.set(cx, gy + 0.12, cz);
-        pl.rotation.y = ang * 0.5;
+        const pl = new THREE.Mesh(boxGeo, maplePotMat);
+        pl.position.set(cx, gy + 0.11, cz);
         pl.castShadow = pl.receiveShadow = true;
-        const bu = new THREE.Mesh(bushGeo, bushMat);
-        bu.position.set(cx, gy + 0.40, cz);
-        bu.scale.set(1, 0.82, 1);
-        bu.castShadow = bu.receiveShadow = true;
-        decorGroup.add(pl, bu);
+        decorGroup.add(pl);
+        [-0.12, 0, 0.12].forEach((ox, k) => {
+          const sl = new THREE.Mesh(feltSliceGeo, k % 2 ? feltB : feltA);
+          sl.position.set(cx + ox, gy + 0.36, cz);
+          sl.rotation.z = Math.PI / 2;
+          sl.scale.setScalar(1 - Math.abs(ox) * 1.4);
+          sl.castShadow = true;
+          decorGroup.add(sl);
+        });
       } else {
         const pad = new THREE.Mesh(padGeo, padMat);
         pad.position.set(cx, gy + 0.03, cz);
@@ -262,11 +272,72 @@ if (LOOK_RO) {
         for (let k = 0; k < 3; k++) {
           const ba = ang + k * 2.1;
           const b = new THREE.Mesh(ballGeo, pebbleMats[(idx + k) % 3]);
-          b.position.set(cx + Math.cos(ba) * 0.17, gy + 0.11, cz + Math.sin(ba) * 0.17);
+          b.position.set(cx + Math.cos(ba) * 0.17, gy + 0.10, cz + Math.sin(ba) * 0.17);
           b.scale.setScalar(0.85 + (k % 2) * 0.22);
           b.castShadow = true;
           decorGroup.add(b);
         }
+      }
+    });
+
+    // 指南溪畔：等高線層疊厚卡紙地形墊＋車削圓錐／塔形原木模型樹＋深綠植絨苔球
+    const topoGeo = new THREE.CylinderGeometry(1, 1.06, 0.10, 9);
+    const coneTreeGeo = new THREE.ConeGeometry(0.62, 1.85, 18);
+    const trunkPegGeo = new THREE.CylinderGeometry(0.11, 0.14, 0.65, 12);
+    const topoMats = [
+      toon('#ffffff', { map: paperFiberTex('#89a466', '#708a4f', { repeat: [2, 2] }) }),
+      toon('#ffffff', { map: paperFiberTex('#9cb578', '#819b5e', { repeat: [2, 2] }) }),
+      toon('#ffffff', { map: paperFiberTex('#b0c68c', '#94ab71', { repeat: [2, 2] }) }),
+    ];
+    [
+      [-55.5, -149.0, 1.25, 0], [-51.5, -163.8, 1.15, 1],
+      [-37.5, -152.2, 1.20, 1], [-34.0, -166.5, 1.30, 0],
+      [-64.5, -146.5, 1.10, 0], [-25.5, -159.5, 1.15, 1],
+      [-74.0, -158.0, 1.25, 1], [-15.0, -172.0, 1.20, 0],
+    ].forEach(([cx, cz, sc, kind], i) => {
+      const probe = { x: cx, z: cz };
+      resolve(probe);
+      if (Math.hypot(probe.x - cx, probe.z - cz) > 0.05) return;
+      if (riverDist(cx, cz) < 4.5) return;
+      const gy = groundH(cx, cz);
+      [1.85, 1.32, 0.82].forEach((r, ti) => {
+        const tp = new THREE.Mesh(topoGeo, topoMats[ti]);
+        tp.position.set(cx, gy + 0.05 + ti * 0.09, cz);
+        tp.scale.set(r * sc, 1, r * 0.78 * sc);
+        tp.rotation.y = i * 0.7 + ti * 0.25;
+        tp.receiveShadow = tp.castShadow = true;
+        decorGroup.add(tp);
+      });
+      const baseH = gy + 0.28;
+      const tk = new THREE.Mesh(trunkPegGeo, walnutWoodMat);
+      tk.position.set(cx, baseH + 0.30 * sc, cz);
+      tk.scale.setScalar(sc);
+      tk.castShadow = true;
+      decorGroup.add(tk);
+      const woodMat = kind ? cedarWoodMat : maplePotMat;
+      if (i % 2 === 0) {
+        const cn = new THREE.Mesh(coneTreeGeo, woodMat);
+        cn.position.set(cx, baseH + 1.42 * sc, cz);
+        cn.scale.setScalar(sc);
+        cn.castShadow = cn.receiveShadow = true;
+        decorGroup.add(cn);
+      } else {
+        [[0.66, 0.85], [0.50, 1.38], [0.34, 1.82]].forEach(([cr, cy]) => {
+          const tier = new THREE.Mesh(coneTreeGeo, woodMat);
+          tier.position.set(cx, baseH + cy * sc, cz);
+          tier.scale.set(cr * 1.45 * sc, 0.44 * sc, cr * 1.45 * sc);
+          tier.castShadow = tier.receiveShadow = true;
+          decorGroup.add(tier);
+        });
+      }
+      for (let m = 0; m < 4; m++) {
+        const ma = i + m * 1.57;
+        const mr = (0.75 + (m % 2) * 0.42) * sc;
+        const tuft = new THREE.Mesh(ballGeo, m % 2 ? feltA : feltB);
+        tuft.position.set(cx + Math.cos(ma) * mr, gy + 0.18 + (m === 0 ? 0.10 : 0), cz + Math.sin(ma) * mr * 0.8);
+        tuft.scale.set(2.2, 1.35, 2.0);
+        tuft.castShadow = true;
+        decorGroup.add(tuft);
       }
     });
     scene.add(decorGroup);
@@ -478,24 +549,31 @@ if (LOOK_RO) {
     m.visible = true;
   }
 
-  /* ---------- 7. 政策島圓形橘紅外框頭頂表情徽章與坐下姿勢 ---------- */
+  /* ---------- 7. 胡桃木框厚卡紙頭頂表情徽章與坐下姿勢 ---------- */
   const EMOTES = ['❤️', '🎵', '❗', '🌱', '✨', '💤'];
   const emoteTextures = EMOTES.map(sym => canvasTex(128, 128, g => {
-    g.fillStyle = '#fcfaf5';
-    g.strokeStyle = '#df7645';
+    g.fillStyle = '#faf4e6';
+    g.strokeStyle = '#8c5d38';
     g.lineWidth = 8;
     g.beginPath();
     g.arc(64, 56, 43, 0, Math.PI * 2);
     g.fill();
     g.stroke();
+    g.strokeStyle = 'rgba(182, 138, 92, 0.55)';
+    g.setLineDash([5, 4]);
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(64, 56, 36, 0, Math.PI * 2);
+    g.stroke();
+    g.setLineDash([]);
     g.beginPath();
     g.moveTo(52, 95); g.lineTo(64, 114); g.lineTo(76, 95);
     g.closePath();
     g.fill();
-    g.strokeStyle = '#df7645';
+    g.strokeStyle = '#8c5d38';
     g.lineWidth = 6;
     g.beginPath(); g.moveTo(52, 95); g.lineTo(64, 114); g.lineTo(76, 95); g.stroke();
-    g.fillStyle = '#fcfaf5';
+    g.fillStyle = '#faf4e6';
     g.fillRect(53, 88, 22, 10);
     g.font = '56px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
     g.textAlign = 'center';
@@ -538,7 +616,7 @@ if (LOOK_RO) {
     H.shR.rotation.set(-0.35, 0, -0.14);
   };
 
-  /* ---------- 8. 依現實世界時間（24 小時制）自動平滑切換政策島奶油日光與夜景暖窗 ---------- */
+  /* ---------- 8. 依現實世界時間（24 小時制）自動平滑切換攝影棚暖日光與夜景暖窗 ---------- */
   const fixedHourParam = (() => {
     const q = new URLSearchParams(location.search).get('roHour');
     const n = q !== null ? Number(q) : NaN;
@@ -548,10 +626,10 @@ if (LOOK_RO) {
   const KEYFRAMES = [
     { h: 0.0, sun: [-0.48, 0.68, 0.55], sCol: '#9cb8dc', sInt: 0.50, hSky: '#445878', hGnd: '#2b313d', hInt: 0.36, top: '#1a273b', hor: '#30435c', warm: '#8ea8cc', fog: '#25344a', cT: '#637691', cB: '#3f4f68', stars: 0.90, dusk: 0.0, night: 1.0, lamp: 3.1, win: 0.88 },
     { h: 5.0, sun: [-0.62, 0.44, 0.48], sCol: '#adc4e4', sInt: 0.55, hSky: '#566a8a', hGnd: '#383d48', hInt: 0.38, top: '#24344d', hor: '#425673', warm: '#a8bce0', fog: '#32445c', cT: '#7689a3', cB: '#4e5e78', stars: 0.72, dusk: 0.15, night: 0.82, lamp: 2.5, win: 0.76 },
-    { h: 6.3, sun: [-0.74, 0.40, 0.44], sCol: '#ffcca0', sInt: 0.80, hSky: '#e8c4b0', hGnd: '#9e9286', hInt: 0.44, top: '#7ba2ba', hor: '#f0c6aa', warm: '#ffe4bc', fog: '#e8ccb8', cT: '#fff0e2', cB: '#d6beb8', stars: 0.04, dusk: 0.68, night: 0.08, lamp: 1.15, win: 0.20 },
-    { h: 8.5, sun: [-0.52, 0.68, 0.44], sCol: '#fff8ea', sInt: 0.82, hSky: '#e6ece4', hGnd: '#b5b0a2', hInt: 0.45, top: '#8db8cb', hor: '#e2eae0', warm: '#fff2da', fog: '#dfe7da', cT: '#fcfbf7', cB: '#e0e3dc', stars: 0.0, dusk: 0.0, night: 0.0, lamp: 0.55, win: 0.0 },
-    { h: 13.5, sun: [0.64, 0.68, 0.38], sCol: '#fff7e8', sInt: 0.84, hSky: '#e6ece4', hGnd: '#b6b1a3', hInt: 0.45, top: '#8db8cb', hor: '#e2eae0', warm: '#fff2da', fog: '#dfe7da', cT: '#fcfbf7', cB: '#e0e3dc', stars: 0.0, dusk: 0.0, night: 0.0, lamp: 0.55, win: 0.0 },
-    { h: 16.6, sun: [0.72, 0.52, 0.42], sCol: '#ffe8ca', sInt: 0.82, hSky: '#e8e2d8', hGnd: '#aba294', hInt: 0.44, top: '#82adc2', hor: '#e6e2d6', warm: '#ffe0b4', fog: '#e2ded4', cT: '#fbf7ee', cB: '#dad6ce', stars: 0.0, dusk: 0.20, night: 0.0, lamp: 0.80, win: 0.12 },
+    { h: 6.3, sun: [-0.74, 0.40, 0.44], sCol: '#ffcca0', sInt: 0.80, hSky: '#ead0bc', hGnd: '#9e8e7e', hInt: 0.44, top: '#7aa0b8', hor: '#f0c8aa', warm: '#ffe4bc', fog: '#ead0bc', cT: '#fff0e2', cB: '#d8c2b8', stars: 0.04, dusk: 0.68, night: 0.08, lamp: 1.15, win: 0.20 },
+    { h: 8.5, sun: [-0.52, 0.68, 0.44], sCol: '#fff5e0', sInt: 0.82, hSky: '#efe9dc', hGnd: '#b8a992', hInt: 0.45, top: '#8ab4c7', hor: '#ebe4d5', warm: '#fff0d4', fog: '#e7e0d0', cT: '#fcfaf4', cB: '#e2ddd2', stars: 0.0, dusk: 0.0, night: 0.0, lamp: 0.55, win: 0.0 },
+    { h: 13.5, sun: [0.64, 0.68, 0.38], sCol: '#fff4de', sInt: 0.84, hSky: '#efe9dc', hGnd: '#b9aa93', hInt: 0.45, top: '#8ab4c7', hor: '#ebe4d5', warm: '#fff0d4', fog: '#e7e0d0', cT: '#fcfaf4', cB: '#e2ddd2', stars: 0.0, dusk: 0.0, night: 0.0, lamp: 0.55, win: 0.0 },
+    { h: 16.6, sun: [0.72, 0.52, 0.42], sCol: '#ffe6c6', sInt: 0.82, hSky: '#ebe2d4', hGnd: '#ad9d88', hInt: 0.44, top: '#80aac0', hor: '#e8dfd0', warm: '#ffdfb0', fog: '#e4dbcb', cT: '#fbf6ec', cB: '#dcd5c9', stars: 0.0, dusk: 0.20, night: 0.0, lamp: 0.80, win: 0.12 },
     { h: 17.8, sun: [0.78, 0.36, 0.48], sCol: '#f5a46e', sInt: 0.82, hSky: '#e8b296', hGnd: '#85746e', hInt: 0.44, top: '#5d7896', hor: '#eda880', warm: '#ffd69c', fog: '#e2b49a', cT: '#ffe0c8', cB: '#c8a6a4', stars: 0.20, dusk: 0.95, night: 0.08, lamp: 2.0, win: 0.70 },
     { h: 19.0, sun: [-0.46, 0.66, 0.54], sCol: '#9cb8dc', sInt: 0.52, hSky: '#465a7a', hGnd: '#2c323e', hInt: 0.36, top: '#1c293d', hor: '#324660', warm: '#8ea8cc', fog: '#26364c', cT: '#637691', cB: '#3f4f68', stars: 0.90, dusk: 0.0, night: 1.0, lamp: 3.1, win: 0.88 },
     { h: 24.0, sun: [-0.48, 0.68, 0.55], sCol: '#9cb8dc', sInt: 0.50, hSky: '#445878', hGnd: '#2b313d', hInt: 0.36, top: '#1a273b', hor: '#30435c', warm: '#8ea8cc', fog: '#25344a', cT: '#637691', cB: '#3f4f68', stars: 0.90, dusk: 0.0, night: 1.0, lamp: 3.1, win: 0.88 },
@@ -563,7 +641,7 @@ if (LOOK_RO) {
     fogC: new THREE.Color(k.fog), cTC: new THREE.Color(k.cT), cBC: new THREE.Color(k.cB),
   }));
 
-  const WIN_DAY = new THREE.Color('#7fb0bf');
+  const WIN_DAY = new THREE.Color('#78aab8');
   const WIN_LIT = new THREE.Color('#ffd68a');
   const GLOOM_FOG = new THREE.Color('#b8beb8'), GLOOM_CLOUD = new THREE.Color('#9ea6a2');
 
@@ -609,7 +687,7 @@ if (LOOK_RO) {
   };
   evalTimeState(getRealHour(), cur);
 
-  /* ---------- 9. 政策島極簡介面：地點膠囊、表情坐姿、紀念明信片與奇遇圖鑑 ---------- */
+  /* ---------- 9. 檜木牌與厚卡紙極簡介面：地點木牌、表情坐姿、紀念明信片與奇遇圖鑑 ---------- */
   const hud = $('hud');
   const leftCol = hud.querySelector('.col');
   const rightCol = hud.querySelector('.col.r');
@@ -620,7 +698,7 @@ if (LOOK_RO) {
   if (locChip) {
     locChip.id = 'ro-loc-pill';
     const ico = locChip.querySelector('.ico');
-    if (ico) ico.textContent = '●';
+    if (ico) ico.textContent = '✦';
   }
 
   const emoteBtn = document.createElement('button');
@@ -668,7 +746,7 @@ if (LOOK_RO) {
 
   const mapCard = document.createElement('div');
   mapCard.id = 'ro-map-card';
-  mapCard.innerHTML = `<div class="ro-map-head"><span>NCCU ISLAND</span><span class="ro-map-sub">點擊導航</span></div>`;
+  mapCard.innerHTML = `<div class="ro-map-head"><span>✦ 袖珍政大</span><span class="ro-map-sub">點圖導航</span></div>`;
   mapCard.appendChild(miniEl);
 
   const menuBtn = document.createElement('button');
@@ -744,18 +822,18 @@ if (LOOK_RO) {
     out.width = cw + 48;
     out.height = ch + 104;
     const g = out.getContext('2d');
-    g.fillStyle = '#faf8f2';
+    g.fillStyle = '#f7f1e3';
     g.fillRect(0, 0, out.width, out.height);
     g.drawImage(src, 24, 24, cw, ch);
-    g.strokeStyle = '#dfd8c8';
-    g.lineWidth = 2;
+    g.strokeStyle = '#9e7348';
+    g.lineWidth = 2.5;
     g.strokeRect(24, 24, cw, ch);
-    g.fillStyle = '#2b2825';
-    g.font = `900 ${Math.max(18, Math.round(cw * 0.024))}px "Noto Sans TC",sans-serif`;
-    g.fillText(`● 政大校園 · ${state.zone || '漫步中'}`, 28, ch + 68);
+    g.fillStyle = '#2f2116';
+    g.font = `900 ${Math.max(18, Math.round(cw * 0.024))}px "Noto Serif TC","Noto Sans TC",sans-serif`;
+    g.fillText(`✦ 袖珍政大 · ${state.zone || '漫步中'}`, 28, ch + 68);
     const d = new Date();
     const stamp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    g.fillStyle = '#7c756b';
+    g.fillStyle = '#7a5a3c';
     g.font = `700 ${Math.max(14, Math.round(cw * 0.018))}px ui-monospace,monospace`;
     g.textAlign = 'right';
     g.fillText(`NCCU 100 · ${stamp}`, out.width - 28, ch + 68);
@@ -834,7 +912,7 @@ if (LOOK_RO) {
     `;
   }
 
-  /* ---------- 11. 右上政策島色系建築模型雷達小地圖 ---------- */
+  /* ---------- 11. 右上木質與卡紙建築模型雷達小地圖 ---------- */
   const MINI_SPAN = 48;
   miniEl.addEventListener('click', e => {
     if (!state.started || !dlg.hidden || state.busy || state.driving || indoor()) return;
@@ -849,10 +927,10 @@ if (LOOK_RO) {
     const py = z => W / 2 + ((pos.z - z) / MINI_SPAN) * (W / 2);
     const sc = (W / 2) / MINI_SPAN;
 
-    mg.fillStyle = '#cad6b4';
+    mg.fillStyle = '#adc08a';
     mg.fillRect(0, 0, W, W);
 
-    mg.fillStyle = 'rgba(186, 202, 160, 0.38)';
+    mg.fillStyle = 'rgba(154, 178, 118, 0.42)';
     const stepG = 14 * sc;
     const ox = ((pos.x % 14) + 14) % 14 * sc, oz = ((pos.z % 14) + 14) % 14 * sc;
     for (let x = -stepG + ox; x < W + stepG; x += stepG) {
@@ -865,39 +943,40 @@ if (LOOK_RO) {
       mg.strokeStyle = col; mg.lineWidth = w * sc; mg.lineCap = 'round'; mg.lineJoin = 'round';
       mg.beginPath(); pts.forEach(([x, z], i) => (i ? mg.lineTo(px(x), py(z)) : mg.moveTo(px(x), py(z)))); mg.stroke();
     };
-    road([[-160, 25], [170, 25]], 13, '#a8a59c');
-    road([[-90, bdZ(-90)], [0, bdZ(0)], [94, bdZ(94)]], 7, '#dfdcd2');
-    road([[SIWEI.x0, swZ(SIWEI.x0)], [SIWEI.x1, swZ(SIWEI.x1)]], 10, '#d97a57');
-    road([[0, 16], [0, -78]], 12, '#eae7dd');
-    road(CREEK_ROAD, 6, '#e3e0d5');
-    road([[-88, 15], [-88, -176]], 7, '#dfdcd2');
-    road([[23.5, -60], [23.5, -172]], 7, '#dfdcd2');
+    road([[-160, 25], [170, 25]], 13, '#8b8479');
+    road([[-90, bdZ(-90)], [0, bdZ(0)], [94, bdZ(94)]], 7, '#e4d2b4');
+    road([[SIWEI.x0, swZ(SIWEI.x0)], [SIWEI.x1, swZ(SIWEI.x1)]], 10, '#cf7050');
+    road([[0, 16], [0, -78]], 12, '#ebd9bc');
+    road(CREEK_ROAD, 6, '#e7d6b9');
+    road([[-88, 15], [-88, -176]], 7, '#e4d2b4');
+    road([[23.5, -60], [23.5, -172]], 7, '#e4d2b4');
 
-    mg.fillStyle = '#ece9df';
+    mg.fillStyle = '#eddac0';
     mg.beginPath(); mg.arc(px(0), py(FZ), 10.8 * sc, 0, Math.PI * 2); mg.fill();
-    road(RIV, 7.5, '#5da2b4');
-    road(RIV, 3.0, '#96c7d4');
-    [[BR.x, BR.z, '#c28c58'], [-88, -149, '#e0dcd0'], [19.3, -178, '#e0dcd0']].forEach(([bx, bz, bc]) => {
+    road(RIV, 8.2, '#f0e7d4');
+    road(RIV, 6.2, '#4798a4');
+    road(RIV, 2.2, '#9ad4da');
+    [[BR.x, BR.z, '#c67b46'], [-88, -149, '#e8d4b2'], [19.3, -178, '#e8d4b2']].forEach(([bx, bz, bc]) => {
       const x = px(bx), y = py(bz);
       if (x < -10 || x > W + 10 || y < -10 || y > W + 10) return;
-      mg.fillStyle = bc; mg.strokeStyle = '#826b54'; mg.lineWidth = 1.2;
+      mg.fillStyle = bc; mg.strokeStyle = '#6e472b'; mg.lineWidth = 1.3;
       mg.fillRect(x - 3.2 * sc, y - 4.6 * sc, 6.4 * sc, 9.2 * sc);
       mg.strokeRect(x - 3.2 * sc, y - 4.6 * sc, 6.4 * sc, 9.2 * sc);
     });
-    mg.fillStyle = '#63a6b8';
-    mg.strokeStyle = '#efeae0';
-    mg.lineWidth = 2;
+    mg.fillStyle = '#4ea5b0';
+    mg.strokeStyle = '#e7cba2';
+    mg.lineWidth = 2.2;
     mg.beginPath(); mg.arc(px(0), py(FZ), 5.4 * sc, 0, Math.PI * 2); mg.fill(); mg.stroke();
-    mg.fillStyle = '#e6c656';
-    mg.beginPath(); mg.arc(px(0), py(FZ), 1.6 * sc, 0, Math.PI * 2); mg.fill();
+    mg.fillStyle = '#8b5b36';
+    mg.beginPath(); mg.arc(px(0), py(FZ), 1.5 * sc, 0, Math.PI * 2); mg.fill();
 
-    const roofPalette = ['#68a59e', '#d68266', '#83a8bc', '#dfc876', '#ded8ca'];
+    const roofPalette = ['#8eae98', '#cb7356', '#dfc298', '#ede5d4', '#86a2aa'];
     world.mapShapes.forEach((m, i) => {
       if (!m.w || !m.d) return;
       const rx = px(m.x + m.w / 2), ry = py(m.z + m.d / 2), rw = m.w * sc, rh = m.d * sc;
       if (rx + rw < -4 || rx > W + 4 || ry + rh < -4 || ry > W + 4) return;
       mg.fillStyle = roofPalette[i % roofPalette.length];
-      mg.strokeStyle = 'rgba(72, 68, 60, 0.42)';
+      mg.strokeStyle = 'rgba(84, 58, 36, 0.48)';
       mg.lineWidth = 1.4;
       mg.fillRect(rx, ry, rw, rh);
       mg.strokeRect(rx, ry, rw, rh);
@@ -909,8 +988,10 @@ if (LOOK_RO) {
       const tx = px(f.x), tz = py(f.z);
       if (tx < -4 || tx > W + 4 || tz < -4 || tz > W + 4) continue;
       const isPink = sakuraKey.has(`${f.x.toFixed(1)},${f.z.toFixed(1)}`);
-      mg.fillStyle = isPink ? '#dfa398' : '#86a865';
-      mg.beginPath(); mg.arc(tx, tz, (isPink ? 2.4 : 2.1) * sc, 0, Math.PI * 2); mg.fill();
+      mg.fillStyle = isPink ? '#d98f85' : '#658244';
+      mg.strokeStyle = 'rgba(64, 44, 24, 0.35)';
+      mg.lineWidth = 1;
+      mg.beginPath(); mg.arc(tx, tz, (isPink ? 2.4 : 2.1) * sc, 0, Math.PI * 2); mg.fill(); mg.stroke();
     }
 
     for (let i = 0; i < spots.length; i++) {
@@ -918,7 +999,7 @@ if (LOOK_RO) {
       if (s.room || s.x === undefined || !s.ok?.()) continue;
       const sx = px(s.x), sz = py(s.z);
       if (sx < 4 || sx > W - 4 || sz < 4 || sz > W - 4) continue;
-      mg.fillStyle = 'rgba(223, 118, 69, 0.72)';
+      mg.fillStyle = 'rgba(184, 93, 59, 0.78)';
       mg.beginPath(); mg.arc(sx, sz, 2.5, 0, Math.PI * 2); mg.fill();
     }
     for (let i = 0; i < crystals.length; i++) {
@@ -927,16 +1008,16 @@ if (LOOK_RO) {
       const cx = px(c.g.position.x), cz = py(c.g.position.z);
       if (cx < 6 || cx > W - 6 || cz < 6 || cz > W - 6) continue;
       mg.fillStyle = '#ebd058';
-      mg.strokeStyle = '#8c6428';
+      mg.strokeStyle = '#7a5220';
       mg.lineWidth = 1.5;
       mg.beginPath(); mg.arc(cx, cz, 4.5 + Math.sin(state.time * 5 + i) * 1.0, 0, Math.PI * 2); mg.fill(); mg.stroke();
     }
 
     if (state.roTarget) {
       const tx = px(state.roTarget.x), tz = py(state.roTarget.z);
-      mg.strokeStyle = '#df7645'; mg.lineWidth = 3;
+      mg.strokeStyle = '#9c5d34'; mg.lineWidth = 3;
       mg.beginPath(); mg.arc(tx, tz, 7 + Math.sin(state.time * 6) * 2, 0, Math.PI * 2); mg.stroke();
-      mg.fillStyle = '#fcfaf5';
+      mg.fillStyle = '#faf4e6';
       mg.beginPath(); mg.arc(tx, tz, 3.5, 0, Math.PI * 2); mg.fill();
     }
 
@@ -945,15 +1026,15 @@ if (LOOK_RO) {
     mg.save();
     mg.rotate(-(state.yaw + Math.PI));
     const cg = mg.createRadialGradient(0, 0, 0, 0, 0, W * 0.38);
-    cg.addColorStop(0, 'rgba(223, 118, 69, 0.28)');
-    cg.addColorStop(1, 'rgba(223, 118, 69, 0)');
+    cg.addColorStop(0, 'rgba(184, 93, 59, 0.26)');
+    cg.addColorStop(1, 'rgba(184, 93, 59, 0)');
     mg.fillStyle = cg;
     mg.beginPath(); mg.moveTo(0, 0); mg.arc(0, 0, W * 0.38, -Math.PI / 2 - 0.42, -Math.PI / 2 + 0.42); mg.closePath(); mg.fill();
     mg.restore();
 
     mg.rotate(-(state.driving ? state.carYaw : player.rotation.y));
-    mg.fillStyle = '#df7645';
-    mg.strokeStyle = '#fcfaf5';
+    mg.fillStyle = '#b85d3b';
+    mg.strokeStyle = '#faf4e6';
     mg.lineWidth = 4;
     mg.beginPath();
     mg.moveTo(0, -13); mg.lineTo(9, 9); mg.lineTo(0, 4); mg.lineTo(-9, 9); mg.closePath();

@@ -10,13 +10,25 @@ import { tree } from '../../vegetation.js';
 import { winMat } from '../../building-kit.js';
 import { defineBuilding } from '../../registry.js';
 import { LOOK_RO } from '../../../render/look.js';
+import { paperFiberTex, woodGrainTex, woolFeltTex } from '../../../render/craft-tex.js';
 
 function build() {
+  const FELT_DISC=LOOK_RO?new THREE.CylinderGeometry(1,1,0.16,20):null;
+  const feltDark=LOOK_RO?toon('#ffffff',{map:woolFeltTex('#4d7036','#3b5827',{repeat:[1,1]})}):null;
+  const feltLight=LOOK_RO?toon('#ffffff',{map:woolFeltTex('#678d4b','#507237',{repeat:[1,1]})}):null;
+  function feltBush(x,y,z,r){
+    [-0.24,-0.08,0.08,0.24].forEach((off,i)=>{
+      const s=r*(1-Math.abs(off)*0.85);
+      const d=mk(FELT_DISC,i%2?feltLight:feltDark,x+off*r*1.15,y+s*0.72,z,{out:0.03});
+      d.rotation.z=Math.PI/2; d.scale.set(s*0.82,1,s);
+    });
+  }
   /* ---------- 正門：校名碑 ---------- */
   const graniteTex=LOOK_RO
     ? canvasTex(256,256,(g,w,h)=>{
-        g.fillStyle='#c46d58'; g.fillRect(0,0,w,h);
-        g.strokeStyle='rgba(156,78,60,0.45)'; g.lineWidth=2.5;
+        g.fillStyle='#c4694f'; g.fillRect(0,0,w,h);
+        for(let i=0;i<900;i++){ g.fillStyle=i%2?'rgba(255,238,220,0.08)':'rgba(90,38,24,0.08)'; g.fillRect(Math.random()*w,Math.random()*h,3,2); }
+        g.strokeStyle='rgba(128,54,36,0.52)'; g.lineWidth=2.5;
         for(let y=0;y<=h;y+=64){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke(); }
         g.beginPath(); g.moveTo(w/2,0); g.lineTo(w/2,h); g.stroke();
       },[1,4])
@@ -36,13 +48,13 @@ function build() {
   block(OBX+0.4,3.6,OBZ,3.3,1.8,2.9,GRANITE2,0.05);
   const butt=block(OBX-2.1,3.2,OBZ,1.3,6.5,2.4,GRANITE,0.05);
   butt.rotation.z=-0.38;
-  const badgeTex=canvasTex(256,256,(g)=>{ g.fillStyle='#f4f2ec'; g.beginPath(); g.arc(128,128,120,0,7); g.fill();
-    g.strokeStyle=LOOK_RO?'#4e7ba8':'#2457a4'; g.lineWidth=14; g.beginPath(); g.arc(128,128,104,0,7); g.stroke();
-    g.fillStyle=LOOK_RO?'#4e7ba8':'#2457a4'; for(let i=0;i<5;i++){ const a=i/5*Math.PI*2-Math.PI/2; g.beginPath(); g.arc(128+Math.cos(a)*42,128+Math.sin(a)*42,36,0,7); g.fill(); }
-    g.fillStyle='#f4f2ec'; g.beginPath(); g.arc(128,128,28,0,7); g.fill(); g.fillStyle=LOOK_RO?'#4e7ba8':'#2457a4'; g.font='900 34px "Noto Serif TC",serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('政',128,130); });
+  const badgeTex=canvasTex(256,256,(g)=>{ g.fillStyle='#f6f1e6'; g.beginPath(); g.arc(128,128,120,0,7); g.fill();
+    g.strokeStyle=LOOK_RO?'#3c628c':'#2457a4'; g.lineWidth=14; g.beginPath(); g.arc(128,128,104,0,7); g.stroke();
+    g.fillStyle=LOOK_RO?'#3c628c':'#2457a4'; for(let i=0;i<5;i++){ const a=i/5*Math.PI*2-Math.PI/2; g.beginPath(); g.arc(128+Math.cos(a)*42,128+Math.sin(a)*42,36,0,7); g.fill(); }
+    g.fillStyle='#f6f1e6'; g.beginPath(); g.arc(128,128,28,0,7); g.fill(); g.fillStyle=LOOK_RO?'#3c628c':'#2457a4'; g.font='900 34px "Noto Serif TC",serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('政',128,130); });
   const towerFaceZ=h=>OBZ+(1.25-(h-2.9)/15*0.4)+0.03, tilt=-Math.atan(0.4/15);
   const badge=plane(1.35,1.35,basic({map:badgeTex,transparent:true}),OBX+0.4,15.4,towerFaceZ(15.4),tilt);
-  const nameTex=vText('國立政治大學',LOOK_RO?'#f6ecce':'#e8c57c','900 100px "Noto Serif TC","Songti TC",serif',128,118);
+  const nameTex=vText('國立政治大學',LOOK_RO?'#fbf2dc':'#e8c57c','900 100px "Noto Serif TC","Songti TC",serif',128,118);
   plane(0.95,5.9,basic({map:nameTex,transparent:true}),OBX+0.4,11,towerFaceZ(11),tilt);
   { const obNew=scene.children.slice(_obStart), obG=new THREE.Group(); obG.position.set(OBX,0,OBZ); obG.rotation.y=Math.PI/4;
     obNew.forEach(c=>{ c.position.x-=OBX; c.position.z-=OBZ; obG.add(c); }); scene.add(obG); }
@@ -50,62 +62,89 @@ function build() {
   circC(OBX-1.5,OBZ+1.5,1.4);
   /* 英文校名矮牆 */
   block(-13.4,0.55,15.2,9.6,1.1,0.6,GRANITE2,0.04);
-  const enTex=hText('NATIONAL CHENGCHI UNIVERSITY',LOOK_RO?'#f6ecce':'#e8c57c','700 54px "Noto Serif TC",Georgia,serif',1400,90,30);
+  const enTex=hText('NATIONAL CHENGCHI UNIVERSITY',LOOK_RO?'#fbf2dc':'#e8c57c','700 54px "Noto Serif TC",Georgia,serif',1400,90,30);
   plane(8.8,0.56,basic({map:enTex,transparent:true}),-13.4,0.62,15.51);
   boxC(-18.3,-8.6,14.8,15.6);
   /* 花台、灌木 */
-  block(-15,0.15,16.3,15,0.3,1.2,LOOK_RO?'#d6cab5':'#b9ad9a',0.02);
+  const hinokiEave=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#e4c79d','#c19866',{repeat:[3,1]}),gradientMap:GRAD}):null;
+  const hinokiSoffit=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#d5b487','#b38c5b',{repeat:[3,1]}),gradientMap:GRAD}):null;
+  const matboardCream=LOOK_RO?new THREE.MeshToonMaterial({map:paperFiberTex('#eee6d6','#d8ceba',{repeat:[2,1]}),gradientMap:GRAD}):null;
+  block(-15,0.15,16.3,15,0.3,1.2,LOOK_RO?hinokiSoffit:'#b9ad9a',0.02);
   boxC(-22.6,-7.4,15.6,16.95);
-  [[-22,16.3],[-20.6,16.3]].forEach(p=>{ mk(new THREE.ConeGeometry(0.7,2.6,9),toon(LOOK_RO?'#7d9e5d':'#3f8a43'),p[0],1.6,p[1],{out:0.05}); });
-  [-17.5,-14.2,-11,-8.3].forEach(x=>{ const b=mk(LOOK_RO?new THREE.SphereGeometry(1,16,12):SPH,toon(LOOK_RO?'#92b370':'#4f9e46'),x,0.72,16.3,{out:0.08}); b.scale.set(0.75,0.58,0.58); });
+  [[-22,16.3],[-20.6,16.3]].forEach((p,idx)=>{
+    if(LOOK_RO){
+      mk(new THREE.CylinderGeometry(0.11,0.14,0.6,10),hinokiSoffit,p[0],0.45,p[1],{out:0.025});
+      mk(new THREE.ConeGeometry(0.72,2.2,14),idx?feltLight:feltDark,p[0],1.7,p[1],{out:0.04});
+    } else mk(new THREE.ConeGeometry(0.7,2.6,9),toon('#3f8a43'),p[0],1.6,p[1],{out:0.05});
+  });
+  [-17.5,-14.2,-11,-8.3].forEach(x=>{
+    if(LOOK_RO) feltBush(x,0.30,16.3,0.68);
+    else { const b=mk(SPH,toon('#4f9e46'),x,0.72,16.3,{out:0.08}); b.scale.set(0.75,0.58,0.58); }
+  });
   { const fl=new THREE.InstancedMesh(SPH,toon(LOOK_RO?'#ffffff':'#d9363c'),140), d=new THREE.Object3D(), col=new THREE.Color();
-    const flCols=LOOK_RO?['#e59d8e','#ebd382','#f4f1e8','#d6b8d2']:['#d9363c','#d9363c','#d9363c','#d9363c','#f08a3c'];
+    const flCols=LOOK_RO?['#de7f67','#ebd078','#f5efe2','#8db4c7']:['#d9363c','#d9363c','#d9363c','#d9363c','#f08a3c'];
     for(let i=0;i<140;i++){ d.position.set(-21+Math.random()*13.5,0.36+Math.random()*0.08,15.8+Math.random()*1); d.scale.setScalar(0.09+Math.random()*0.05); d.updateMatrix(); fl.setMatrixAt(i,d.matrix); fl.setColorAt(i,col.set(flCols[i%flCols.length])); }
     scene.add(fl); }
   /* 紅綠燈 */
-  mk(new THREE.CylinderGeometry(0.1,0.12,5.2,8),toon('#8e9499'),-24.5,2.6,17.5,{out:0.02});
-  block(-23.1,4.8,17.5,2.8,0.14,0.14,'#8e9499');
-  block(-21.8,4.55,17.5,0.9,0.4,0.35,'#2e3a33',0.02);
+  mk(new THREE.CylinderGeometry(0.1,0.12,5.2,8),LOOK_RO?hinokiSoffit:toon('#8e9499'),-24.5,2.6,17.5,{out:0.02});
+  block(-23.1,4.8,17.5,2.8,0.14,0.14,LOOK_RO?hinokiSoffit:'#8e9499');
+  block(-21.8,4.55,17.5,0.9,0.4,0.35,LOOK_RO?'#4a3728':'#2e3a33',0.02);
   mk(SPH,basic({color:'#52e08a'}),-21.55,4.55,17.7,{cast:false}).scale.setScalar(0.11);
   circC(-24.5,17.5,0.2);
-  /* ---------- 正門：紅磚門房與混凝土大屋簷 ---------- */
+  /* ---------- 正門：紅磚門房與檜木大屋簷 ---------- */
   const tileTex=LOOK_RO
     ? canvasTex(128,128,(g,w,h)=>{
-        g.fillStyle='#d47a5c'; g.fillRect(0,0,w,h);
-        g.strokeStyle='rgba(182,94,68,0.36)'; g.lineWidth=2;
-        for(let i=0;i<=w;i+=32){ g.beginPath(); g.moveTo(i,0); g.lineTo(i,h); g.stroke(); g.beginPath(); g.moveTo(0,i); g.lineTo(w,i); g.stroke(); }
+        g.fillStyle='#c96d50'; g.fillRect(0,0,w,h);
+        for(let n=0;n<350;n++){ g.fillStyle=n%2?'rgba(255,240,224,0.09)':'rgba(96,40,24,0.09)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+        g.strokeStyle='rgba(132,56,36,0.46)'; g.lineWidth=2;
+        for(let y=0;y<=h;y+=24){ g.beginPath(); g.moveTo(0,y); g.lineTo(w,y); g.stroke();
+          const off=((y/24)%2)*21; for(let x=off;x<=w;x+=42){ g.beginPath(); g.moveTo(x,y); g.lineTo(x,Math.min(h,y+24)); g.stroke(); } }
       },[4,3])
     : canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#c9695a'; g.fillRect(0,0,w,h); g.strokeStyle='#b0574a'; g.lineWidth=3; for(let i=0;i<=w;i+=16){ g.beginPath(); g.moveTo(i,0); g.lineTo(i,h); g.stroke(); g.beginPath(); g.moveTo(0,i); g.lineTo(w,i); g.stroke(); } },[4,3]);
   const TILE=new THREE.MeshToonMaterial({map:tileTex,gradientMap:GRAD});
-  const CONC=LOOK_RO?'#ded8cb':'#a29e95', CONC2=LOOK_RO?'#cfc8b8':'#8c8981';
+  const CONC=LOOK_RO?hinokiEave:'#a29e95', CONC2=LOOK_RO?hinokiSoffit:'#8c8981';
   function gatehouse(cx,dir){ // dir=-1 左側，+1 右側；靠大道一側一樓是穿堂
     const xo=cx+3.5*dir, xi=cx-3.5*dir;
     const sx0=Math.min(xo,cx-1.1*dir), sx1=Math.max(xo,cx-1.1*dir);
     block((sx0+sx1)/2,1.3,12,sx1-sx0,2.6,5,TILE,0.04);
     const px=xi+0.3*dir; block(px,1.3,12,0.6,2.6,5,TILE,0.04);
     block(cx,4.05,12,7,2.9,5,TILE,0.05);
-    block(cx,0.25,12,7.05,0.5,5.05,LOOK_RO?'#ad5d46':'#7b3a36');
-    block(cx,2.6,14.53,7.04,0.12,0.06,LOOK_RO?'#ede7da':'#b0574a');
-    [-2.2,-0.75,0.75,2.2].forEach(dx=>{ plane(1.0,0.75,winMat,cx+dx,4.5,14.52); plane(1.0,0.75,winMat,cx+dx,4.5,9.48,0,Math.PI); });
-    [2.5,1.6].forEach(d=>plane(0.8,1.1,winMat,cx+d*dir,1.6,14.52));
+    block(cx,0.25,12,7.05,0.5,5.05,LOOK_RO?hinokiSoffit:'#7b3a36');
+    block(cx,2.6,14.53,7.04,0.16,0.10,LOOK_RO?matboardCream:'#b0574a');
+    [-2.2,-0.75,0.75,2.2].forEach(dx=>{
+      if(LOOK_RO){ block(cx+dx,4.5,14.51,1.12,0.87,0.06,matboardCream); block(cx+dx,4.5,9.49,1.12,0.87,0.06,matboardCream); }
+      plane(1.0,0.75,winMat,cx+dx,4.5,14.55); plane(1.0,0.75,winMat,cx+dx,4.5,9.45,0,Math.PI);
+    });
+    [2.5,1.6].forEach(d=>{
+      if(LOOK_RO) block(cx+d*dir,1.6,14.51,0.92,1.22,0.06,matboardCream);
+      plane(0.8,1.1,winMat,cx+d*dir,1.6,14.55);
+    });
     block(cx,6.05,12,10.4,0.8,8.4,CONC,0.07);
     block(cx,5.55,12,9.2,0.35,7.2,CONC2,0.04);
-    const numTex=canvasTex(128,64,(g,w,h)=>{ g.fillStyle=LOOK_RO?'#4f809c':'#2f5f9e'; g.fillRect(0,0,w,h); g.fillStyle='#fff'; g.font='700 44px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('64',w/2,h/2+2); });
+    const numTex=canvasTex(128,64,(g,w,h)=>{ g.fillStyle=LOOK_RO?'#3e6b89':'#2f5f9e'; g.fillRect(0,0,w,h); g.fillStyle='#fff'; g.font='700 44px "Noto Sans TC",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('64',w/2,h/2+2); });
     plane(0.45,0.22,basic({map:numTex}),px,1.9,14.53);
     boxC(sx0,sx1,9.5,14.5); boxC(Math.min(px-0.3,px+0.3),Math.max(px-0.3,px+0.3),9.5,14.5);
   }
   gatehouse(-10,-1);
   gatehouse(10,1);
-  [9.2,10.8,12.4].forEach(x=>{ const b=mk(LOOK_RO?new THREE.SphereGeometry(1,16,12):SPH,toon(LOOK_RO?'#92b370':'#4f9e46'),x,0.6,15.3,{out:0.08}); b.scale.set(0.7,0.55,0.55); circC(x,15.3,0.5); });
+  [9.2,10.8,12.4].forEach(x=>{
+    if(LOOK_RO) feltBush(x,0.05,15.3,0.65);
+    else { const b=mk(SPH,toon('#4f9e46'),x,0.6,15.3,{out:0.08}); b.scale.set(0.7,0.55,0.55); }
+    circC(x,15.3,0.5);
+  });
   /* 中央警衛亭 */
-  block(2.6,0.15,10.5,2.6,0.3,2.4,LOOK_RO?'#dad2c0':'#bdb3a3');
-  block(2.6,1.35,10.5,2.1,2.1,1.9,new THREE.MeshToonMaterial({color:LOOK_RO?'#83b8c6':'#a9d1e3',gradientMap:GRAD,emissive:LOOK_RO?'#669eab':'#5f8ea6',emissiveIntensity:LOOK_RO?0.12:0.25}),0.03);
+  block(2.6,0.15,10.5,2.6,0.3,2.4,LOOK_RO?hinokiSoffit:'#bdb3a3');
+  block(2.6,1.35,10.5,2.1,2.1,1.9,LOOK_RO?matboardCream:new THREE.MeshToonMaterial({color:'#a9d1e3',gradientMap:GRAD,emissive:'#5f8ea6',emissiveIntensity:0.25}),0.03);
+  if(LOOK_RO){
+    plane(1.5,1.0,winMat,2.6,1.5,11.46);
+    plane(1.5,1.0,winMat,2.6,1.5,9.54,0,Math.PI);
+  }
   block(2.6,2.6,10.5,3.4,0.35,3.1,CONC,0.04);
   boxC(1.3,3.9,9.3,11.7);
-  [[4.6,13.4],[5.4,13.2],[6.2,13.4],[-4.8,13.4]].forEach(p=>{ mk(new THREE.ConeGeometry(0.2,0.65,10),toon(LOOK_RO?'#de7848':'#f0702e'),p[0],0.33,p[1],{out:0.02}); });
+  [[4.6,13.4],[5.4,13.2],[6.2,13.4],[-4.8,13.4]].forEach(p=>{ mk(new THREE.ConeGeometry(0.2,0.65,10),toon(LOOK_RO?'#d97242':'#f0702e'),p[0],0.33,p[1],{out:0.02}); });
   /* 圍籬綠籬 */
-  for(let x=-46;x<-24.5;x+=2.2) block(x+1.1,0.55,12,2.1,1.1,1.1,'#4f9a48',0.04);
-  for(let x=13.6;x<48;x+=2.1) block(x+1.0,0.55,12,2.0,1.1,1.1,'#4f9a48',0.04);
+  for(let x=-46;x<-24.5;x+=2.2) block(x+1.1,0.55,12,2.1,1.1,1.1,LOOK_RO?feltDark:'#4f9a48',0.04);
+  for(let x=13.6;x<48;x+=2.1) block(x+1.0,0.55,12,2.0,1.1,1.1,LOOK_RO?feltDark:'#4f9a48',0.04);
   boxC(-47,-24.4,11.3,12.7);
   boxC(13.4,49,11.3,12.7);
   /* ---------- 校門內側（從四維堂往校門看） ---------- */

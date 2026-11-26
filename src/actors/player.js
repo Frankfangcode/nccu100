@@ -12,14 +12,19 @@ import { NEW_PLAYER_ENABLED, installStdHumanoid } from './std-humanoid/index.js'
 import { registerPlayerCharacter } from './character-part-sources.js';
 import { state } from '../core/state.js';
 import { scene } from '../core/engine.js';
-import { BOX, OUT, SPH, basic, canvasTex, mk, outline, toon } from '../render/kit.js';
+import { BOX, GRAD, OUT, SPH, basic, canvasTex, mk, outline, toon } from '../render/kit.js';
 import { LOOK_RO } from '../render/look.js';
+import { paperFiberTex, woodGrainTex } from '../render/craft-tex.js';
 
 /* ---------- player：Q版小男生 ---------- */
 const HC=LOOK_RO
-  ? {skin:'#eabfa0',hair:'#433025',hair2:'#523c2f',shirt:'#6b7eb5',shorts:'#3d434e',shoe:'#f2efe8',sole:'#d47353',bag:'#dec048',bag2:'#c4a535',gold:'#e3b75a',white:'#f7f5ef'}
+  ? {skin:'#e6be94',hair:'#784b2d',hair2:'#633c22',shirt:'#4a6991',shorts:'#38404d',shoe:'#f2ede2',sole:'#b86544',bag:'#d9a73c',bag2:'#be8d2c',gold:'#e3b75a',white:'#f5f1e6'}
   : {skin:'#ffe1cc',hair:'#4a3226',hair2:'#5d4030',shirt:'#5aa7e0',shorts:'#2f3e66',shoe:'#f6f5f1',sole:'#d9534a',bag:'#f2b33d',bag2:'#cf8f25',gold:'#e3b75a',white:'#ffffff'};
 const DS={side:THREE.DoubleSide};
+const skinWoodMat=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#ecc69d','#ca9868',{contrast:0.32}),gradientMap:GRAD}):null;
+const hairWoodMat=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#7c4f30','#56331b',{contrast:0.34}),gradientMap:GRAD,side:THREE.DoubleSide}):null;
+const shirtLinenMat=LOOK_RO?new THREE.MeshToonMaterial({map:paperFiberTex('#4e6e96','#3b5678',{alpha:0.22}),gradientMap:GRAD}):null;
+const bagLinenMat=LOOK_RO?new THREE.MeshToonMaterial({map:paperFiberTex('#dda93e','#b98524',{alpha:0.26}),gradientMap:GRAD}):null;
 function part(geo,mat,x,y,z,parent,out){ return mk(geo,typeof mat==='string'?toon(mat):mat,x,y,z,{parent,out}); }
 function outlineU(m,k){ const o=new THREE.Mesh(m.geometry,OUT); o.scale.setScalar(k); m.add(o); return o; }
 function ring(r,tube,col,y,parent,sz){ const m=part(new THREE.TorusGeometry(r,tube,6,28),col,0,y,0,parent); m.rotation.x=Math.PI/2; m.scale.y=sz||1; m.castShadow=false; return m; }
@@ -29,7 +34,7 @@ const model=createHumanoid(playerHumanoidProfile(HC),{parent:scene,part,outlineU
 PACK.push(ring(0.1,0.018,HC.white,0.68,rig,0.9));
 PACK.push(part(BOX,HC.white,0,0.5,0.148,rig)); PACK[1].scale.set(0.15,0.028,0.01);
 const bagGeo=LOOK_RO?new THREE.CapsuleGeometry(0.125,0.08,8,16):BOX;
-const bag=part(bagGeo,HC.bag,0,0.53,-0.2,rig); PACK.push(bag);
+const bag=part(bagGeo,LOOK_RO?bagLinenMat:HC.bag,0,0.53,-0.2,rig); PACK.push(bag);
 if(LOOK_RO) bag.scale.set(1.08,1.0,0.62); else bag.scale.set(0.27,0.3,0.14);
 outline(bag,0).scale.set(1.12,1.1,1.2);
 const pktGeo=LOOK_RO?new THREE.CapsuleGeometry(0.055,0.08,6,12):BOX;
@@ -41,26 +46,34 @@ PACK.push(pkt);
 const {root:player,body:rig,joints:H,limbParts,headCenter:hc}=model;
 const shorts=model.parts.bottom,skull=model.parts.skull;
 H.torso=model.parts.torso;
+if(LOOK_RO){
+  skull.material=skinWoodMat;
+  limbParts.armL.forearm.material=limbParts.armR.forearm.material=skinWoodMat;
+  limbParts.legL.leg.material=limbParts.legR.leg.material=skinWoodMat;
+  H.torso.material=shirtLinenMat;
+  limbParts.armL.sleeve.material=limbParts.armR.sleeve.material=shirtLinenMat;
+}
 const HS=[1.05,0.95,1], EARS=[];
-[-1,1].forEach(s=>{ const e=part(SPH,HC.skin,s*0.31,-0.02,0,hc); e.scale.set(0.05,0.07,0.04); outlineU(e,1.2); EARS.push(e); });
+[-1,1].forEach(s=>{ const e=part(SPH,LOOK_RO?skinWoodMat:HC.skin,s*0.31,-0.02,0,hc); e.scale.set(0.05,0.07,0.04); outlineU(e,1.2); EARS.push(e); });
+if(LOOK_RO){ const nose=part(new THREE.SphereGeometry(0.024,12,10),skinWoodMat,0,-0.035,0.296,hc); nose.scale.set(1,0.9,0.85); }
 function drawFace(g,closed){
   g.clearRect(0,0,256,256);
   g.save(); g.translate(128,0); g.scale(0.78,1); g.translate(-128,0);
   g.lineCap='round';
   if(LOOK_RO){
-    [88,168].forEach(cx=>{
+    [86,170].forEach(cx=>{
       const cy=114;
       if(closed){
-        g.strokeStyle='#2b221e'; g.lineWidth=6;
+        g.strokeStyle='#261910'; g.lineWidth=6;
         g.beginPath(); g.moveTo(cx-10,cy+2); g.quadraticCurveTo(cx,cy+9,cx+10,cy+2); g.stroke();
       } else {
-        g.fillStyle='#2b221e'; g.beginPath(); g.ellipse(cx,cy,8.5,10.5,0,0,7); g.fill();
-        g.fillStyle='rgba(255,255,255,0.65)'; g.beginPath(); g.arc(cx-2.5,cy-3.5,2.4,0,7); g.fill();
+        g.fillStyle='#24170f'; g.beginPath(); g.ellipse(cx,cy,7.5,9.5,0,0,7); g.fill();
+        g.fillStyle='rgba(255,250,240,0.65)'; g.beginPath(); g.arc(cx-2.2,cy-3,2.1,0,7); g.fill();
       }
     });
-    g.fillStyle='rgba(226,128,104,0.28)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,144,14,7.5,0,0,7); g.fill(); });
-    g.strokeStyle='#8c5246'; g.lineWidth=4.5;
-    g.beginPath(); g.moveTo(117,164); g.quadraticCurveTo(128,173,139,164); g.stroke();
+    g.fillStyle='rgba(210,118,92,0.22)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,142,13,7,0,0,7); g.fill(); });
+    g.strokeStyle='#6e422c'; g.lineWidth=4;
+    g.beginPath(); g.moveTo(118,162); g.quadraticCurveTo(128,170,138,162); g.stroke();
     g.restore();
     return;
   }
@@ -85,26 +98,20 @@ const faceMat=basic({map:faceOpen,transparent:true,polygonOffset:true,polygonOff
 const face=new THREE.Mesh(new THREE.SphereGeometry(0.3015,32,20,Math.PI/2-0.8,1.6,Math.PI*0.38,Math.PI*0.42),faceMat);
 face.scale.set(...HS);
 hc.add(face);
-/* 頭髮：LOOK_RO 採用政策島圓潤厚實黏土鮑伯帽型與柔和圓瀏海；原版維持刺刺頭 */
-const hairM=toon(HC.hair,DS), hairM2=toon(HC.hair2,DS);
-const cap=part(new THREE.SphereGeometry(LOOK_RO?0.322:0.315,32,LOOK_RO?18:16,0,Math.PI*2,0,Math.PI*(LOOK_RO?0.46:0.42)),hairM,0,LOOK_RO?0.012:0.01,-0.005,hc);
+/* 頭髮：LOOK_RO 採用車床平滑雕刻胡桃木圓弧帽型與刻痕木瀏海；原版維持刺刺頭 */
+const hairM=LOOK_RO?hairWoodMat:toon(HC.hair,DS), hairM2=LOOK_RO?hairWoodMat:toon(HC.hair2,DS);
+const cap=part(new THREE.SphereGeometry(LOOK_RO?0.318:0.315,32,LOOK_RO?20:16,0,Math.PI*2,0,Math.PI*(LOOK_RO?0.45:0.42)),hairM,0,LOOK_RO?0.012:0.01,-0.005,hc);
 cap.scale.set(...HS);
 outlineU(cap,1.04);
-const back=part(new THREE.SphereGeometry(LOOK_RO?0.324:0.318,32,18,Math.PI/2+(LOOK_RO?1.05:1.1),Math.PI*2-(LOOK_RO?2.1:2.2),0,Math.PI*(LOOK_RO?0.70:0.72)),hairM,0,0,-0.01,hc);
+const back=part(new THREE.SphereGeometry(LOOK_RO?0.320:0.318,32,18,Math.PI/2+(LOOK_RO?1.02:1.1),Math.PI*2-(LOOK_RO?2.04:2.2),0,Math.PI*(LOOK_RO?0.68:0.72)),hairM,0,0,-0.01,hc);
 back.scale.set(...HS);
 outlineU(back,1.04);
 const HAIR=[cap,back];
 if(LOOK_RO){
-  const PUFF=new THREE.SphereGeometry(0.105,18,14);
-  [[0,0.23,0.04,1.25,0.72,1.15],[-0.16,0.16,0.11,1.0,0.8,1.0],[0.16,0.16,0.11,1.0,0.8,1.0],[-0.21,0.04,-0.08,0.95,1.05,1.05],[0.21,0.04,-0.08,0.95,1.05,1.05],[0,0.06,-0.22,1.2,1.0,0.9]].forEach(([x,y,z,sx,sy,sz],i)=>{
-    const m=part(PUFF,i%2?hairM2:hairM,x*HS[0],y*HS[1],z*HS[2],hc);
-    m.scale.set(sx,sy,sz); HAIR.push(m);
-  });
-  const FRINGE=new THREE.CapsuleGeometry(0.056,0.075,8,14);
-  [[-0.58,0.95],[-0.20,1.02],[0.18,1.0],[0.56,0.92]].forEach(([a,sc],i)=>{
-    const g=new THREE.Group(); g.position.set(Math.sin(a)*0.268,0.145,Math.cos(a)*0.268); g.rotation.y=a; hc.add(g);
-    const m=part(FRINGE,i%2?hairM2:hairM,0,-0.03,0,g); m.scale.set(1.05,sc,0.68); m.rotation.set(-0.26,0,a*0.18); HAIR.push(g);
-  });
+  const frL=part(new THREE.SphereGeometry(0.319,28,14,Math.PI/2-0.86,0.82,Math.PI*0.26,Math.PI*0.16),hairM,0,0.006,0,hc);
+  frL.scale.set(...HS); HAIR.push(frL);
+  const frR=part(new THREE.SphereGeometry(0.319,28,14,Math.PI/2+0.06,0.80,Math.PI*0.26,Math.PI*0.16),hairM,0,0.006,0,hc);
+  frR.scale.set(...HS); HAIR.push(frR);
 } else {
   const SPIKE=new THREE.ConeGeometry(0.075,0.15,5);
   SPIKE.translate(0,0.075,0);
@@ -122,7 +129,7 @@ if(LOOK_RO){
     const m=part(BANG,i%2?hairM2:hairM,0,0,0,g,0.012); m.scale.set(1,len,0.5); m.rotation.x=-0.35; HAIR.push(g);
   });
 }
-const shadowBlob=new THREE.Mesh(new THREE.CircleGeometry(0.3,20),basic({color:LOOK_RO?'#2f2b24':'#000',transparent:true,opacity:LOOK_RO?0.15:0.18,depthWrite:false}));
+const shadowBlob=new THREE.Mesh(new THREE.CircleGeometry(0.3,20),basic({color:LOOK_RO?'#362819':'#000',transparent:true,opacity:LOOK_RO?0.18:0.18,depthWrite:false}));
 shadowBlob.rotation.x=-Math.PI/2;
 scene.add(shadowBlob);
 let blinkT=2.5;
@@ -160,8 +167,8 @@ const SLEEVES=[limbParts.armL.sleeve,limbParts.armR.sleeve];
 function setOutfit(kind){
   characterRegistry.beginForm('player',player);
   const swim=kind==='swim';
-  H.torso.material=toon(swim?HC.skin:HC.shirt);
-  SLEEVES.forEach(m=>{ m.material=toon(swim?HC.skin:HC.shirt); });
+  H.torso.material=LOOK_RO?(swim?skinWoodMat:shirtLinenMat):toon(swim?HC.skin:HC.shirt);
+  SLEEVES.forEach(m=>{ m.material=LOOK_RO?(swim?skinWoodMat:shirtLinenMat):toon(swim?HC.skin:HC.shirt); });
   shorts.material=toon(swim?'#1f6fd0':HC.shorts);
   PACK.forEach(m=>{ m.visible=!swim; });
   HAIR.forEach(m=>{ m.visible=!swim; });

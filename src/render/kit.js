@@ -33,16 +33,16 @@ function rampTex2(){
     d[i*4+3]=255; }
   const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t;
 }
-/* 政策島（Heart Island）溫潤黏土與建築模型光影：低反差暖灰米暗面、奶油白受光面，搭配圓潤表面柔霧微高光 */
+/* 手作檜木與紙藝袖珍模型風（Craft Maquette）：攝影棚暖柔光箱色階（溫潤琥珀木影、奶油卡紙中調、柔白受光面）與木蠟油緞面微光澤 */
 function rampTexRO(){
   const N=256, d=new Uint8Array(N*4);
-  const c0=[0.54,0.55,0.52], c1=[0.77,0.77,0.74], c2=[0.95,0.95,0.93];
+  const c0=[0.52,0.48,0.43], c1=[0.79,0.76,0.72], c2=[0.97,0.95,0.92];
   for(let i=0;i<N;i++){
     const x=i/(N-1);
     for(let k=0;k<3;k++){
       let v;
-      if(x<0.48){ const u=x/0.48, s=u*(0.7+0.3*u); v=c0[k]+(c1[k]-c0[k])*s; }
-      else { const u=(x-0.48)/0.52, s=u*(1.15-0.15*u); v=c1[k]+(c2[k]-c1[k])*s; }
+      if(x<0.48){ const u=x/0.48, s=u*(0.68+0.32*u); v=c0[k]+(c1[k]-c0[k])*s; }
+      else { const u=(x-0.48)/0.52, s=u*(1.16-0.16*u); v=c1[k]+(c2[k]-c1[k])*s; }
       d[i*4+k]=Math.max(0,Math.min(255,Math.round(v*255)));
     }
     d[i*4+3]=255;
@@ -53,9 +53,10 @@ const GRAD=LOOK_RO?rampTexRO():(LOOK2?rampTex2():rampTex());
 /* 所有卡通材質加上邊緣光（rim light），讓角色與建築輪廓更立體 */
 THREE.ShaderLib.toon.fragmentShader=THREE.ShaderLib.toon.fragmentShader.replace('#include <output_fragment>',
   LOOK_RO?`{ vec3 vN=normalize(normal); vec3 vV=normalize(vViewPosition);
-     vec3 hDir=normalize(vV+vec3(0.32,0.86,0.38));
-     float claySpec=pow(max(dot(vN,hDir),0.0),20.0)*0.055;
-     outgoingLight+=vec3(1.0,0.99,0.96)*claySpec; }
+     vec3 hDir=normalize(vV+vec3(0.35,0.84,0.40));
+     float waxSpec=pow(max(dot(vN,hDir),0.0),24.0)*0.075;
+     float rimPaper=smoothstep(0.76,0.96,1.0-clamp(dot(vN,vV),0.0,1.0))*0.045*clamp(vN.y*0.5+0.5,0.0,1.0);
+     outgoingLight+=vec3(1.0,0.97,0.91)*(waxSpec+rimPaper); }
    #include <output_fragment>`:
   LOOK2?`{ float rimD=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);
      float rimA=pow(rimD,2.2)*0.55*clamp(normal.y*0.4+0.75,0.0,1.0);
