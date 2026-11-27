@@ -3,7 +3,7 @@
  */
 import * as THREE from 'three';
 import { scene } from '../../core/engine.js';
-import { basic, block, hText, plane, toon } from '../../render/kit.js';
+import { basic, block, hText, plane } from '../../render/kit.js';
 import { circC } from '../../core/collision.js';
 import { WV, waterU } from '../../render/water.js';
 import { registerHeight, registerZone } from '../registry.js';
@@ -14,60 +14,50 @@ const RIV=[[-250,-126],[-185,-136],[-115,-143],[-70,-152],[-20,-164],[20,-178],[
 const rivMat=new THREE.ShaderMaterial({uniforms:waterU,vertexShader:WV,fragmentShader:'uniform float t;varying vec3 vW;void main(){float f=sin((vW.x*0.6+vW.z*0.8)*0.9+t*2.2+sin(vW.x*1.3+t)*1.2);float g=sin(vW.z*0.35-t*1.3+vW.x*0.5);vec3 c=mix(vec3(0.20,0.56,0.70),vec3(0.46,0.81,0.86),0.5+0.25*g);c=mix(c,vec3(0.96,0.99,1.0),smoothstep(0.88,0.97,f)*0.85);gl_FragColor=vec4(c,1.0);}'});
 if(LOOK_RO){
   rivMat.fragmentShader=`uniform float t,dusk,night;varying vec3 vW;varying vec2 vUv;
+    vec2 h2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}
+    float vor(vec2 x,float tm){
+      vec2 n=floor(x),f=fract(x);float md=8.0;
+      for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
+        vec2 g=vec2(float(i),float(j)),o=h2(n+g);
+        o=0.5+0.42*sin(tm+6.2831*o);
+        vec2 r=g+o-f;md=min(md,dot(r,r));
+      }
+      return sqrt(md);
+    }
     void main(){
       float edge=abs(vUv.x-0.5)*2.0;
-      vec3 base=mix(vec3(0.20,0.73,0.84),vec3(0.42,0.85,0.91),smoothstep(0.0,0.90,edge));
-      float wave=sin((vW.x*0.58+vW.z*0.78)*0.95-t*1.05+sin(vW.x*0.35-t*0.4)*0.8);
-      float topo1=smoothstep(0.84,0.96,wave)*0.68;
-      float topo2=smoothstep(0.90,0.98,sin(edge*15.0-t*0.55+sin(vW.x*0.4)*1.2))*0.42;
-      vec3 c=mix(base,vec3(0.98,1.0,1.0),clamp(topo1+topo2,0.0,0.84));
-      float bank=smoothstep(0.83,0.98,edge);
-      c=mix(c,vec3(1.0,1.0,1.0),bank*0.86);
-      c=mix(c,c*vec3(1.08,0.92,0.84),dusk*0.45);
-      c=mix(c,c*vec3(0.56,0.70,0.90)+vec3(0.05,0.10,0.16),night*0.68);
+      vec2 flow=vec2(-t*0.38,t*0.12);
+      float v1=vor(vW.xz*0.62+flow,t*1.35);
+      float v2=vor(vW.xz*0.95-flow*0.7+vec2(4.2,1.7),t*1.7);
+      float peb=vor(vW.xz*1.45,0.0);
+      vec3 deep=vec3(0.11,0.48,0.68), mid=vec3(0.20,0.66,0.84), shal=vec3(0.38,0.81,0.92);
+      vec3 c=mix(deep,mid,smoothstep(0.0,0.68,edge));
+      c=mix(c,shal,smoothstep(0.55,0.95,edge));
+      c*=0.91+0.12*smoothstep(0.22,0.65,peb);
+      float web=smoothstep(0.42,0.78,v1)*0.65+smoothstep(0.48,0.82,v2)*0.55;
+      c=mix(c,vec3(0.76,0.96,1.0),clamp(web,0.0,0.78)*0.62);
+      c+=vec3(0.85,0.98,1.0)*smoothstep(0.74,0.88,v1*0.6+v2*0.5)*0.28;
+      float foamWave=0.055*sin(vW.x*1.9+vW.z*1.7+t*2.8)+0.03*cos(vW.x*3.3-t*2.1);
+      float bank=smoothstep(0.74,0.95,edge+foamWave);
+      c=mix(c,vec3(0.95,0.99,1.0),bank*0.85);
+      c=mix(c,c*vec3(1.15,0.86,0.74),dusk*0.56);
+      c=mix(c,c*vec3(0.42,0.58,0.90)+vec3(0.04,0.10,0.21),night*0.78);
       gl_FragColor=vec4(c,1.0);
     }`;
 }
-const bankStep1=LOOK_RO?toon('#e8d7be'):null;
-const bankStep2=LOOK_RO?toon('#f2e6d3'):null;
-const bankStep3=LOOK_RO?toon('#faf5eb'):null;
-const bridgeCoralMat=LOOK_RO?toon('#ef6c4b'):null;
-const bridgeDeckMat=LOOK_RO?toon('#f5e2c8'):null;
-const bridgeWhiteMat=LOOK_RO?toon('#ffffff'):null;
-
 for(let i=0;i<RIV.length-1;i++){
   const [x0,z0]=RIV[i],[x1,z1]=RIV[i+1], dx=x1-x0, dz=z1-z0, len=Math.hypot(dx,dz);
   const g=new THREE.Group(); g.position.set((x0+x1)/2,0,(z0+z1)/2); g.rotation.y=Math.atan2(dx,dz); scene.add(g);
   const w=new THREE.Mesh(new THREE.PlaneGeometry(6,len+3),rivMat); w.rotation.x=-Math.PI/2; w.position.y=0.03; g.add(w);
-  [-1,1].forEach(s=>{
-    if(LOOK_RO){
-      block(s*3.16,0.08,0,0.44,0.16,len+3,bankStep1,0.018,g);
-      block(s*3.44,0.13,0,0.52,0.26,len+3,bankStep2,0.018,g);
-      block(s*3.76,0.18,0,0.60,0.36,len+3,bankStep3,0.022,g);
-    } else {
-      block(s*3.25,0.22,0,0.5,0.44,len+3,'#a8a091',0.02,g);
-      block(s*3.25,0.47,0,0.7,0.08,len+3,'#c6bdac',0,g);
-    }
-  });
+  [-1,1].forEach(s=>{ block(s*3.25,0.22,0,0.5,0.44,len+3,LOOK_RO?'#adb5c2':'#a8a091',0.02,g); block(s*3.25,0.47,0,0.7,0.08,len+3,LOOK_RO?'#cfd6e0':'#c6bdac',0,g); });
 }
 /* ---------- 橋 ---------- */
-// 小紅橋（Bruno Simon 明快珊瑚橘與奶白幾何小橋）
+// 小紅橋（原有的人行橋），沿溪道路就在它北端
 const BR={x:-45,z:-158}, BD={x:0.973,z:-0.233}, BN={x:0.233,z:0.973};
 { const brG=new THREE.Group(); brG.position.set(BR.x,0,BR.z); brG.rotation.y=Math.atan2(BN.x,BN.z); scene.add(brG);
-  if(LOOK_RO){
-    block(0,0.19,0,4.6,0.38,9.1,bridgeCoralMat,0.035,brG);
-    block(0,0.405,0,4.1,0.05,9.0,bridgeDeckMat,0.012,brG);
-    [-2.2,2.2].forEach(x=>{
-      for(let z=-4.3;z<=4.31;z+=1.075) block(x,0.90,z,0.20,0.92,0.20,bridgeWhiteMat,0.022,brG);
-      block(x,0.88,0,0.09,0.10,8.7,bridgeWhiteMat,0.012,brG);
-      block(x,1.35,0,0.24,0.15,8.9,bridgeCoralMat,0.025,brG);
-    });
-  } else {
-    block(0,0.21,0,4.6,0.42,9,'#b98552',0.04,brG);
-    for(let z=-4.2;z<=4.21;z+=0.7) block(0,0.43,z,4.5,0.02,0.05,'#9c6c40',0,brG);
-    [-2.2,2.2].forEach(x=>{ for(let z=-4.3;z<=4.31;z+=1.075) block(x,0.9,z,0.18,0.9,0.18,'#c9533d',0.025,brG); block(x,1.32,0,0.22,0.14,8.8,'#d95f45',0.025,brG); });
-  }
-}
+  block(0,0.2,0,4.6,0.4,9,'#b98552',0.04,brG);
+  for(let z=-4.2;z<=4.21;z+=0.7) block(0,0.41,z,4.5,0.02,0.05,'#9c6c40',0,brG);
+  [-2.2,2.2].forEach(x=>{ for(let z=-4.3;z<=4.31;z+=1.075) block(x,0.9,z,0.18,0.9,0.18,'#c9533d',0.025,brG); block(x,1.32,0,0.22,0.14,8.8,'#d95f45',0.025,brG); }); }
 
 /** 溪在某個 x 的位置（中心線的 z） */
 function riverZ(x){ for(let i=0;i<RIV.length-1;i++){ const [x0,z0]=RIV[i],[x1,z1]=RIV[i+1]; if(x>=x0&&x<=x1) return z0+(z1-z0)*(x-x0)/(x1-x0); } return null; }
@@ -79,13 +69,15 @@ const BRIDGES=[BR];
 function carBridge(x,name,tail){
   const z=riverZ(x), n=riverNormal(x), d={x:n.z,z:-n.x};
   const g=new THREE.Group(); g.position.set(x,0,z); g.rotation.y=Math.atan2(n.x,n.z); scene.add(g);
-  block(0,0.2,0,6,0.4,9,LOOK_RO?bankStep2:'#b7b4ab',0.04,g);
-  block(0,0.41,0,4.8,0.02,9,LOOK_RO?'#5d6473':'#5b6270',0,g);
-  [-3.1,3.1].forEach(u=>{ block(u,0.85,0,0.35,0.9,9,LOOK_RO?bankStep3:'#e1ddd3',0.03,g); block(u,1.33,0,0.45,0.10,9.2,LOOK_RO?bridgeCoralMat:'#c9c4b8',0.02,g); });
-  block(-4.1,0.7,-5.6,1.6,1.4,0.4,LOOK_RO?bridgeWhiteMat:'#cfcac0',0.03,g);
-  const t=hText(name,LOOK_RO?'#262936':'#3e3a32','900 110px "Noto Serif TC","Noto Sans TC",serif',420,150,70);
+  block(0,0.2,0,6,0.4,9,'#b7b4ab',0.04,g);
+  block(0,0.41,0,4.8,0.02,9,'#5b6270',0,g);
+  [-3.1,3.1].forEach(u=>{ block(u,0.85,0,0.35,0.9,9,'#e1ddd3',0.03,g); block(u,1.33,0,0.45,0.08,9.2,'#c9c4b8',0,g); });
+  // 橋名石碑
+  // 立在南端路邊（北端是沿溪道路），兩面都有字
+  block(-4.1,0.7,-5.6,1.6,1.4,0.4,'#cfcac0',0.03,g);
+  const t=hText(name,'#3e3a32','900 110px "Noto Serif TC","Noto Sans TC",serif',420,150,70);
   [[-5.81,Math.PI],[-5.39,0]].forEach(([v,ry])=>{ const p=plane(1.4,0.5,basic({map:t,transparent:true}),0,0,0,0,ry); scene.remove(p); p.position.set(-4.1,0.8,v); g.add(p); });
-  if(tail) block(0,0.01,-4.5-tail/2,4.8,0.02,tail,LOOK_RO?'#5d6473':'#5b6270',0,g);
+  if(tail) block(0,0.01,-4.5-tail/2,4.8,0.02,tail,'#5b6270',0,g);
   const b={x,z,BD:d,BN:n,w:3,l:6}; BRIDGES.push(b);
   for(let v=-4.5;v<=4.51;v+=0.75) [-3.1,3.1].forEach(u=>circC(x+u*d.x+v*n.x,z+u*d.z+v*n.z,0.3));
   circC(x-4.1*d.x-5.6*n.x,z-4.1*d.z-5.6*n.z,0.8);

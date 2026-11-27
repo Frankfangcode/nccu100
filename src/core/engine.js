@@ -22,7 +22,7 @@ renderer.shadowMap.type = MOBILE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 $('stage').appendChild(renderer.domElement);
 const contextRecovery = installContextRecovery(renderer.domElement);
 const scene = new THREE.Scene();
-scene.fog = LOOK_RO ? new THREE.Fog('#e6ece2',145,620) : (LOOK2 ? new THREE.Fog('#bfe2fb',90,520) : new THREE.Fog('#cfe8f7',140,560));
+scene.fog = LOOK_RO ? new THREE.Fog('#c8e4fa',130,580) : (LOOK2 ? new THREE.Fog('#bfe2fb',90,520) : new THREE.Fog('#cfe8f7',140,560));
 const camera = new THREE.PerspectiveCamera(LOOK_RO ? RO_CFG.fov : 55,innerWidth/innerHeight,0.25,1200);
 document.body.classList.add('title');
 

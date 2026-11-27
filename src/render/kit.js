@@ -33,18 +33,16 @@ function rampTex2(){
     d[i*4+3]=255; }
   const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t;
 }
-/* Bruno Simon 明快玩具世界風：暖蜜桃赤陶色反光暗面、柔和明暗交界、奶油暖白受光面 */
+/* 普隆德拉低多邊形折面光影：連續斜率色階搭配 flatShading 面法線，讓二十面體樹冠與屋頂每一片三角形都呈現清晰獨立的亮暗切面，且不爆白 */
 function rampTexRO(){
   const N=256, d=new Uint8Array(N*4);
-  const sh=[0.74,0.60,0.55], mid=[0.88,0.80,0.75], lit=[1.00,0.98,0.95];
+  const c0=[0.16,0.23,0.40], c1=[0.50,0.54,0.65], c2=[0.89,0.87,0.82];
   for(let i=0;i<N;i++){
     const x=i/(N-1);
-    const t1=Math.max(0,Math.min(1,x/0.42));
-    const s2=Math.max(0,Math.min(1,(x-0.40)/0.18)), ss2=s2*s2*(3-2*s2);
-    const hi=x<0.84?0:x>0.96?1:(x-0.84)/0.12, hl=0.03*hi*hi*(3-2*hi);
     for(let k=0;k<3;k++){
-      const base=sh[k]+(mid[k]-sh[k])*t1*0.45;
-      const v=base+(lit[k]-base)*ss2+hl;
+      let v;
+      if(x<0.48){ const u=x/0.48, s=u*(0.65+0.35*u); v=c0[k]+(c1[k]-c0[k])*s; }
+      else { const u=(x-0.48)/0.52, s=u*(1.25-0.25*u); v=c1[k]+(c2[k]-c1[k])*s; }
       d[i*4+k]=Math.max(0,Math.min(255,Math.round(v*255)));
     }
     d[i*4+3]=255;
@@ -52,31 +50,11 @@ function rampTexRO(){
   const t=new THREE.DataTexture(d,N,1,THREE.RGBAFormat); t.minFilter=t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; t.needsUpdate=true; return t;
 }
 const GRAD=LOOK_RO?rampTexRO():(LOOK2?rampTex2():rampTex());
-const roCloudTime={value:0};
-const bindRoUniforms=sh=>{ sh.uniforms.uRoCloudT=roCloudTime; };
-if(LOOK_RO){
-  THREE.ShaderLib.toon.vertexShader=THREE.ShaderLib.toon.vertexShader
-    .replace('#include <common>','#include <common>\nvarying vec3 vRoWPos;')
-    .replace('#include <project_vertex>',`#include <project_vertex>
-      #ifdef USE_INSTANCING
-        vRoWPos=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xyz;
-      #else
-        vRoWPos=(modelMatrix*vec4(transformed,1.0)).xyz;
-      #endif`);
-  THREE.ShaderLib.toon.fragmentShader=THREE.ShaderLib.toon.fragmentShader
-    .replace('#include <common>','#include <common>\nvarying vec3 vRoWPos;\nuniform float uRoCloudT;');
-}
-/* 所有卡通材質加上邊緣光與玩具模型微光澤（LOOK_RO 另含飄動雲影） */
+/* 所有卡通材質加上邊緣光（rim light），讓角色與建築輪廓更立體 */
 THREE.ShaderLib.toon.fragmentShader=THREE.ShaderLib.toon.fragmentShader.replace('#include <output_fragment>',
-  LOOK_RO?`{ vec3 vN=normalize(normal); vec3 vV=normalize(vViewPosition);
-     float c1=sin(vRoWPos.x*0.032+uRoCloudT*0.22)*cos(vRoWPos.z*0.028-uRoCloudT*0.16);
-     float c2=sin((vRoWPos.x+vRoWPos.z)*0.019-uRoCloudT*0.12);
-     float cloud=smoothstep(0.16,0.74,c1*0.6+c2*0.4);
-     outgoingLight*=mix(vec3(1.0),vec3(0.92,0.89,0.93),cloud*0.62);
-     vec3 hDir=normalize(vV+vec3(0.32,0.86,0.38));
-     float toySpec=pow(max(dot(vN,hDir),0.0),28.0)*0.06;
-     float topGlow=clamp(vN.y,0.0,1.0)*0.032;
-     outgoingLight+=vec3(1.0,0.98,0.93)*(toySpec+topGlow); }
+  LOOK_RO?`{ float rimD=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);
+     float rimA=smoothstep(0.72,0.94,rimD)*0.09*clamp(normal.y*0.4+0.5,0.0,1.0);
+     outgoingLight+=diffuseColor.rgb*vec3(1.0,0.97,0.92)*rimA; }
    #include <output_fragment>`:
   LOOK2?`{ float rimD=1.0-clamp(dot(normal,normalize(vViewPosition)),0.0,1.0);
      float rimA=pow(rimD,2.2)*0.55*clamp(normal.y*0.4+0.75,0.0,1.0);
@@ -89,11 +67,7 @@ THREE.ShaderLib.toon.fragmentShader=THREE.ShaderLib.toon.fragmentShader.replace(
 const matCache={};
 function toon(c,extra){
   const k=c+JSON.stringify(extra||{});
-  if(!matCache[k]){
-    const m=new THREE.MeshToonMaterial(Object.assign({color:c,gradientMap:GRAD},extra||{}));
-    if(LOOK_RO) m.onBeforeCompile=bindRoUniforms;
-    matCache[k]=m;
-  }
+  if(!matCache[k]) matCache[k]=new THREE.MeshToonMaterial(Object.assign({color:c,gradientMap:GRAD},extra||{}));
   return matCache[k];
 }
 const OUT=new THREE.MeshBasicMaterial({color:'#2a2c4a',side:THREE.BackSide});
@@ -160,4 +134,4 @@ function hText(txt,color,font,w,h,spacing){
     chars.forEach((c,i)=>{ const m=g.measureText(c).width; g.fillText(c,spacing+i*step-m/2,h/2+4); }); });
 }
 
-export { BOX, GRAD, OUT, SPH, basic, block, canvasTex, canvasTexStats, flat, gradTex, hText, mk, outline, plane, roCloudTime, toon, vText };
+export { BOX, GRAD, OUT, SPH, basic, block, canvasTex, canvasTexStats, flat, gradTex, hText, mk, outline, plane, toon, vText };
