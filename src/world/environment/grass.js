@@ -8,21 +8,22 @@ import { bdZ, inLot, swZ } from '../layout.js';
 import { FZ } from '../terrain/fountain.js';
 import { world } from '../registry.js';
 import { LOOK_RO } from '../../render/look.js';
-import { woolFeltTex } from '../../render/craft-tex.js';
 
 /* ---------- grass ---------- */
 const grassU={value:0};
 const bladeGeo=LOOK_RO
-  ? new THREE.SphereGeometry(0.23,10,7,0,Math.PI*2,0,Math.PI*0.56)
+  ? new THREE.IcosahedronGeometry(0.18,0)
   : new THREE.PlaneGeometry(0.1,0.5,1,3);
-if(LOOK_RO) bladeGeo.scale(1,0.55,0.88);
-else {
+if(LOOK_RO){
+  bladeGeo.scale(1,0.65,0.9);
+  bladeGeo.translate(0,0.06,0);
+} else {
   bladeGeo.translate(0,0.25,0);
   const n=bladeGeo.attributes.normal; for(let i=0;i<n.count;i++) n.setXYZ(i,0,1,0);
 }
 const grassMat=new THREE.MeshToonMaterial(Object.assign(
   {color:'#ffffff',gradientMap:GRAD,side:LOOK_RO?THREE.FrontSide:THREE.DoubleSide},
-  LOOK_RO?{map:woolFeltTex('#ffffff','#dcdad2',{repeat:[1,1]})}:{},
+  LOOK_RO?{flatShading:true}:{},
 ));
 if(!LOOK_RO){
   grassMat.onBeforeCompile=sh=>{
@@ -33,10 +34,10 @@ if(!LOOK_RO){
      .replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=mix(0.62,1.18,vH);');
   };
 }
-const GN=LOOK_RO?520:7000, grass=new THREE.InstancedMesh(bladeGeo,grassMat,GN);
+const GN=LOOK_RO?360:7000, grass=new THREE.InstancedMesh(bladeGeo,grassMat,GN);
 grass.receiveShadow=true;
 const dm=new THREE.Object3D(), gc=new THREE.Color();
-const gTones=LOOK_RO?['#506c33','#648243','#799654','#455e2b']:['#6fb84f','#82c95a','#94d462','#5fa847'];
+const gTones=LOOK_RO?['#66c45e','#7ed672','#fffaf0','#ffd459']:['#6fb84f','#82c95a','#94d462','#5fa847'];
 // 建築可自行登記除草範圍；未登記的建築與地形維持原有取樣規則。
 const grassExclusions=world.buildings.filter(b=>typeof b.excludeGrassAt==='function');
 let gi=0;

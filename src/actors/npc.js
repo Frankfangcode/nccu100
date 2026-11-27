@@ -11,9 +11,8 @@ import { installCampusStudent } from './std-humanoid/index.js';
 import { state } from '../core/state.js';
 import { MOBILE, scene } from '../core/engine.js';
 import { AU } from '../systems/audio.js';
-import { BOX, GRAD, SPH, basic, canvasTex, outline, toon } from '../render/kit.js';
+import { BOX, SPH, basic, canvasTex, outline, toon } from '../render/kit.js';
 import { LOOK_RO } from '../render/look.js';
-import { woodGrainTex } from '../render/craft-tex.js';
 import { resolve } from '../core/collision.js';
 import { roomScene } from '../core/rooms.js';
 import { police } from './police-car.js';
@@ -22,16 +21,12 @@ import { outlineU, part } from './player.js';
 import { dlg, openDialog } from '../ui/dialog.js';
 import { groundH, indoor, lerpA, pos, spots } from '../core/gameplay.js';
 
-const npcWoodSkin=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#e8c196','#c79665',{contrast:0.30}),gradientMap:GRAD}):null;
-const npcWoodHairDark=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#6d4428','#4a2b16',{contrast:0.34}),gradientMap:GRAD,side:THREE.DoubleSide}):null;
-const npcWoodHairWarm=LOOK_RO?new THREE.MeshToonMaterial({map:woodGrainTex('#96633b','#704523',{contrast:0.32}),gradientMap:GRAD,side:THREE.DoubleSide}):null;
-
-function craftClothHex(hex, targetHex, mixAmt = 0.28, satScale = 0.78) {
+function toyClothHex(hex, targetHex, mixAmt = 0.08, satScale = 1.05) {
   if (!LOOK_RO || typeof hex !== 'string' || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
   const c = new THREE.Color(hex), t = new THREE.Color(targetHex), hsl = {};
   c.lerp(t, mixAmt);
   c.getHSL(hsl);
-  c.setHSL(hsl.h, Math.min(0.46, hsl.s * satScale), Math.max(0.20, Math.min(0.84, hsl.l)));
+  c.setHSL(hsl.h, Math.min(0.76, hsl.s * satScale), Math.max(0.24, Math.min(0.86, hsl.l)));
   return '#' + c.getHexString();
 }
 
@@ -42,24 +37,24 @@ state.holdPang=false; state.driving=false; state.carSpeed=0; state.carYaw=Math.P
 function rrect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
 function textSprite(w,h,draw,sx,sy){ const t=canvasTex(w,h,draw); const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthWrite:false,transparent:true})); s.scale.set(sx,sy,1); s.userData.tex=t; return s; }
 function nameTag(label,col){ return textSprite(512,112,(g,w,h)=>{ g.font='700 36px "Noto Sans TC",sans-serif'; const tw=Math.min(w-20,g.measureText(label).width+56), x=(w-tw)/2;
-  g.fillStyle=LOOK_RO?'rgba(246,238,223,.96)':'rgba(26,24,38,.8)'; rrect(g,x,12,tw,h-24,36); g.fill(); g.strokeStyle=LOOK_RO?'#8c623d':col; g.lineWidth=LOOK_RO?5:4; g.stroke();
-  g.fillStyle=LOOK_RO?'#332418':col; g.textAlign='center'; g.textBaseline='middle'; g.fillText(label,w/2,h/2+2); },2.3,0.5); }
+  g.fillStyle=LOOK_RO?'rgba(255,255,255,.95)':'rgba(26,24,38,.8)'; rrect(g,x,12,tw,h-24,LOOK_RO?38:36); g.fill(); g.strokeStyle=LOOK_RO?'#ff7847':col; g.lineWidth=LOOK_RO?5:4; g.stroke();
+  g.fillStyle=LOOK_RO?'#252936':col; g.textAlign='center'; g.textBaseline='middle'; g.fillText(label,w/2,h/2+2); },2.3,0.5); }
 function speech(){ let text=''; const spr=textSprite(720,190,(g,w,h)=>{ if(!text) return; let fs=44; g.font=`900 ${fs}px "Noto Sans TC",sans-serif`; while(g.measureText(text).width>w-90&&fs>26){ fs-=2; g.font=`900 ${fs}px "Noto Sans TC",sans-serif`; }
     const tw=Math.min(w-20,g.measureText(text).width+64), x=(w-tw)/2;
-    g.fillStyle=LOOK_RO?'#faf5ea':'#ffffff'; g.strokeStyle=LOOK_RO?'#9c6d43':'#2b2436'; g.lineWidth=LOOK_RO?5.5:5; rrect(g,x,10,tw,116,LOOK_RO?28:32); g.fill(); g.stroke();
+    g.fillStyle=LOOK_RO?'#ffffff':'#ffffff'; g.strokeStyle=LOOK_RO?'#ff7847':'#2b2436'; g.lineWidth=LOOK_RO?5.5:5; rrect(g,x,10,tw,116,LOOK_RO?34:32); g.fill(); g.stroke();
     g.beginPath(); g.moveTo(w/2-20,124); g.lineTo(w/2,170); g.lineTo(w/2+20,124); g.fill(); g.stroke(); g.fillRect(w/2-17,LOOK_RO?114:116,34,LOOK_RO?13:11);
-    g.fillStyle=LOOK_RO?'#2f2217':'#2b2436'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,w/2,70); },3.6,0.95);
+    g.fillStyle=LOOK_RO?'#252936':'#2b2436'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,w/2,70); },3.6,0.95);
   spr.say=t=>{ if(t!==text){ text=t; spr.userData.tex.redraw(); } spr.visible=!!t; }; spr.visible=false; return spr; }
 function npcFace(brow,mode){ return canvasTex(256,256,g=>{ g.save(); g.translate(128,0); g.scale(0.78,1); g.translate(-128,0); g.lineCap='round';
   if(LOOK_RO){
     [86,170].forEach(cx=>{ const cy=114;
-      if(mode==='closed'){ g.strokeStyle='#261910'; g.lineWidth=5.5; g.beginPath(); g.moveTo(cx-10,cy+2); g.quadraticCurveTo(cx,cy+8,cx+10,cy+2); g.stroke(); }
-      else if(mode==='panic'){ g.fillStyle='#ffffff'; g.beginPath(); g.arc(cx,cy,13,0,7); g.fill(); g.strokeStyle='#261910'; g.lineWidth=4; g.stroke(); g.fillStyle='#261910'; g.beginPath(); g.arc(cx,cy,4.5,0,7); g.fill(); }
-      else { g.fillStyle='#24170f'; g.beginPath(); g.ellipse(cx,cy,7.2,9.2,0,0,7); g.fill(); g.fillStyle='rgba(255,250,240,0.6)'; g.beginPath(); g.arc(cx-2.2,cy-3,2,0,7); g.fill(); }
+      if(mode==='closed'){ g.strokeStyle='#261e1b'; g.lineWidth=5.5; g.beginPath(); g.moveTo(cx-10,cy+2); g.quadraticCurveTo(cx,cy+8,cx+10,cy+2); g.stroke(); }
+      else if(mode==='panic'){ g.fillStyle='#ffffff'; g.beginPath(); g.arc(cx,cy,13,0,7); g.fill(); g.strokeStyle='#261e1b'; g.lineWidth=4; g.stroke(); g.fillStyle='#261e1b'; g.beginPath(); g.arc(cx,cy,4.5,0,7); g.fill(); }
+      else { g.fillStyle='#231c1a'; g.beginPath(); g.ellipse(cx,cy,7.6,9.8,0,0,7); g.fill(); g.fillStyle='#ffffff'; g.beginPath(); g.arc(cx-2.2,cy-3,2.3,0,7); g.fill(); }
     });
-    g.fillStyle='rgba(210,118,92,0.20)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,142,12,6.5,0,0,7); g.fill(); });
-    if(mode==='panic'){ g.fillStyle='#6e3528'; g.beginPath(); g.ellipse(128,168,10,13,0,0,7); g.fill(); }
-    else { g.strokeStyle='#6e422c'; g.lineWidth=4; g.beginPath(); g.moveTo(118,162); g.quadraticCurveTo(128,170,138,162); g.stroke(); }
+    g.fillStyle='rgba(255,118,96,0.28)'; [66,190].forEach(x=>{ g.beginPath(); g.ellipse(x,142,13,7,0,0,7); g.fill(); });
+    if(mode==='panic'){ g.fillStyle='#7a382e'; g.beginPath(); g.ellipse(128,168,10,13,0,0,7); g.fill(); }
+    else { g.strokeStyle='#7a4434'; g.lineWidth=4; g.beginPath(); g.moveTo(118,162); g.quadraticCurveTo(128,170,138,162); g.stroke(); }
     g.restore(); return;
   }
   [84,172].forEach(cx=>{ const cy=110;
@@ -74,9 +69,9 @@ function npcFace(brow,mode){ return canvasTex(256,256,g=>{ g.save(); g.translate
 function makePerson(o,where){
   const appearance={hair:[],headwear:[],accessory:[],body:[],protected:[]};
   const lookIn=LOOK_RO?{...o,
-    top:craftClothHex(o.top||'#5d7b54','#c9bfae',0.22,0.76),
-    pants:craftClothHex(o.pants||'#474b52','#625d55',0.24,0.72),
-    skin:craftClothHex(o.skin||'#e6be94','#e6be94',0.50,0.85),
+    top:toyClothHex(o.top||'#4f8be6','#fff6ea',0.08,1.08),
+    pants:toyClothHex(o.pants||'#374463','#3d4760',0.10,0.95),
+    skin:toyClothHex(o.skin||'#ffdcc2','#ffdcc2',0.45,0.95),
   }:o;
   const top=lookIn.top||'#5a7fb0',pants=lookIn.pants||'#2f3446',skin=lookIn.skin||'#ffe1cc';
   function decorateTorso(rig){
@@ -87,7 +82,7 @@ function makePerson(o,where){
   if(o.police){ part(BOX,'#e8c547',-0.08,0.62,0.154,rig).scale.set(0.05,0.06,0.01); part(BOX,'#e8c547',0.09,0.64,0.152,rig).scale.set(0.07,0.02,0.01); part(new THREE.CylinderGeometry(0.19,0.19,0.05,18),'#1a1d26',0,0.43,0,rig).scale.z=0.88; }
   if(o.hood) part(new THREE.TorusGeometry(0.13,0.05,8,16),top,0,0.68,-0.04,rig).rotation.x=Math.PI/2.2;
   if(o.bag){
-    const bagCol=LOOK_RO?craftClothHex(o.bag,'#d8b878',0.24,0.82):o.bag;
+    const bagCol=LOOK_RO?toyClothHex(o.bag,'#ffb838',0.14,1.08):o.bag;
     const b=part(LOOK_RO?new THREE.CapsuleGeometry(0.11,0.07,8,14):BOX,bagCol,0,0.53,-0.19,rig);
     if(LOOK_RO) b.scale.set(1.06,1.0,0.58); else b.scale.set(0.24,0.28,0.12);
     outline(b,0).scale.set(1.12,1.1,1.2); appearance.accessory.push(b); }
@@ -99,17 +94,14 @@ function makePerson(o,where){
   const model=createHumanoid(npcHumanoidProfile(lookIn),{parent:where||scene,part,outlineU,BOX,SPH,afterTorso:context=>{const before=new Set(context.body.children);decorateTorso(context.body);context.parts.torsoDecorations=context.body.children.filter(node=>!before.has(node));},afterArms:({joints})=>decorateArms(joints)});
   const {root:g,body:rig,joints:P,limbParts,headCenter:hc}=model;
   if(LOOK_RO){
-    model.parts.skull.material=npcWoodSkin;
-    if(limbParts.armL.hand) limbParts.armL.hand.material=limbParts.armR.hand.material=npcWoodSkin;
-    if(o.shortSleeve) limbParts.armL.forearm.material=limbParts.armR.forearm.material=npcWoodSkin;
-    const nose=part(new THREE.SphereGeometry(0.022,10,8),npcWoodSkin,0,-0.032,0.276,hc); nose.scale.set(1,0.9,0.85); appearance.body.push(nose);
+    const nose=part(new THREE.SphereGeometry(0.022,10,8),skin,0,-0.032,0.276,hc); nose.scale.set(1,0.9,0.85); appearance.body.push(nose);
   }
-  const hairCol=LOOK_RO?craftClothHex(o.hair||'#5c3a22','#784c2d',0.35,0.82):(o.hair||'#2a2220');
+  const hairCol=LOOK_RO?toyClothHex(o.hair||'#4d3224','#5c3b28',0.20,0.95):(o.hair||'#2a2220');
   const brow=o.brow||hairCol||'#2a2220';
   P.fA=npcFace(brow,'open'); P.fB=npcFace(brow,'closed'); P.fC=npcFace(brow,'panic');
   P.fm=basic({map:P.fA,transparent:true,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
   const f=new THREE.Mesh(new THREE.SphereGeometry(0.2815,32,20,Math.PI/2-0.8,1.6,Math.PI*0.38,Math.PI*0.42),P.fm); f.scale.set(1.05,0.97,1); hc.add(f); appearance.protected.push(f);
-  const hm=LOOK_RO?((hairCol.charCodeAt(1)&1)?npcWoodHairWarm:npcWoodHairDark):toon(hairCol,{side:THREE.DoubleSide});
+  const hm=toon(hairCol,{side:THREE.DoubleSide});
   const capH=part(new THREE.SphereGeometry(LOOK_RO?0.300:0.296,28,LOOK_RO?18:14,0,Math.PI*2,0,Math.PI*(o.hairStyle==='bowl'?(LOOK_RO?0.46:0.45):(LOOK_RO?0.43:0.38))),hm,0,0.012,-0.006,hc); capH.scale.set(1.05,0.97,1); outlineU(capH,1.04);
   const back=part(new THREE.SphereGeometry(LOOK_RO?0.302:0.299,28,18,Math.PI/2+1.05,Math.PI*2-2.1,0,Math.PI*(o.hairStyle==='short'?(LOOK_RO?0.60:0.58):(LOOK_RO?0.68:0.66))),hm,0,0,-0.01,hc); back.scale.set(1.05,0.97,1);
   const hairTop=[capH]; appearance.hair.push(capH,back);
